@@ -26,7 +26,7 @@ class LLMAgent:
     Uses Ollama or mocked responses to generate agent decisions.
     """
     
-    def __init__(self, model_name: str = "gemma:1b", mock: bool = False):
+    def __init__(self, model_name: str = "gemma:4b", mock: bool = False):
         """
         Initialize the LLM agent.
         

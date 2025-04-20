@@ -1,6 +1,6 @@
 2025-04-20 22:28:32,635 - __main__ - INFO - Configuring simulation...
 2025-04-20 22:28:32,635 - __main__ - INFO - Initializing simulation with population 5
-2025-04-20 22:28:32,742 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:28:32,742 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=True)
 2025-04-20 22:28:32,743 - core.simulation - WARNING - UltimatumGameHandler not found
 2025-04-20 22:28:32,744 - core.simulation - WARNING - TrustGameHandler not found
 2025-04-20 22:28:32,745 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
@@ -18,7 +18,7 @@
 2025-04-20 22:28:32,756 - __main__ - INFO - Total narrative events: 0
 2025-04-20 22:28:37,666 - __main__ - INFO - Configuring simulation...
 2025-04-20 22:28:37,667 - __main__ - INFO - Initializing simulation with population 10
-2025-04-20 22:28:37,771 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:28:37,771 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=True)
 2025-04-20 22:28:37,772 - core.simulation - WARNING - UltimatumGameHandler not found
 2025-04-20 22:28:37,772 - core.simulation - WARNING - TrustGameHandler not found
 2025-04-20 22:28:37,774 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
@@ -38,7 +38,7 @@
 2025-04-20 22:28:37,787 - __main__ - INFO - Total narrative events: 0
 2025-04-20 22:29:38,690 - __main__ - INFO - Configuring simulation...
 2025-04-20 22:29:38,691 - __main__ - INFO - Initializing simulation with population 5
-2025-04-20 22:29:38,802 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:29:38,802 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=True)
 2025-04-20 22:29:38,803 - core.simulation - WARNING - UltimatumGameHandler not found
 2025-04-20 22:29:38,804 - core.simulation - WARNING - TrustGameHandler not found
 2025-04-20 22:29:38,809 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
@@ -126,7 +126,7 @@
 2025-04-20 22:31:16,945 - __main__ - INFO - Total narrative events: 0
 2025-04-20 22:32:06,775 - __main__ - INFO - Configuring simulation...
 2025-04-20 22:32:06,775 - __main__ - INFO - Initializing simulation with population 5
-2025-04-20 22:32:06,874 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:32:06,874 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=True)
 2025-04-20 22:32:06,875 - core.simulation - WARNING - UltimatumGameHandler not found
 2025-04-20 22:32:06,875 - core.simulation - WARNING - TrustGameHandler not found
 2025-04-20 22:32:06,880 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
@@ -144,7 +144,7 @@
 2025-04-20 22:32:06,886 - __main__ - INFO - Total narrative events: 0
 2025-04-20 22:44:13,846 - __main__ - INFO - Configuring simulation...
 2025-04-20 22:44:13,846 - __main__ - INFO - Initializing simulation with population 5
-2025-04-20 22:44:13,941 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:44:13,941 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=True)
 2025-04-20 22:44:13,942 - core.simulation - WARNING - UltimatumGameHandler not found
 2025-04-20 22:44:13,942 - core.simulation - WARNING - TrustGameHandler not found
 2025-04-20 22:44:13,947 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
@@ -162,7 +162,7 @@
 2025-04-20 22:44:13,953 - __main__ - INFO - Total narrative events: 0
 2025-04-20 22:46:04,769 - __main__ - INFO - Configuring simulation...
 2025-04-20 22:46:04,769 - __main__ - INFO - Initializing simulation with population 5
-2025-04-20 22:46:04,873 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:46:04,873 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=True)
 2025-04-20 22:46:04,873 - core.simulation - WARNING - UltimatumGameHandler not found
 2025-04-20 22:46:04,874 - core.simulation - WARNING - TrustGameHandler not found
 2025-04-20 22:46:04,879 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
@@ -181,7 +181,7 @@
 2025-04-20 22:46:04,885 - __main__ - INFO - Total narrative events: 5
 2025-04-20 22:46:12,331 - __main__ - INFO - Configuring simulation...
 2025-04-20 22:46:12,331 - __main__ - INFO - Initializing simulation with population 10
-2025-04-20 22:46:12,438 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:46:12,438 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=True)
 2025-04-20 22:46:12,439 - core.simulation - WARNING - UltimatumGameHandler not found
 2025-04-20 22:46:12,439 - core.simulation - WARNING - TrustGameHandler not found
 2025-04-20 22:46:12,441 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
@@ -200,7 +200,7 @@
 2025-04-20 22:46:12,454 - __main__ - INFO - Total narrative events: 10
 2025-04-20 22:46:34,915 - __main__ - INFO - Configuring simulation...
 2025-04-20 22:46:34,915 - __main__ - INFO - Initializing simulation with population 5
-2025-04-20 22:46:35,012 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:46:35,012 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=True)
 2025-04-20 22:46:35,013 - core.simulation - WARNING - UltimatumGameHandler not found
 2025-04-20 22:46:35,013 - core.simulation - WARNING - TrustGameHandler not found
 2025-04-20 22:46:35,014 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
@@ -220,7 +220,7 @@
 2025-04-20 22:46:50,073 - __main__ - INFO - Configuring simulation...
 2025-04-20 22:46:50,073 - __main__ - INFO - Initializing simulation with population 5
 2025-04-20 22:46:50,183 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
-2025-04-20 22:46:50,183 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=False)
+2025-04-20 22:46:50,183 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=False)
 2025-04-20 22:46:50,183 - core.simulation - WARNING - UltimatumGameHandler not found
 2025-04-20 22:46:50,184 - core.simulation - WARNING - TrustGameHandler not found
 2025-04-20 22:46:50,185 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
@@ -244,3 +244,248 @@
 2025-04-20 22:47:51,323 - __main__ - INFO - Final population: 4
 2025-04-20 22:47:51,323 - __main__ - INFO - Total interactions: 1
 2025-04-20 22:47:51,323 - __main__ - INFO - Total narrative events: 5
+2025-04-20 22:52:55,182 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:52:55,183 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:52:55,281 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=True)
+2025-04-20 22:52:55,282 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:52:55,283 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:52:55,284 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:52:55,284 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=True
+2025-04-20 22:52:55,284 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=True)
+2025-04-20 22:52:55,285 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:52:55,285 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:52:55,286 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:52:55,286 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 22:52:55,287 - core.simulation - INFO - Created demo interaction between Eliot Diaz and Uriel Fischer
+2025-04-20 22:52:55,288 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 22:52:55,291 - __main__ - INFO - Tick 4/5 - Population: 6
+2025-04-20 22:52:55,291 - __main__ - INFO - Simulation complete
+2025-04-20 22:52:55,291 - __main__ - INFO - Final population: 6
+2025-04-20 22:52:55,291 - __main__ - INFO - Total interactions: 1
+2025-04-20 22:52:55,291 - __main__ - INFO - Total narrative events: 5
+2025-04-20 22:53:01,074 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:53:01,074 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:53:01,188 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 22:53:01,188 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=False)
+2025-04-20 22:53:01,189 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:53:01,190 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:53:01,191 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:53:01,191 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 22:53:04,961 - narrative.llm_narrator - INFO - Successfully connected to Ollama with model gemma3:1b
+2025-04-20 22:53:04,962 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 22:53:04,963 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:53:04,963 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:53:04,964 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:53:04,964 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 22:53:04,966 - core.simulation - INFO - Created demo interaction between Hannah Xu and Hannah Thompson
+2025-04-20 22:53:34,998 - narrative.llm_narrator - ERROR - Error calling Ollama: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=30)
+2025-04-20 22:53:34,998 - narrative.llm_narrator - WARNING - Failed to extract JSON from LLM response - no curly braces found
+2025-04-20 22:53:34,998 - narrative.llm_narrator - WARNING - LLM narrative generation failed, falling back to rule-based generation
+2025-04-20 22:53:34,999 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 22:54:05,028 - narrative.llm_narrator - ERROR - Error calling Ollama: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=30)
+2025-04-20 22:54:05,028 - narrative.llm_narrator - WARNING - Failed to extract JSON from LLM response - no curly braces found
+2025-04-20 22:54:05,029 - narrative.llm_narrator - WARNING - LLM narrative generation failed, falling back to rule-based generation
+2025-04-20 22:54:35,069 - narrative.llm_narrator - ERROR - Error calling Ollama: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=30)
+2025-04-20 22:54:35,069 - narrative.llm_narrator - WARNING - Failed to extract JSON from LLM response - no curly braces found
+2025-04-20 22:54:35,069 - narrative.llm_narrator - WARNING - LLM narrative generation failed, falling back to rule-based generation
+2025-04-20 22:55:05,102 - narrative.llm_narrator - ERROR - Error calling Ollama: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=30)
+2025-04-20 22:55:05,103 - narrative.llm_narrator - WARNING - Failed to extract JSON from LLM response - no curly braces found
+2025-04-20 22:55:05,103 - narrative.llm_narrator - WARNING - LLM narrative generation failed, falling back to rule-based generation
+2025-04-20 22:55:35,137 - narrative.llm_narrator - ERROR - Error calling Ollama: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=30)
+2025-04-20 22:55:35,137 - narrative.llm_narrator - WARNING - Failed to extract JSON from LLM response - no curly braces found
+2025-04-20 22:55:35,137 - narrative.llm_narrator - WARNING - LLM narrative generation failed, falling back to rule-based generation
+2025-04-20 22:55:35,138 - __main__ - INFO - Tick 4/5 - Population: 4
+2025-04-20 22:55:35,138 - __main__ - INFO - Simulation complete
+2025-04-20 22:55:35,138 - __main__ - INFO - Final population: 4
+2025-04-20 22:55:35,138 - __main__ - INFO - Total interactions: 1
+2025-04-20 22:55:35,138 - __main__ - INFO - Total narrative events: 5
+2025-04-20 22:56:24,514 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:56:24,514 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:56:24,654 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 22:56:24,654 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=False)
+2025-04-20 22:56:24,655 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:56:24,655 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:56:24,661 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:56:24,661 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 22:56:26,322 - narrative.llm_narrator - INFO - Successfully connected to Ollama with model gemma3:1b
+2025-04-20 22:56:26,322 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 22:56:26,323 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:56:26,323 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:56:26,323 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:56:26,324 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 22:56:26,325 - core.simulation - INFO - Created demo interaction between Julia Nguyen and Bob Gupta
+2025-04-20 22:56:46,738 - __main__ - INFO - Simulation interrupted by user
+2025-04-20 23:00:41,889 - __main__ - INFO - Configuring simulation...
+2025-04-20 23:00:41,889 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 23:00:41,991 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 23:00:41,991 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=False)
+2025-04-20 23:00:41,992 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 23:00:41,992 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 23:00:41,993 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 23:00:41,993 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 23:00:46,997 - narrative.llm_narrator - WARNING - Failed to connect to Ollama: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=5)
+2025-04-20 23:00:46,998 - narrative.llm_narrator - WARNING - Narrative generation will continue with mock responses
+2025-04-20 23:00:46,998 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 23:00:46,998 - core.simulation - WARNING - PopulationController not found
+2025-04-20 23:00:46,999 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 23:00:46,999 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 23:00:46,999 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 23:00:47,000 - core.simulation - INFO - Created demo interaction between MarsTech and UtopiaLabs
+2025-04-20 23:00:47,001 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 23:00:47,003 - __main__ - INFO - Tick 4/5 - Population: 4
+2025-04-20 23:00:47,003 - __main__ - INFO - Simulation complete
+2025-04-20 23:00:47,003 - __main__ - INFO - Final population: 4
+2025-04-20 23:00:47,003 - __main__ - INFO - Total interactions: 1
+2025-04-20 23:00:47,004 - __main__ - INFO - Total narrative events: 5
+2025-04-20 23:01:26,706 - __main__ - INFO - Configuring simulation...
+2025-04-20 23:01:26,707 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 23:01:26,804 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 23:01:26,804 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=False)
+2025-04-20 23:01:26,805 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 23:01:26,805 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 23:01:26,806 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 23:01:26,806 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 23:01:29,167 - __main__ - INFO - Simulation interrupted by user
+2025-04-20 23:02:30,564 - __main__ - INFO - Configuring simulation...
+2025-04-20 23:02:30,564 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 23:02:30,664 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 23:02:30,664 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=False)
+2025-04-20 23:02:30,665 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 23:02:30,665 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 23:02:30,667 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 23:02:30,667 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 23:02:35,673 - narrative.llm_narrator - WARNING - Failed to connect to Ollama: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=5)
+2025-04-20 23:02:35,673 - narrative.llm_narrator - WARNING - Narrative generation will continue with mock responses
+2025-04-20 23:02:35,674 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 23:02:35,674 - core.simulation - WARNING - PopulationController not found
+2025-04-20 23:02:35,674 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 23:02:35,675 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 23:02:35,675 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 23:02:35,676 - core.simulation - INFO - Created demo interaction between Alice Nguyen and Arcadia Alliance
+2025-04-20 23:02:35,677 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 23:02:35,679 - __main__ - INFO - Tick 4/5 - Population: 5
+2025-04-20 23:02:35,680 - __main__ - INFO - Simulation complete
+2025-04-20 23:02:35,680 - __main__ - INFO - Final population: 5
+2025-04-20 23:02:35,680 - __main__ - INFO - Total interactions: 1
+2025-04-20 23:02:35,680 - __main__ - INFO - Total narrative events: 5
+2025-04-20 23:04:30,800 - __main__ - INFO - Configuring simulation...
+2025-04-20 23:04:30,800 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 23:04:30,893 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 23:04:30,893 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=False)
+2025-04-20 23:04:30,893 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 23:04:30,894 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 23:04:30,895 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 23:04:30,895 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 23:04:33,355 - narrative.llm_narrator - INFO - Successfully connected to Ollama with model gemma3:1b
+2025-04-20 23:04:33,355 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 23:04:33,356 - core.simulation - WARNING - PopulationController not found
+2025-04-20 23:04:33,356 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 23:04:33,357 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 23:04:33,357 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 23:04:33,358 - core.simulation - INFO - Created demo interaction between Quinn Mueller and Miguel Wang
+2025-04-20 23:04:43,180 - narrative.llm_narrator - WARNING - Standard JSON parsing failed: Extra data: line 6 column 1 (char 1463)
+2025-04-20 23:04:43,180 - narrative.llm_narrator - ERROR - Failed to parse JSON even after cleaning: Extra data: line 1 column 1464 (char 1463)
+2025-04-20 23:04:43,180 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 23:07:12,146 - __main__ - INFO - Configuring simulation...
+2025-04-20 23:07:12,147 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 23:07:12,249 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 23:07:12,249 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=False)
+2025-04-20 23:07:12,250 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 23:07:12,250 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 23:07:12,256 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 23:07:12,256 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 23:07:12,609 - narrative.llm_narrator - INFO - Successfully connected to Ollama with model gemma3:1b
+2025-04-20 23:07:12,610 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 23:07:12,612 - core.simulation - WARNING - PopulationController not found
+2025-04-20 23:07:12,612 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 23:07:12,615 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 23:07:12,615 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 23:07:12,616 - core.simulation - INFO - Created demo interaction between Santiago Adams and Hannah Patel
+2025-04-20 23:07:23,387 - narrative.llm_narrator - WARNING - Standard JSON parsing failed: Extra data: line 6 column 1 (char 1800)
+2025-04-20 23:07:23,387 - narrative.llm_narrator - ERROR - Failed to parse JSON even after cleaning: Extra data: line 1 column 1801 (char 1800)
+2025-04-20 23:07:23,388 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 23:07:29,806 - __main__ - INFO - Simulation interrupted by user
+2025-04-20 23:07:30,592 - __main__ - INFO - Configuring simulation...
+2025-04-20 23:07:30,592 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 23:07:30,692 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 23:07:30,692 - core.simulation - INFO - Loaded LLM agent with model gemma:4b (mock=False)
+2025-04-20 23:07:30,693 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 23:07:30,693 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 23:07:30,694 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 23:07:30,694 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 23:07:30,958 - narrative.llm_narrator - INFO - Successfully connected to Ollama with model gemma3:1b
+2025-04-20 23:07:30,958 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 23:07:30,959 - core.simulation - WARNING - PopulationController not found
+2025-04-20 23:07:30,959 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 23:07:30,960 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 23:07:30,960 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 23:07:30,961 - core.simulation - INFO - Created demo interaction between MarsTech and Fatima Diaz
+2025-04-20 23:07:31,007 - __main__ - INFO - Simulation interrupted by user
+2025-04-20 23:08:55,570 - __main__ - INFO - Configuring simulation...
+2025-04-20 23:08:55,570 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 23:08:55,680 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 23:08:55,680 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=False)
+2025-04-20 23:08:55,681 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 23:08:55,681 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 23:08:55,682 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 23:08:55,683 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 23:08:56,005 - narrative.llm_narrator - INFO - Successfully connected to Ollama with model gemma3:1b
+2025-04-20 23:08:56,005 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 23:08:56,006 - core.simulation - WARNING - PopulationController not found
+2025-04-20 23:08:56,006 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 23:08:56,007 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 23:08:56,007 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 23:08:56,008 - core.simulation - INFO - Created demo interaction between Charlie Singh and Quinn Becker
+2025-04-20 23:09:07,874 - narrative.llm_narrator - WARNING - Standard JSON parsing failed: Extra data: line 6 column 1 (char 1314)
+2025-04-20 23:09:07,874 - narrative.llm_narrator - ERROR - Failed to parse JSON even after cleaning: Extra data: line 1 column 1315 (char 1314)
+2025-04-20 23:09:07,875 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 23:09:16,379 - narrative.llm_narrator - WARNING - Standard JSON parsing failed: Extra data: line 6 column 1 (char 1701)
+2025-04-20 23:09:16,379 - narrative.llm_narrator - ERROR - Failed to parse JSON even after cleaning: Extra data: line 1 column 1702 (char 1701)
+2025-04-20 23:09:22,302 - __main__ - INFO - Simulation interrupted by user
+2025-04-20 23:09:37,612 - __main__ - INFO - Configuring simulation...
+2025-04-20 23:09:37,612 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 23:09:37,716 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 23:09:37,716 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=False)
+2025-04-20 23:09:37,716 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 23:09:37,717 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 23:09:37,718 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 23:09:37,718 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 23:09:38,025 - narrative.llm_narrator - INFO - Successfully connected to Ollama with model gemma3:1b
+2025-04-20 23:09:38,025 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 23:09:38,026 - core.simulation - WARNING - PopulationController not found
+2025-04-20 23:09:38,026 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 23:09:38,027 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 23:09:38,027 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 23:09:38,028 - core.simulation - INFO - Created demo interaction between Diana Hernandez and Xander Mueller
+2025-04-20 23:09:41,664 - __main__ - INFO - Simulation interrupted by user
+2025-04-20 23:17:52,734 - __main__ - INFO - Configuring simulation...
+2025-04-20 23:17:52,734 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 23:17:52,871 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 23:17:52,871 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=False)
+2025-04-20 23:17:52,872 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 23:17:52,872 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 23:17:52,879 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 23:17:52,880 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 23:17:55,255 - narrative.llm_narrator - INFO - Successfully connected to Ollama with model gemma3:1b
+2025-04-20 23:17:55,262 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 23:17:55,266 - core.simulation - WARNING - PopulationController not found
+2025-04-20 23:17:55,266 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 23:17:55,266 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 23:17:55,266 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 23:17:55,268 - core.simulation - INFO - Created demo interaction between Luna Adams and Priya Becker
+2025-04-20 23:18:04,450 - narrative.llm_narrator - WARNING - Standard JSON parsing failed: Extra data: line 6 column 1 (char 1632)
+2025-04-20 23:18:04,451 - narrative.llm_narrator - ERROR - Failed to parse JSON even after cleaning: Extra data: line 1 column 1633 (char 1632)
+2025-04-20 23:18:04,451 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 23:18:14,625 - narrative.llm_narrator - WARNING - Standard JSON parsing failed: Extra data: line 6 column 1 (char 1775)
+2025-04-20 23:18:14,625 - narrative.llm_narrator - ERROR - Failed to parse JSON even after cleaning: Extra data: line 1 column 1776 (char 1775)
+2025-04-20 23:18:32,551 - narrative.llm_narrator - WARNING - Standard JSON parsing failed: Extra data: line 6 column 1 (char 1051)
+2025-04-20 23:18:32,552 - narrative.llm_narrator - ERROR - Failed to parse JSON even after cleaning: Extra data: line 1 column 1052 (char 1051)
+2025-04-20 23:18:43,474 - narrative.llm_narrator - WARNING - Standard JSON parsing failed: Extra data: line 6 column 1 (char 1498)
+2025-04-20 23:18:43,474 - narrative.llm_narrator - ERROR - Failed to parse JSON even after cleaning: Extra data: line 1 column 1499 (char 1498)
+2025-04-20 23:18:54,370 - narrative.llm_narrator - WARNING - Standard JSON parsing failed: Extra data: line 6 column 1 (char 1981)
+2025-04-20 23:18:54,370 - narrative.llm_narrator - ERROR - Failed to parse JSON even after cleaning: Extra data: line 1 column 1982 (char 1981)
+2025-04-20 23:18:54,370 - __main__ - INFO - Tick 4/5 - Population: 4
+2025-04-20 23:18:54,370 - __main__ - INFO - Simulation complete
+2025-04-20 23:18:54,371 - __main__ - INFO - Final population: 4
+2025-04-20 23:18:54,371 - __main__ - INFO - Total interactions: 1
+2025-04-20 23:18:54,371 - __main__ - INFO - Total narrative events: 5

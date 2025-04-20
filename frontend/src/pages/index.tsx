@@ -65,8 +65,8 @@ const Home = () => {
           resource_scarcity: 0.6,
           technological_level: 0.8,
           narrative_verbosity: 4,
-          agent_model: 'gemma:1b',
-          narrator_model: 'gemma:1b'
+          agent_model: 'gemma:4b',
+          narrator_model: 'gemma:4b'
         }),
       });
 

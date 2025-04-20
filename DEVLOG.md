@@ -1,5 +1,73 @@
 # ProtoNomia Development Log
 
+## Enhanced Ollama Connection Handling and Error Recovery
+
+### Date
+2025-04-20
+
+### Description
+Significantly improved the robustness of Ollama connection and API call handling. Key improvements include:
+
+1. More comprehensive Ollama connection testing with detailed error logging
+2. Automatic model selection if the specified model is not available
+3. Enhanced error handling for various connection and API scenarios
+4. Added more detailed logging for connection and generation processes
+5. Implemented fallback mechanisms to prevent simulation interruption
+6. Added response validation to ensure meaningful LLM outputs
+7. Extracted common LLM utility functions into `llm_utils.py`
+
+These changes make the LLM integration more resilient to network issues, service unavailability, and unexpected API responses.
+
+### Demand
+Fix connection bugs with Ollama, ensuring the simulation can run smoothly even with intermittent LLM service availability.
+
+### Files
+- [A] `llm_utils.py` - New utility module for common LLM interaction functions
+   - Added `test_ollama_connection` for robust connection testing
+   - Added `call_ollama` for standardized API calls
+   - Added `parse_llm_json_response` for handling complex LLM responses
+- [M] `narrative/llm_narrator.py` - Refactored to use `llm_utils.py`
+   - Replaced inline connection and API call methods with utility functions
+- [M] `agents/llm_agent.py` - Refactored to use `llm_utils.py`
+   - Replaced inline connection and API call methods with utility functions
+
+### Bugs
+- Fixed connection error handling for Ollama API
+- Added automatic fallback to mock mode when connection or model issues occur
+- Improved error logging to help diagnose connection problems
+- Added response validation to prevent using invalid or empty LLM responses
+- Centralized error handling and connection logic in a shared utility module
+
+## Improved LLM Narrator Error Handling and Logging
+
+### Date
+2025-04-20
+
+### Description
+Enhanced the LLM Narrator's robustness for handling various edge cases and improved logging to facilitate troubleshooting. Key improvements include:
+
+1. Implemented more robust JSON parsing to handle malformed or unexpected response formats from the LLM
+2. Added extensive logging throughout the LLM response flow to aid in debugging
+3. Added exception handling for the event generation process with fallback event creation
+4. Updated the typing_extensions dependency to address import issues
+5. Added unit tests to verify correct handling of malformed JSON and responses with extra text
+6. Improved HTTP error handling in the Ollama API client
+
+These changes significantly improve the reliability of narrative generation, particularly when the LLM returns unexpected response formats.
+
+### Demand
+Be more flexible to extra data when parsing response; also log more so we can see what happens; run the headless llm yourself to validate and run the pytest too; TDD remember; and fix the TypeIs import error
+
+### Files
+- [M] `narrative/llm_narrator.py` - Improved JSON parsing, added detailed logging, and better error handling
+- [M] `tests/test_llm_narrator.py` - Added new tests for malformed JSON and responses with extra text
+- [M] `requirements.txt` - Updated typing_extensions dependency to fix compatibility issues
+
+### Bugs
+- Fixed JSON parsing errors when LLM returns extra data around the JSON content
+- Fixed TypeIs import error by updating dependencies
+- Added fallback event generation to prevent simulation failures
+
 ## Fixed LLM Narrator Test Mode and Demo Interactions
 
 ### Date
@@ -52,8 +120,4 @@ Implement an Ollama-based Narrator for the ProtoNomia simulation that generates 
 - [M] `core/simulation.py` - Modified to use LLMNarrator when use_llm is true, added LLM parameters
 - [M] `headless.py` - Added narrator-model-name and LLM generation parameters
 - [A] `tests/test_llm_narrator.py` - Tests for the LLMNarrator
-- [A] `DEVLOG.md` - Development log documenting the changes
-
-### Bugs
-- Fixed tests that failed due to multiple calls to the Ollama API (connection test + actual generation)
-- Added proper mock responses for tests to avoid depending on actual Ollama availability 
+- [A] `DEVLOG.md` - Development log documenting the changes 

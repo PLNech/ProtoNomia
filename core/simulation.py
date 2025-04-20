@@ -31,7 +31,7 @@ class Simulation:
         self, 
         config: SimulationConfig,
         use_llm: bool = False,
-        model_name: str = "gemma:1b",
+        model_name: str = "gemma:4b",
         narrator_model_name: str = "gemma3:1b",
         mock_llm: bool = False,
         temperature: float = 0.8,

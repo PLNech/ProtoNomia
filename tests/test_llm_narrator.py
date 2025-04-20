@@ -257,4 +257,78 @@ class TestLLMNarrator:
         assert "3 notable events" in summary
         assert "## Notable Events" in summary
         assert "### Tense Negotiation" in summary
-        assert "### Trust Betrayed" in summary 
+        assert "### Trust Betrayed" in summary
+    
+    @patch("requests.post")
+    def test_handle_malformed_json_response(self, mock_post, test_agents, test_interaction):
+        """Test handling of malformed JSON in LLM response"""
+        # Set up mock responses - first for connection test, then for narrative with bad JSON
+        connection_response = MockResponse(
+            text='{"response": "Yes, I am working"}',
+            status_code=200
+        )
+        
+        # Create a malformed JSON response (missing closing brace, extra commas, etc.)
+        malformed_json_response = MockResponse(
+            text='''
+            {
+                "title": "Economic Negotiation on Mars",
+                "description": "Two settlers engaged in an ultimatum game, with one offering 30% of resources to the other.,
+                "tags": ["ultimatum", "economics", "negotiation",]
+            
+            The negotiation proceeded with tension as both parties assessed their positions.
+            ''',
+            status_code=200
+        )
+        
+        # Set up side_effect to return different responses
+        mock_post.side_effect = [connection_response, malformed_json_response]
+        
+        # Create narrator and generate event
+        narrator = LLMNarrator(mock_llm=False)
+        event = narrator.generate_event_from_interaction(test_interaction, test_agents)
+        
+        # Verify that we still got a valid event despite malformed JSON
+        assert isinstance(event, NarrativeEvent)
+        assert event.title is not None and len(event.title) > 0
+        assert event.description is not None and len(event.description) > 0
+        assert event.agents_involved == list(test_interaction.participants.keys())
+    
+    @patch("requests.post")
+    def test_handle_extra_text_in_json_response(self, mock_post, test_agents, test_interaction):
+        """Test handling of JSON with extra text before/after in LLM response"""
+        # Set up mock responses - first for connection test, then for narrative with extra text
+        connection_response = MockResponse(
+            text='{"response": "Yes, I am working"}',
+            status_code=200
+        )
+        
+        # Create a response with valid JSON but extra text around it
+        extra_text_response = MockResponse(
+            text='''
+            I'll generate a narrative for this economic interaction on Mars:
+            
+            {
+                "title": "Ultimatum at Olympus Market",
+                "description": "Alice offered Bob 30 credits out of a 100 credit pot. After consideration, Bob accepted the offer.",
+                "tags": ["ultimatum", "negotiation", "economic"]
+            }
+            
+            I hope this narrative is suitable for your Mars colony simulation!
+            ''',
+            status_code=200
+        )
+        
+        # Set up side_effect to return different responses
+        mock_post.side_effect = [connection_response, extra_text_response]
+        
+        # Create narrator and generate event
+        narrator = LLMNarrator(mock_llm=False)
+        event = narrator.generate_event_from_interaction(test_interaction, test_agents)
+        
+        # Verify that we extracted the correct JSON content
+        assert isinstance(event, NarrativeEvent)
+        assert "Ultimatum at Olympus Market" == event.title
+        assert "Alice offered Bob 30 credits" in event.description
+        assert len(event.tags) == 3
+        assert "ultimatum" in event.tags 

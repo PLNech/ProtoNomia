@@ -23,8 +23,8 @@ class SimulationConfigRequest(BaseModel):
     resource_scarcity: float = Field(0.5, ge=0.0, le=1.0, description="Resource scarcity level (0.0-1.0)")
     technological_level: float = Field(0.8, ge=0.0, le=1.0, description="Technological advancement level (0.0-1.0)")
     narrative_verbosity: int = Field(3, ge=1, le=5, description="Narrative detail level (1-5)")
-    agent_model: str = Field("gemma:1b", description="LLM model for agent decisions")
-    narrator_model: str = Field("gemma:1b", description="LLM model for narrative generation")
+    agent_model: str = Field("gemma:4b", description="LLM model for agent decisions")
+    narrator_model: str = Field("gemma:4b", description="LLM model for narrative generation")
     ollama_base_url: str = Field("http://localhost:11434/v1", description="Ollama API base URL")
 
 class SimulationResponse(BaseModel):

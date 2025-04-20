@@ -49,7 +49,7 @@ class TestLLMNarratorIntegration:
             config=config,
             use_llm=True,
             mock_llm=True,
-            model_name="gemma:1b",
+            model_name="gemma:4b",
             narrator_model_name="gemma3:1b"
         )
         

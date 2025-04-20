@@ -60,7 +60,7 @@ protonomia/
 4. Set up Ollama with the required models:
    ```bash
    # Install Ollama from https://ollama.ai
-   ollama pull gemma:1b  # or any other model you want to use
+   ollama pull gemma:4b  # or any other model you want to use
    ```
 
 5. Start the backend API server:
