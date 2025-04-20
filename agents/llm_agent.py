@@ -5,16 +5,16 @@ This module handles the integration with language models for agent decision maki
 import json
 import logging
 import random
-import re
 import time
-import requests
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, Optional
 
 from models.base import Agent
 from models.actions import (
-    ActionType, AgentAction, AgentDecisionContext, LLMAgentActionResponse,
+    ActionType, AgentAction, AgentDecisionContext, 
     OfferAction, NegotiateAction, AcceptRejectAction, WorkAction, BuyAction
 )
+from llm_utils import OllamaClient
+from llm_models import AgentActionResponse
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -23,24 +23,56 @@ logger = logging.getLogger(__name__)
 class LLMAgent:
     """
     LLM-based agent implementation for ProtoNomia.
-    Uses Ollama or mocked responses to generate agent decisions.
+    Uses Ollama with structured outputs to generate agent decisions.
     """
     
-    def __init__(self, model_name: str = "gemma:4b", mock: bool = False):
+    def __init__(
+        self, 
+        model_name: str = "gemma3:1b", 
+        mock: bool = False,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        top_k: int = 40,
+        max_tokens: int = 300,
+        max_retries: int = 3,
+        timeout: int = 20
+    ):
         """
         Initialize the LLM agent.
         
         Args:
             model_name: Name of the Ollama model to use
             mock: Whether to mock LLM responses
+            temperature: Controls randomness in generation
+            top_p: Nucleus sampling probability threshold
+            top_k: Number of highest probability tokens to consider
+            max_tokens: Maximum number of tokens to generate
+            max_retries: Maximum number of retries on failure
+            timeout: Request timeout in seconds
         """
         self.model_name = model_name
         self.mock = mock
-        self.ollama_endpoint = "http://localhost:11434/api/generate"
+        self.temperature = temperature
+        self.top_p = top_p
+        self.top_k = top_k
+        self.max_tokens = max_tokens
+        self.max_retries = max_retries
+        self.timeout = timeout
         
-        # Test Ollama connection if not in mock mode
+        # Create the OllamaClient for structured output generation
         if not self.mock:
             try:
+                self.ollama_client = OllamaClient(
+                    base_url="http://localhost:11434",
+                    model_name=model_name,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
+                    max_tokens=max_tokens,
+                    max_retries=max_retries,
+                    timeout=timeout
+                )
+                # Test connection
                 self._test_ollama_connection()
                 logger.info(f"Successfully connected to Ollama with model {model_name}")
             except Exception as e:
@@ -49,18 +81,22 @@ class LLMAgent:
     
     def _test_ollama_connection(self):
         """Test the connection to Ollama"""
-        response = requests.post(
-            self.ollama_endpoint,
-            json={
-                "model": self.model_name,
-                "prompt": "Test connection. Respond with: CONNECTION_OK",
-                "stream": False
-            },
-            timeout=5
-        )
-        response.raise_for_status()
-        if "CONNECTION_OK" not in response.json().get("response", ""):
-            raise Exception("Failed to validate Ollama response")
+        try:
+            # Create a simple test prompt to check if the client works
+            test_prompt = "Generate a one-sentence action for a Mars colonist."
+            system_prompt = "You are an AI helping a Mars colonist make decisions."
+            
+            # Attempt to generate a structured response
+            self.ollama_client.generate_structured_output(
+                prompt=test_prompt,
+                response_model=AgentActionResponse,
+                system_prompt=system_prompt
+            )
+            
+            logger.info(f"Successfully tested Ollama connection with model {self.model_name}")
+        except Exception as e:
+            logger.error(f"Error connecting to Ollama: {e}")
+            raise
     
     def generate_action(self, agent: Agent, context: AgentDecisionContext) -> AgentAction:
         """
@@ -75,21 +111,55 @@ class LLMAgent:
         """
         # Format prompt
         prompt = format_prompt(agent, context)
+        system_prompt = (
+            "You are an AI assistant helping Mars colonists make economic decisions. "
+            "Based on the agent's personality and context, choose the most appropriate action. "
+            "Always respond with a valid action type and necessary details."
+        )
         
         try:
-            # Get LLM response
+            # Get structured response
             if self.mock:
-                response_data = self._mock_llm_response(agent, context)
+                action_response = self._mock_agent_action(agent, context)
             else:
-                response_data = self._call_ollama(prompt)
+                try:
+                    action_response = self.ollama_client.generate_structured_output(
+                        prompt=prompt,
+                        response_model=AgentActionResponse,
+                        system_prompt=system_prompt
+                    )
+                except Exception as e:
+                    logger.error(f"Error generating action with OllamaClient: {e}")
+                    # Fall back to mock response if LLM fails
+                    logger.warning("Falling back to mock agent action generation")
+                    action_response = self._mock_agent_action(agent, context)
             
-            # Parse the action from the response
-            action_response = self._parse_action_response(response_data)
+            # Convert the structured response to an AgentAction
+            action_type_str = action_response.type
             
-            # Create AgentAction from LLMAgentActionResponse
-            action = self._create_agent_action(action_response, agent.id, context.turn)
+            # Validate the action type
+            try:
+                action_type = ActionType(action_type_str)
+            except ValueError:
+                logger.warning(f"Invalid action type '{action_type_str}', defaulting to REST")
+                action_type = ActionType.REST
+            
+            # Create the agent action with the processed data
+            action = AgentAction(
+                type=action_type,
+                agent_id=agent.id,
+                turn=context.turn,
+                timestamp=time.time(),
+                extra=action_response.extra or {}
+            )
+            
+            # Fill in action-specific details based on type
+            self._fill_action_details(action)
             
             logger.debug(f"Generated action for agent {agent.id}: {action.type}")
+            if action_response.reasoning:
+                logger.debug(f"Reasoning: {action_response.reasoning}")
+                
             return action
             
         except Exception as e:
@@ -103,60 +173,31 @@ class LLMAgent:
                 extra={"reason": "Error in LLM processing, defaulting to REST"}
             )
     
-    def _call_ollama(self, prompt: str) -> str:
+    def _mock_agent_action(self, agent: Agent, context: AgentDecisionContext) -> AgentActionResponse:
         """
-        Call the Ollama API to generate a response.
-        
-        Args:
-            prompt: The prompt to send to the model
-            
-        Returns:
-            str: The generated response
-        """
-        try:
-            response = requests.post(
-                self.ollama_endpoint,
-                json={
-                    "model": self.model_name,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.7,
-                        "top_p": 0.9
-                    }
-                },
-                timeout=5
-            )
-            response.raise_for_status()
-            return response.json().get("response", "")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error calling Ollama: {e}")
-            raise
-    
-    def _mock_llm_response(self, agent: Agent, context: AgentDecisionContext) -> str:
-        """
-        Generate a mock LLM response for testing.
+        Generate a mock agent action for testing or fallback.
         
         Args:
             agent: The agent to generate a response for
             context: Decision context for the agent
             
         Returns:
-            str: A mocked response
+            AgentActionResponse: A structured mock response
         """
         # For mocking, we'll generate a response based on personality and context
         action_type = random.choice(list(ActionType))
         
         # Bias toward certain actions based on personality
-        if agent.personality.cooperativeness > 0.7:
-            # Cooperative agents more likely to OFFER or ACCEPT
-            action_type = random.choice([ActionType.OFFER, ActionType.ACCEPT, ActionType.WORK])
-        elif agent.personality.risk_tolerance > 0.7:
-            # Risk-tolerant agents more likely to BUY or SEARCH_JOB
-            action_type = random.choice([ActionType.BUY, ActionType.SEARCH_JOB])
-        elif agent.personality.fairness_preference > 0.7:
-            # Fair agents more likely to NEGOTIATE
-            action_type = random.choice([ActionType.NEGOTIATE, ActionType.OFFER])
+        if hasattr(agent, 'personality') and agent.personality:
+            if agent.personality.cooperativeness > 0.7:
+                # Cooperative agents more likely to OFFER or ACCEPT
+                action_type = random.choice([ActionType.OFFER, ActionType.ACCEPT, ActionType.WORK])
+            elif agent.personality.risk_tolerance > 0.7:
+                # Risk-tolerant agents more likely to BUY or SEARCH_JOB
+                action_type = random.choice([ActionType.BUY, ActionType.SEARCH_JOB])
+            elif agent.personality.fairness_preference > 0.7:
+                # Fair agents more likely to NEGOTIATE
+                action_type = random.choice([ActionType.NEGOTIATE, ActionType.OFFER])
         
         # Generate extra data for action
         extra = {}
@@ -196,86 +237,50 @@ class LLMAgent:
             else:
                 action_type = ActionType.REST
         
-        # Format the mock response like the LLM would return
-        return f"CHOICE: {{'type': '{action_type.value}', 'extra': {json.dumps(extra)}}}"
+        # Generate a mock reasoning
+        reasoning = f"Mock reasoning for choosing {action_type.value} based on agent personality."
+        
+        return AgentActionResponse(
+            type=action_type.value,
+            extra=extra,
+            reasoning=reasoning
+        )
     
-    def _parse_action_response(self, response: str) -> LLMAgentActionResponse:
+    def _fill_action_details(self, action: AgentAction) -> None:
         """
-        Parse the LLM response into a structured action.
+        Fill in the action-specific details based on the action type.
         
         Args:
-            response: The raw response from the LLM
-            
-        Returns:
-            LLMAgentActionResponse: The parsed action
+            action: The agent action to fill in details for
         """
         try:
-            # Extract the action from the response using regex
-            match = re.search(r"CHOICE:\s*({.*})", response)
-            if not match:
-                logger.warning(f"Could not parse LLM response: {response}")
-                return LLMAgentActionResponse(type=ActionType.REST)
+            extra = action.extra or {}
             
-            action_json = match.group(1)
-            action_data = json.loads(action_json.replace("'", "\""))
-            
-            # Extract action type and extra data
-            action_type_str = action_data.get('type', 'REST')
-            action_type = ActionType(action_type_str)
-            extra = action_data.get('extra', {})
-            
-            return LLMAgentActionResponse(type=action_type, extra=extra)
-            
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.warning(f"Error parsing action response: {e}")
-            return LLMAgentActionResponse(type=ActionType.REST)
-    
-    def _create_agent_action(self, response: LLMAgentActionResponse, agent_id: str, turn: int) -> AgentAction:
-        """
-        Convert an LLMAgentActionResponse to an AgentAction with the appropriate details.
-        
-        Args:
-            response: The parsed LLM response
-            agent_id: The ID of the agent
-            turn: The current turn
-            
-        Returns:
-            AgentAction: The complete agent action
-        """
-        action = AgentAction(
-            type=response.type,
-            agent_id=agent_id,
-            turn=turn,
-            timestamp=time.time(),
-            extra=response.extra
-        )
-        
-        # Fill in action-specific details based on type
-        if response.type == ActionType.OFFER:
-            action.offer_details = OfferAction(
-                what=response.extra.get("what", ""),
-                against_what=response.extra.get("against_what", ""),
-                to_agent_id=response.extra.get("to_agent_id")
-            )
-        elif response.type == ActionType.NEGOTIATE:
-            action.negotiate_details = NegotiateAction(
-                offer_id=response.extra.get("offer_id", ""),
-                message=response.extra.get("message", "")
-            )
-        elif response.type in [ActionType.ACCEPT, ActionType.REJECT]:
-            action.accept_reject_details = AcceptRejectAction(
-                offer_id=response.extra.get("offer_id", "")
-            )
-        elif response.type == ActionType.WORK:
-            action.work_details = WorkAction(
-                job_id=response.extra.get("job_id", "")
-            )
-        elif response.type == ActionType.BUY:
-            action.buy_details = BuyAction(
-                desired_item=response.extra.get("desired_item", "")
-            )
-        
-        return action
+            if action.type == ActionType.OFFER:
+                action.offer_details = OfferAction(
+                    what=extra.get("what", ""),
+                    against_what=extra.get("against_what", ""),
+                    to_agent_id=extra.get("to_agent_id")
+                )
+            elif action.type == ActionType.NEGOTIATE:
+                action.negotiate_details = NegotiateAction(
+                    offer_id=extra.get("offer_id", ""),
+                    message=extra.get("message", "")
+                )
+            elif action.type in [ActionType.ACCEPT, ActionType.REJECT]:
+                action.accept_reject_details = AcceptRejectAction(
+                    offer_id=extra.get("offer_id", "")
+                )
+            elif action.type == ActionType.WORK:
+                action.work_details = WorkAction(
+                    job_id=extra.get("job_id", "")
+                )
+            elif action.type == ActionType.BUY:
+                action.buy_details = BuyAction(
+                    desired_item=extra.get("desired_item", "")
+                )
+        except Exception as e:
+            logger.error(f"Error filling action details: {e}")
 
 
 def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
@@ -333,9 +338,9 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
     # Format the available actions
     actions_str = ", ".join([action_type.value for action_type in ActionType])
     
-    # Construct prompt (optimized for gemma models)
+    # Construct prompt (optimized for all models)
     prompt = f"""
-You are an agent in a simulated cyberpunk Mars economy in the year 2993. Respond with only your chosen action.
+You are an agent in a simulated cyberpunk Mars economy in the year 2993. You need to choose an action based on your personality and context.
 
 Your details:
 - Name: {agent.name}
@@ -355,24 +360,26 @@ Social context:
 {interactions_str}
 
 Personality traits:
-- Cooperativeness: {agent.personality.cooperativeness:.2f}
-- Risk tolerance: {agent.personality.risk_tolerance:.2f}
-- Fairness preference: {agent.personality.fairness_preference:.2f}
-- Altruism: {agent.personality.altruism:.2f}
-- Rationality: {agent.personality.rationality:.2f}
-- Long-term orientation: {agent.personality.long_term_orientation:.2f}
+- Cooperativeness: {agent.personality.cooperativeness:.2f} (higher values mean more willing to cooperate)
+- Risk tolerance: {agent.personality.risk_tolerance:.2f} (higher values mean more willing to take risks)
+- Fairness preference: {agent.personality.fairness_preference:.2f} (higher values mean more concerned with fairness)
+- Altruism: {agent.personality.altruism:.2f} (higher values mean more selfless)
+- Rationality: {agent.personality.rationality:.2f} (higher values mean more logical decision-making)
+- Long-term orientation: {agent.personality.long_term_orientation:.2f} (higher values mean more focus on long-term outcomes)
 
 Your possible actions are: {actions_str}
 
 Based on your personality, resources, and social context, what will you do?
-Think through your options carefully, then respond with CHOICE: followed by a JSON object with 'type' (one of the actions above) and 'extra' (any additional details).
+Think through your options carefully, then choose the most appropriate action with necessary details.
 
 Examples:
-For REST: CHOICE: {{'type': 'REST', 'extra': {{'reason': 'I need to recover energy'}}}}
-For OFFER: CHOICE: {{'type': 'OFFER', 'extra': {{'what': '10 credits', 'against_what': '5 digital_goods', 'to_agent_id': 'agent1'}}}}
-For BUY: CHOICE: {{'type': 'BUY', 'extra': {{'desired_item': 'item1'}}}}
-
-Your response (ONLY include your CHOICE, nothing else):
+- REST: When you need to recover or there are no good options
+- OFFER: When you want to initiate a trade with another agent (requires what, against_what, and to_agent_id)
+- NEGOTIATE: When you want to counter an existing offer (requires offer_id and optionally a message)
+- ACCEPT/REJECT: When responding to an offer (requires offer_id)
+- WORK: When taking a job (requires job_id)
+- BUY: When purchasing an item (requires desired_item)
+- SEARCH_JOB: When looking for new job opportunities
 """
     
     return prompt

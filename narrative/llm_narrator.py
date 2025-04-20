@@ -4,8 +4,6 @@ This module uses Ollama to generate narrative events from economic interactions.
 """
 import logging
 import json
-import time
-import requests
 from typing import List, Dict, Optional, Any, Tuple
 from datetime import datetime
 
@@ -14,6 +12,8 @@ from models.base import (
     NarrativeEvent, NarrativeArc
 )
 from narrative.narrator import Narrator
+from llm_utils import OllamaClient
+from llm_models import NarrativeResponse, DailySummaryResponse
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -59,77 +59,35 @@ class LLMNarrator(Narrator):
         self.test_mode = test_mode
         logger.info(f"Initialized LLM Narrator with model {model_name}, mock={mock_llm}")
         
-        # Test Ollama connection if not using mocks
+        # Create the OllamaClient for structured output generation
         if not self.mock_llm:
+            self.ollama_client = OllamaClient(
+                base_url=ollama_base_url,
+                model_name=model_name,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k
+            )
+            # Test connection
             self._test_ollama_connection()
     
     def _test_ollama_connection(self):
         """Test the connection to Ollama"""
         try:
-            # First, check if Ollama service is running by checking available models
-            tags_url = f"{self.ollama_base_url}/api/tags"
-            tags_response = requests.get(tags_url, timeout=5)
+            # Create a simple test prompt to check if the client works
+            test_prompt = "Generate a one-sentence test narrative about Mars."
+            system_prompt = "You are a narrator for a Mars colony simulation."
             
-            if tags_response.status_code != 200:
-                logger.warning(f"Failed to retrieve Ollama models. Status code: {tags_response.status_code}")
-                self.mock_llm = True
-                return
-            
-            # Check if the specific model is available
-            models = tags_response.json().get('models', [])
-            model_names = [model['name'] for model in models]
-            
-            if self.model_name not in model_names:
-                logger.warning(f"Model {self.model_name} not found. Available models: {model_names}")
-                # Try to use the first available model or fall back to mock
-                if model_names:
-                    self.model_name = model_names[0]
-                    logger.info(f"Switching to available model: {self.model_name}")
-                else:
-                    logger.warning("No models available. Falling back to mock mode.")
-                    self.mock_llm = True
-                    return
-            
-            # Test model generation
-            url = f"{self.ollama_base_url}/api/generate"
-            response = requests.post(
-                url,
-                json={
-                    "model": self.model_name,
-                    "prompt": "Hello, are you working?",
-                    "stream": False,
-                    "temperature": 0.1,  # Low temperature for consistent response
-                    "max_tokens": 10
-                },
-                timeout=10  # Longer timeout for generation
+            # Attempt to generate a structured response
+            self.ollama_client.generate_narrative(
+                prompt=test_prompt,
+                system_prompt=system_prompt
             )
             
-            if response.status_code != 200:
-                logger.warning(f"Model generation failed. Status code: {response.status_code}")
-                logger.warning(f"Response content: {response.text}")
-                self.mock_llm = True
-                return
-            
-            # Verify response structure
-            result = response.json()
-            if 'response' not in result:
-                logger.warning("Invalid response from Ollama. Missing 'response' key.")
-                self.mock_llm = True
-                return
-            
             logger.info(f"Successfully connected to Ollama with model {self.model_name}")
-        
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"Connection error to Ollama: {e}")
-            logger.error("Ensure Ollama service is running and accessible.")
-            self.mock_llm = True
-        
-        except requests.exceptions.Timeout:
-            logger.error("Timeout connecting to Ollama. Check network or service availability.")
-            self.mock_llm = True
-        
         except Exception as e:
-            logger.error(f"Unexpected error testing Ollama connection: {e}")
+            logger.error(f"Error connecting to Ollama: {e}")
+            logger.warning("Falling back to mock mode due to connection error")
             self.mock_llm = True
     
     def generate_event_from_interaction(
@@ -164,25 +122,31 @@ class LLMNarrator(Narrator):
             
             # Create a prompt for the LLM
             prompt = self._create_interaction_prompt(interaction, participant_names, agent_map)
+            system_prompt = "You are a creative narrator for a Mars colony simulation, describing economic interactions between colonists."
             
-            # Generate the narrative using LLM
-            title, description, tags = self._generate_llm_narrative(prompt, interaction.interaction_type)
-            
-            # If LLM fails, fall back to rule-based generation
-            if not title or not description:
-                logger.warning("LLM narrative generation failed, falling back to rule-based generation")
-                if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
-                    title, description, tags = self._generate_ultimatum_narrative(
-                        interaction, participant_names, agent_map
+            # Generate the narrative using structured output
+            if self.mock_llm:
+                # Use mock data for testing
+                title, description, tags = self._get_mock_narrative_parts(interaction.interaction_type)
+            elif self.test_mode:
+                # When in test mode, use the _mock_generate method which can be overridden in tests
+                mock_response = self._mock_generate(prompt)
+                title, description, tags = self._parse_mock_response(mock_response)
+            else:
+                # Use OllamaClient with structured output
+                try:
+                    narrative_response = self.ollama_client.generate_narrative(
+                        prompt=prompt,
+                        system_prompt=system_prompt
                     )
-                elif interaction.interaction_type == EconomicInteractionType.TRUST:
-                    title, description, tags = self._generate_trust_narrative(
-                        interaction, participant_names, agent_map
-                    )
-                else:
-                    title, description, tags = self._generate_generic_narrative(
-                        interaction, participant_names, agent_map
-                    )
+                    title = narrative_response.title
+                    description = narrative_response.description
+                    tags = narrative_response.tags
+                except Exception as e:
+                    logger.error(f"Error generating narrative with OllamaClient: {e}")
+                    # Fall back to rule-based generation
+                    logger.warning("Falling back to rule-based narrative generation")
+                    title, description, tags = self._get_mock_narrative_parts(interaction.interaction_type)
             
             # Create and return the narrative event
             event = NarrativeEvent(
@@ -199,18 +163,17 @@ class LLMNarrator(Narrator):
             return event
             
         except Exception as e:
-            logger.error(f"Error in generate_event_from_interaction: {e}")
-            # Create a minimal fallback event to avoid breaking the simulation
-            fallback_event = NarrativeEvent(
+            logger.error(f"Error generating narrative event: {e}")
+            # Fallback to a simple event in case of error
+            return NarrativeEvent(
                 timestamp=datetime.now(),
                 title="Economic Interaction",
-                description="An economic exchange occurred between agents.",
+                description="An economic interaction occurred between agents.",
                 agents_involved=list(interaction.participants.keys()),
                 interaction_id=interaction.id,
                 significance=interaction.narrative_significance,
                 tags=["fallback", "error_recovery"]
             )
-            return fallback_event
     
     def _create_interaction_prompt(
         self, 
@@ -218,215 +181,108 @@ class LLMNarrator(Narrator):
         participant_names: Dict[InteractionRole, str],
         agent_map: Dict[str, Agent]
     ) -> str:
-        """Create a prompt for the LLM based on the interaction"""
-        interaction_type = interaction.interaction_type.value.replace('_', ' ').title()
+        """Create a prompt for the interaction narrative generation"""
+        # Get interaction type and results
+        interaction_type = interaction.interaction_type.value
+        results = interaction.results
         
-        # Base prompt with scenario details
+        # Get participant names
+        initiator_name = participant_names.get(InteractionRole.INITIATOR, "Agent1")
+        responder_name = participant_names.get(InteractionRole.RESPONDER, "Agent2")
+        
+        # Create the prompt based on the interaction type
         prompt = (
-            f"Please generate a narrative for an economic interaction on Mars in the year 2993.\n\n"
-            f"Interaction type: {interaction_type}\n"
-            f"Participants:\n"
+            f"Please generate a narrative for the following economic interaction on Mars in the year 2993:\n\n"
+            f"Interaction Type: {interaction_type}\n"
+            f"Participants: {initiator_name} (Initiator) and {responder_name} (Responder)\n"
         )
         
-        # Add participants with details
-        for agent_id, role in interaction.participants.items():
-            if agent_id in agent_map:
+        # Add specific details based on interaction type
+        if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
+            offer = results.get('offer', 0)
+            total = results.get('total', 100)
+            accepted = results.get('accepted', False)
+            prompt += (
+                f"Details: {initiator_name} offered {responder_name} {offer} credits out of a total of {total} credits. "
+                f"The offer was {'accepted' if accepted else 'rejected'} by {responder_name}.\n"
+            )
+        elif interaction.interaction_type == EconomicInteractionType.TRUST:
+            investment = results.get('investment', 0)
+            multiplier = results.get('multiplier', 3)
+            returned = results.get('returned', 0)
+            prompt += (
+                f"Details: {initiator_name} invested {investment} credits with {responder_name}. "
+                f"The investment grew by a factor of {multiplier} to {investment * multiplier} credits. "
+                f"{responder_name} returned {returned} credits to {initiator_name}.\n"
+            )
+        
+        # Add personality traits if available
+        for role, name in participant_names.items():
+            agent_id = next((id for id, r in interaction.participants.items() if r == role), None)
+            if agent_id and agent_id in agent_map:
                 agent = agent_map[agent_id]
-                prompt += (
-                    f"- {agent.name} (Role: {role.value}, Type: {agent.agent_type.value}, "
-                    f"Faction: {agent.faction.value})\n"
-                )
+                if hasattr(agent, 'personality_traits') and agent.personality_traits:
+                    traits = ', '.join([f"{trait}: {value}" for trait, value in agent.personality_traits.items()])
+                    prompt += f"{name}'s personality traits: {traits}\n"
         
-        # Add interaction parameters
-        prompt += "\nInteraction parameters:\n"
-        for key, value in interaction.parameters.items():
-            prompt += f"- {key}: {value}\n"
+        # Add instructions for the desired output format
+        prompt += "\nPlease generate a creative narrative for this interaction with the following elements:\n"
         
-        # Add narrative significance
-        prompt += f"\nNarrative significance (0.0-1.0): {interaction.narrative_significance}\n"
-        
-        # Add verbosity instruction
-        if self.verbosity >= 4:
-            prompt += "\nPlease provide a detailed and vivid narrative with character motivations and environmental details."
-        elif self.verbosity >= 2:
-            prompt += "\nPlease provide a moderately detailed narrative focusing on the key events."
-        else:
-            prompt += "\nPlease provide a brief, concise narrative focusing only on essential details."
-        
-        # Request specific output format
-        prompt += (
-            "\n\nPlease respond in the following JSON format:\n"
-            "{\n"
-            '  "title": "A catchy title for this event",\n'
-            '  "description": "The narrative description of the event",\n'
-            '  "tags": ["tag1", "tag2", "tag3"]\n'
-            "}\n"
-        )
+        # Adjust level of detail based on verbosity
+        detail_level = "detailed and vivid" if self.verbosity >= 4 else "concise" if self.verbosity <= 2 else "balanced"
+        prompt += f"- Create a {detail_level} narrative that captures the interaction\n"
         
         return prompt
     
-    def _generate_llm_narrative(
-        self, 
-        prompt: str,
-        interaction_type: EconomicInteractionType
-    ) -> Tuple[str, str, List[str]]:
-        """Generate a narrative using the LLM"""
-        try:
-            if self.mock_llm:
-                response_text = self._get_mock_narrative(interaction_type)
-            else:
-                response_text = self._call_ollama(prompt)
-            
-            logger.debug(f"Raw LLM response: {response_text[:100]}...")
-            
-            # Parse the JSON response
-            # First, try to find JSON in the response in case the LLM added other text
-            start_idx = response_text.find('{')
-            end_idx = response_text.rfind('}')
-            
-            if start_idx != -1 and end_idx != -1:
-                json_text = response_text[start_idx:end_idx+1]
-                logger.debug(f"Extracted JSON: {json_text[:100]}...")
-                
-                # Try different approaches to parse JSON
-                try:
-                    # First attempt with standard parsing
-                    response_data = json.loads(json_text)
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Standard JSON parsing failed: {e}")
-                    # Try to clean up the JSON text - handle common issues
-                    cleaned_json = json_text.replace('\n', ' ').replace('\r', ' ')
-                    # Remove any trailing commas before closing braces/brackets
-                    cleaned_json = cleaned_json.replace(',}', '}').replace(',]', ']')
-                    # Try with more lenient parsing
-                    try:
-                        import re
-                        # Extract only the JSON-like structure
-                        pattern = r'\{.*\}'
-                        match = re.search(pattern, cleaned_json, re.DOTALL)
-                        if match:
-                            cleaned_json = match.group(0)
-                        response_data = json.loads(cleaned_json)
-                        logger.info("Successfully parsed JSON after cleaning")
-                    except Exception as e2:
-                        logger.error(f"Failed to parse JSON even after cleaning: {e2}")
-                        # As a last resort, create a simple structure
-                        response_data = {
-                            "title": f"Interaction on Mars",
-                            "description": "An economic exchange occurred between Martian colonists.",
-                            "tags": ["economic", "mars", "interaction"]
-                        }
-                
-                title = response_data.get("title", "")
-                description = response_data.get("description", "")
-                tags = response_data.get("tags", [])
-                
-                logger.debug(f"Successfully extracted narrative - Title: {title}")
-                return title, description, tags
-            else:
-                logger.warning(f"Failed to extract JSON from LLM response - no curly braces found")
-                # Try to salvage something useful from the response
-                lines = response_text.strip().split('\n')
-                if len(lines) >= 2:
-                    # Try to extract a title and description from the text
-                    return lines[0], '\n'.join(lines[1:]), ["generated", "non-json"]
-                    
-                return "Economic Interaction", response_text, ["fallback"]
-                
-        except Exception as e:
-            logger.error(f"Error generating LLM narrative: {e}")
-            logger.error(f"Response that caused the error: {response_text[:200]}")
-            return "", "", []
-    
-    def _call_ollama(self, prompt: str) -> str:
-        """Call Ollama API to generate text"""
-        try:
-            url = f"{self.ollama_base_url}/api/generate"
-            start_time = time.time()
-            
-            logger.debug(f"Calling Ollama API with model {self.model_name}")
-            logger.debug(f"Prompt starts with: {prompt[:100]}...")
-            
-            request_data = {
-                "model": self.model_name,
-                "prompt": prompt,
-                "stream": False,
-                "temperature": self.temperature,
-                "top_p": self.top_p,
-                "top_k": self.top_k,
-                "max_tokens": 500  # Limit response length
-            }
-            
-            logger.debug(f"Request parameters: temp={self.temperature}, top_p={self.top_p}, top_k={self.top_k}")
-            
-            try:
-                response = requests.post(
-                    url,
-                    json=request_data,
-                    timeout=30  # Longer timeout for narrative generation
-                )
-            except requests.exceptions.ConnectionError:
-                logger.error("Connection error when calling Ollama. Ensure service is running.")
-                return ""
-            except requests.exceptions.Timeout:
-                logger.error("Timeout when calling Ollama. Check network or service availability.")
-                return ""
-            
-            generation_time = time.time() - start_time
-            logger.debug(f"Ollama response generated in {generation_time:.2f} seconds")
-            
-            if response.status_code != 200:
-                logger.error(f"Ollama API returned status code {response.status_code}")
-                logger.error(f"Response content: {response.text[:200]}")
-                return ""
-            
-            try:
-                result = response.json()
-            except ValueError:
-                logger.error("Failed to parse JSON response from Ollama")
-                return ""
-            
-            response_text = result.get("response", "")
-            logger.debug(f"Response length: {len(response_text)} characters")
-            
-            # Additional validation
-            if not response_text or len(response_text) < 10:
-                logger.warning("Ollama returned an unusually short or empty response")
-                return ""
-            
-            return response_text
-        
-        except Exception as e:
-            logger.error(f"Unexpected error calling Ollama: {e}")
-            return ""
-    
-    def _get_mock_narrative(self, interaction_type: EconomicInteractionType) -> str:
-        """Get a mock narrative response when not using Ollama"""
+    def _get_mock_narrative_parts(self, interaction_type: EconomicInteractionType) -> Tuple[str, str, List[str]]:
+        """Get a mock narrative when not using Ollama, returning parts directly"""
         if interaction_type == EconomicInteractionType.ULTIMATUM:
-            return json.dumps({
-                "title": "Tense Ultimatum Negotiation in Mars Dome",
-                "description": "Alice offered Bob 30 credits out of a 100 credit pot. After careful consideration, Bob accepted the offer, though clearly dissatisfied with the terms. The transaction was completed quickly, with Alice walking away with a significant profit while Bob seemed to be calculating whether the deal was worth the loss of social capital.",
-                "tags": ["ultimatum", "negotiation", "economic_exchange"]
-            })
+            return (
+                "Tense Ultimatum Negotiation in Mars Dome",
+                "Alice offered Bob 30 credits out of a 100 credit pot. After careful consideration, Bob accepted the offer, though clearly dissatisfied with the terms. The transaction was completed quickly, with Alice walking away with a significant profit while Bob seemed to be calculating whether the deal was worth the loss of social capital.",
+                ["ultimatum", "negotiation", "economic_exchange"]
+            )
         elif interaction_type == EconomicInteractionType.TRUST:
-            return json.dumps({
-                "title": "Trust Betrayed in Olympus Market",
-                "description": "Charlie invested 50 credits with Delta Corporation, which was multiplied to 150 credits through their advanced resource processing. However, Delta returned only 20 credits to Charlie, keeping the lion's share of the profits. The betrayal has not gone unnoticed by other potential investors in the marketplace.",
-                "tags": ["trust", "betrayal", "investment"]
-            })
+            return (
+                "Trust Betrayed in Olympus Market",
+                "Charlie invested 50 credits with Delta Corporation, which was multiplied to 150 credits through their advanced resource processing. However, Delta returned only 20 credits to Charlie, keeping the lion's share of the profits. The betrayal has not gone unnoticed by other potential investors in the marketplace.",
+                ["trust", "betrayal", "investment"]
+            )
         else:
-            return json.dumps({
-                "title": "Economic Exchange on Mars Colony",
-                "description": "A standard economic interaction took place between the participants. Resources were exchanged according to the prevailing market conditions on Mars.",
-                "tags": ["economic", "exchange", "standard"]
-            })
+            return (
+                "Economic Exchange on Mars Colony",
+                "A standard economic interaction took place between the participants. Resources were exchanged according to the prevailing market conditions on Mars.",
+                ["economic", "exchange", "standard"]
+            )
+    
+    def _parse_mock_response(self, response_text: str) -> Tuple[str, str, List[str]]:
+        """Parse a mock response text into title, description, and tags"""
+        try:
+            # Try to parse as JSON first
+            if '{' in response_text and '}' in response_text:
+                start_idx = response_text.find('{')
+                end_idx = response_text.rfind('}')
+                json_text = response_text[start_idx:end_idx+1]
+                data = json.loads(json_text)
+                return (
+                    data.get('title', 'Mock Narrative'),
+                    data.get('description', 'This is a mock narrative description.'),
+                    data.get('tags', ['mock', 'test'])
+                )
+            # Otherwise, use simple parsing
+            lines = response_text.strip().split('\n')
+            if len(lines) >= 2:
+                return lines[0], '\n'.join(lines[1:]), ["mock", "test"]
+            return 'Mock Narrative', response_text, ["mock", "test"]
+        except Exception:
+            return 'Mock Narrative', 'This is a mock narrative description.', ["mock", "test"]
     
     def _mock_generate(self, prompt: str) -> str:
         """
         Method for testing that allows customization of mock responses.
         This method is intended to be overridden in tests to provide specific mock responses.
         
-        :
+        Args:
             prompt: The input prompt
             
         Returns:
@@ -453,13 +309,27 @@ class LLMNarrator(Narrator):
         
         # Create a prompt for the daily summary
         prompt = self._create_daily_summary_prompt(day, events, agents)
+        system_prompt = "You are a creative science fiction narrator summarizing daily events on a Mars colony."
         
         # Try to generate the summary with LLM
         try:
             if self.mock_llm:
                 summary = self._get_mock_daily_summary(day, len(events))
+            elif self.test_mode:
+                # For testing
+                summary = self._mock_generate(prompt)
             else:
-                summary = self._call_ollama(prompt)
+                # Use OllamaClient with structured output
+                try:
+                    summary_response = self.ollama_client.generate_daily_summary(
+                        prompt=prompt,
+                        system_prompt=system_prompt
+                    )
+                    summary = summary_response.summary
+                except Exception as e:
+                    logger.error(f"Error generating daily summary with OllamaClient: {e}")
+                    # Fall back to mock summary
+                    summary = self._get_mock_daily_summary(day, len(events))
             
             if summary:
                 return summary
@@ -539,18 +409,37 @@ class LLMNarrator(Narrator):
         Returns:
             A JSON-formatted string containing the narrative.
         """
-        # Map agent IDs to agent objects for easier lookup
-        # We don't have agents list here, so we can only use the interaction data
-        participant_names = {}
-        agent_map = {}
-        
         # Create a prompt for the LLM
-        prompt = self._create_interaction_prompt(interaction, participant_names, agent_map)
+        prompt = f"Generate a narrative for a {interaction.interaction_type.value} interaction between Mars colonists."
         
         if self.mock_llm:
-            return self._get_mock_narrative(interaction.interaction_type)
+            # Get the mock narrative as a JSON string
+            mock_title, mock_desc, mock_tags = self._get_mock_narrative_parts(interaction.interaction_type)
+            return json.dumps({
+                "title": mock_title,
+                "description": mock_desc,
+                "tags": mock_tags
+            })
         elif self.test_mode:
             # When in test mode, use the _mock_generate method which can be overridden in tests
             return self._mock_generate(prompt)
         else:
-            return self._call_ollama(prompt) 
+            try:
+                # Use OllamaClient with structured output
+                narrative_response = self.ollama_client.generate_narrative(prompt=prompt)
+                
+                # Convert to JSON string for backward compatibility
+                return json.dumps({
+                    "title": narrative_response.title,
+                    "description": narrative_response.description,
+                    "tags": narrative_response.tags
+                })
+            except Exception as e:
+                logger.error(f"Error generating narrative: {e}")
+                # Fall back to mock narrative
+                mock_title, mock_desc, mock_tags = self._get_mock_narrative_parts(interaction.interaction_type)
+                return json.dumps({
+                    "title": mock_title,
+                    "description": mock_desc,
+                    "tags": mock_tags
+                }) 

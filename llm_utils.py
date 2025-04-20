@@ -6,11 +6,21 @@ import json
 import logging
 import re
 import time
+from typing import List, Tuple, Type, TypeVar
+
+import instructor
 import requests
-from typing import Dict, List, Optional, Tuple, Any
+from pydantic import BaseModel
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+from llm_models import NarrativeResponse, DailySummaryResponse
 
 # Initialize logger
 logger = logging.getLogger(__name__)
+
+# Type variable for generic model typing
+T = TypeVar('T', bound=BaseModel)
+
 
 def test_ollama_connection(
     ollama_base_url: str, 
@@ -87,91 +97,249 @@ def test_ollama_connection(
         logger.error(f"Unexpected error testing Ollama connection: {e}")
         return False, "", []
 
-def call_ollama(
-    ollama_base_url: str, 
-    model_name: str, 
-    prompt: str, 
-    temperature: float = 0.8, 
-    top_p: float = 0.95, 
-    top_k: int = 40, 
-    max_tokens: int = 500,
-    timeout: int = 30
-) -> str:
+
+class OllamaClient:
     """
-    Call Ollama API to generate text.
-    
-    Args:
-        ollama_base_url: Base URL for Ollama API
-        model_name: Name of the model to use
-        prompt: Input prompt for text generation
-        temperature: Controls randomness in generation
-        top_p: Nucleus sampling probability threshold
-        top_k: Number of highest probability tokens to consider
-        max_tokens: Maximum number of tokens to generate
-        timeout: Request timeout in seconds
-    
-    Returns:
-        Generated text response
+    Client for interacting with Ollama API with Instructor integration.
+    Provides structured output parsing and automatic retries.
     """
-    try:
-        url = f"{ollama_base_url}/api/generate"
-        start_time = time.time()
+    
+    def __init__(
+        self,
+        base_url: str = "http://localhost:11434",
+        model_name: str = "gemma3:1b",
+        temperature: float = 0.8,
+        top_p: float = 0.95,
+        top_k: int = 40,
+        max_tokens: int = 500,
+        max_retries: int = 3,
+        timeout: int = 30
+    ):
+        """
+        Initialize the Ollama client with Instructor integration.
         
-        logger.debug(f"Calling Ollama API with model {model_name}")
-        logger.debug(f"Prompt starts with: {prompt[:100]}...")
+        Args:
+            base_url: Base URL for Ollama API
+            model_name: Name of the model to use
+            temperature: Controls randomness in generation
+            top_p: Nucleus sampling probability threshold
+            top_k: Number of highest probability tokens to consider
+            max_tokens: Maximum number of tokens to generate
+            max_retries: Maximum number of retries on failure
+            timeout: Request timeout in seconds
+        """
+        self.base_url = base_url
+        self.model_name = model_name
+        self.temperature = temperature
+        self.top_p = top_p
+        self.top_k = top_k
+        self.max_tokens = max_tokens
+        self.max_retries = max_retries
+        self.timeout = timeout
         
-        request_data = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "temperature": temperature,
-            "top_p": top_p,
-            "top_k": top_k,
-            "max_tokens": max_tokens
-        }
+        # Create a mock OpenAI-compatible client for Ollama
+        self.client = self._create_ollama_client()
         
-        logger.debug(f"Request parameters: temp={temperature}, top_p={top_p}, top_k={top_k}")
+        # Patch the client with instructor for structured outputs
+        self.instructor_client = instructor.from_openai(
+            self.client, 
+            mode=instructor.Mode.JSON_SCHEMA,
+            max_retries=max_retries
+        )
+        
+        logger.info(f"Initialized OllamaClient with model {model_name}")
+    
+    def _create_ollama_client(self):
+        """
+        Create a client that mimics the OpenAI client interface but calls Ollama.
+        This allows us to use instructor with Ollama.
+        """
+        # Define a minimal OpenAI-compatible client for Ollama
+        class OllamaCompatClient:
+            def __init__(self, base_url, model, temperature, top_p, top_k, max_tokens, timeout):
+                self.base_url = base_url
+                self.model = model
+                self.temperature = temperature
+                self.top_p = top_p
+                self.top_k = top_k
+                self.max_tokens = max_tokens
+                self.timeout = timeout
+                
+                # Create a ChatCompletions class to mimic OpenAI's structure
+                class ChatCompletions:
+                    def __init__(self, parent):
+                        self.parent = parent
+                    
+                    def create(self, messages, model=None, temperature=None, max_tokens=None, response_model=None, **kwargs):
+                        """
+                        Create chat completions using Ollama.
+                        This mimics OpenAI's chat completions API but calls Ollama.
+                        
+                        If response_model is provided, instructor will handle parsing the response.
+                        """
+                        # Use provided values or fall back to defaults
+                        model = model or self.parent.model
+                        temperature = temperature or self.parent.temperature
+                        max_tokens = max_tokens or self.parent.max_tokens
+                        
+                        # Construct the prompt from messages
+                        prompt = ""
+                        for msg in messages:
+                            role = msg["role"]
+                            content = msg["content"]
+                            if role == "system":
+                                prompt += f"System: {content}\n\n"
+                            elif role == "user":
+                                prompt += f"User: {content}\n\n"
+                            elif role == "assistant":
+                                prompt += f"Assistant: {content}\n\n"
+                            # Add more roles as needed
+                        
+                        prompt += "Assistant: "
+                        
+                        # If using instructor with response_model, add JSON instructions
+                        if response_model:
+                            prompt += "\nPlease respond with valid JSON according to the provided schema.\n"
+                        
+                        # Log the prompt for debugging
+                        logger.debug(f"Calling Ollama with prompt: {prompt[:200]}...")
+                        
+                        # Call Ollama API
+                        url = f"{self.parent.base_url}/api/generate"
+                        start_time = time.time()
+                        
+                        try:
+                            response = requests.post(
+                                url,
+                                json={
+                                    "model": model,
+                                    "prompt": prompt,
+                                    "stream": False,
+                                    "temperature": temperature,
+                                    "top_p": self.parent.top_p,
+                                    "top_k": self.parent.top_k,
+                                    "max_tokens": max_tokens
+                                },
+                                timeout=self.parent.timeout
+                            )
+                            
+                            generation_time = time.time() - start_time
+                            logger.debug(f"Ollama response generated in {generation_time:.2f} seconds")
+                            
+                            if response.status_code != 200:
+                                logger.error(f"Ollama API returned status code {response.status_code}")
+                                logger.error(f"Response content: {response.text[:200]}")
+                                raise Exception(f"Ollama API error: {response.status_code}")
+                            
+                            result = response.json()
+                            response_text = result.get("response", "")
+                            
+                            # Additional validation
+                            if not response_text:
+                                logger.warning("Ollama returned an empty response")
+                                raise Exception("Empty response from Ollama")
+                            
+                            # Create a minimal response that mimics OpenAI format
+                            # This is what instructor will use to parse the response
+                            return {
+                                "model": model,
+                                "choices": [
+                                    {
+                                        "message": {
+                                            "role": "assistant",
+                                            "content": response_text
+                                        },
+                                        "index": 0,
+                                        "finish_reason": "stop"
+                                    }
+                                ]
+                            }
+                        
+                        except Exception as e:
+                            logger.error(f"Error calling Ollama: {e}")
+                            raise
+                
+                # Add the ChatCompletions class to the client
+                self.chat = ChatCompletions(self)
+        
+        # Instantiate and return the client
+        return OllamaCompatClient(
+            self.base_url,
+            self.model_name,
+            self.temperature,
+            self.top_p,
+            self.top_k,
+            self.max_tokens,
+            self.timeout
+        )
+    
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    def generate_structured_output(self, prompt: str, response_model: Type[T], system_prompt: str = None) -> T:
+        """
+        Generate a structured response using the specified model.
+        
+        Args:
+            prompt: The user prompt
+            response_model: Pydantic model class for the expected response structure
+            system_prompt: Optional system prompt to provide context
+            
+        Returns:
+            An instance of the specified response_model
+        """
+        messages = []
+        
+        # Add system prompt if provided
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        
+        # Add user prompt
+        messages.append({"role": "user", "content": prompt})
         
         try:
-            response = requests.post(
-                url,
-                json=request_data,
-                timeout=timeout
+            logger.debug(f"Generating structured output with model {self.model_name}")
+            logger.debug(f"Response model: {response_model.__name__}")
+            
+            # Use instructor to generate and parse the response
+            result = self.instructor_client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                response_model=response_model
             )
-        except requests.exceptions.ConnectionError:
-            logger.error("Connection error when calling Ollama. Ensure service is running.")
-            return ""
-        except requests.exceptions.Timeout:
-            logger.error("Timeout when calling Ollama. Check network or service availability.")
-            return ""
+            
+            logger.debug(f"Successfully generated structured output: {result.model_dump_json()[:200]}...")
+            return result
         
-        generation_time = time.time() - start_time
-        logger.debug(f"Ollama response generated in {generation_time:.2f} seconds")
+        except Exception as e:
+            logger.error(f"Error generating structured output: {e}")
+            raise
+
+    def generate_narrative(self, prompt: str, system_prompt: str = None) -> NarrativeResponse:
+        """
+        Generate a narrative response using the NarrativeResponse model.
         
-        if response.status_code != 200:
-            logger.error(f"Ollama API returned status code {response.status_code}")
-            logger.error(f"Response content: {response.text[:200]}")
-            return ""
-        
-        try:
-            result = response.json()
-        except ValueError:
-            logger.error("Failed to parse JSON response from Ollama")
-            return ""
-        
-        response_text = result.get("response", "")
-        logger.debug(f"Response length: {len(response_text)} characters")
-        
-        # Additional validation
-        if not response_text or len(response_text) < 10:
-            logger.warning("Ollama returned an unusually short or empty response")
-            return ""
-        
-        return response_text
+        Args:
+            prompt: The prompt describing the interaction
+            system_prompt: Optional system prompt for context
+            
+        Returns:
+            NarrativeResponse object with title, description, and tags
+        """
+        return self.generate_structured_output(prompt, NarrativeResponse, system_prompt)
     
-    except Exception as e:
-        logger.error(f"Unexpected error calling Ollama: {e}")
-        return ""
+    def generate_daily_summary(self, prompt: str, system_prompt: str = None) -> DailySummaryResponse:
+        """
+        Generate a daily summary using the DailySummaryResponse model.
+        
+        Args:
+            prompt: The prompt describing the day's events
+            system_prompt: Optional system prompt for context
+            
+        Returns:
+            DailySummaryResponse object with the summary
+        """
+        return self.generate_structured_output(prompt, DailySummaryResponse, system_prompt)
 
 def parse_llm_json_response(
     response_text: str, 

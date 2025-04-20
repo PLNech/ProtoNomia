@@ -1,5 +1,41 @@
 # ProtoNomia Development Log
 
+## Refactored LLM Interactions to Use Instructor for Improved Structured Output
+
+### Date
+2025-04-22
+
+### Description
+Refactored the LLM interaction code to leverage the Instructor library for structured outputs. Key improvements include:
+
+1. Created Pydantic models for all structured LLM responses in a new `llm_models.py` file
+2. Implemented an `OllamaClient` class that provides OpenAI-compatible interfaces with Instructor integration
+3. Added automatic retries with exponential backoff for improved reliability
+4. Simplified JSON parsing with type-safe schema validation
+5. Improved error handling and fallback mechanisms
+6. Refactored `LLMNarrator` and `LLMAgent` to use the new structured output approach
+7. Added detailed reasoning field to agent decisions for better debugging and monitoring
+
+The refactoring maintains full backward compatibility with existing code while making LLM interactions more robust, easier to maintain, and less error-prone. The use of Pydantic models ensures type safety and better documentation of expected response formats.
+
+### Demand
+Refactor all our llm interactions to use instructor and retries to simplify and yet improve parsing, using json schema and retries instead of our naive first approach.
+
+### Files
+- [A] `llm_models.py` - New file with Pydantic models for structured LLM responses
+- [M] `llm_utils.py` - Reimplemented with OllamaClient class using Instructor
+- [M] `narrative/llm_narrator.py` - Refactored to use the new OllamaClient and structured outputs
+- [M] `agents/llm_agent.py` - Refactored to use OllamaClient for agent decision-making
+- [M] `DEVLOG.md` - Added entry documenting the changes
+
+### Bugs
+- Fixed JSON parsing issues by leveraging Instructor's schema validation
+- Improved error handling with automatic retries
+- Simplified fallback logic for more reliable operation
+- Eliminated manual JSON string extraction and parsing
+- Added more detailed diagnostics through structured responses
+- Fixed simulation stopping on LLM timeouts by implementing proper retry policies
+
 ## Enhanced Ollama Connection Handling and Error Recovery
 
 ### Date
