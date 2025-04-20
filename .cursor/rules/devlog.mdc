@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Logging Changes
+
+When you finish a coherent unit of work, add new `./DEVLOG.md` entry, most recent top with Title (summary of job done), then sub sections Date (2025-04-13 format), Description (precise description of what was accomplished), Demand (full restatement, in my exact words, of my related user demand), Files (compact list of files with [A/M/D] for added/modified/deleted) and Bugs (list of bugs found and fixed by iterating).

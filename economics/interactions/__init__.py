@@ -70,3 +70,5 @@ __all__ = [
     'PublicGoodsGameHandler',
     'InteractionRegistry'
 ]
+
+"""Economic interaction handlers for ProtoNomia"""

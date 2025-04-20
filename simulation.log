@@ -1,0 +1,246 @@
+2025-04-20 22:28:32,635 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:28:32,635 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:28:32,742 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:28:32,743 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:28:32,744 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:28:32,745 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:28:32,745 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=True
+2025-04-20 22:28:32,745 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=True)
+2025-04-20 22:28:32,752 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:28:32,752 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:28:32,753 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:28:32,753 - __main__ - INFO - Running simulation for 3 ticks...
+2025-04-20 22:28:32,754 - __main__ - INFO - Tick 0/3 - Population: 5
+2025-04-20 22:28:32,755 - __main__ - INFO - Tick 2/3 - Population: 4
+2025-04-20 22:28:32,755 - __main__ - INFO - Simulation complete
+2025-04-20 22:28:32,755 - __main__ - INFO - Final population: 4
+2025-04-20 22:28:32,756 - __main__ - INFO - Total interactions: 0
+2025-04-20 22:28:32,756 - __main__ - INFO - Total narrative events: 0
+2025-04-20 22:28:37,666 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:28:37,667 - __main__ - INFO - Initializing simulation with population 10
+2025-04-20 22:28:37,771 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:28:37,772 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:28:37,772 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:28:37,774 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:28:37,774 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model mistral:7b, mock=True
+2025-04-20 22:28:37,774 - core.simulation - INFO - Loaded LLM Narrator with model mistral:7b (mock=True)
+2025-04-20 22:28:37,775 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:28:37,775 - core.simulation - INFO - Initializing simulation with 10 agents
+2025-04-20 22:28:37,776 - core.simulation - INFO - Simulation initialized with 10 agents
+2025-04-20 22:28:37,776 - __main__ - INFO - Simulation will time out after 2.0 seconds
+2025-04-20 22:28:37,777 - __main__ - INFO - Running simulation for 10 ticks...
+2025-04-20 22:28:37,778 - __main__ - INFO - Tick 0/10 - Population: 10
+2025-04-20 22:28:37,787 - narrative.narrator - INFO - Generated daily summary for day 10 with 0 events
+2025-04-20 22:28:37,787 - __main__ - INFO - Tick 9/10 - Population: 8
+2025-04-20 22:28:37,787 - __main__ - INFO - Simulation complete
+2025-04-20 22:28:37,787 - __main__ - INFO - Final population: 8
+2025-04-20 22:28:37,787 - __main__ - INFO - Total interactions: 0
+2025-04-20 22:28:37,787 - __main__ - INFO - Total narrative events: 0
+2025-04-20 22:29:38,690 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:29:38,691 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:29:38,802 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:29:38,803 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:29:38,804 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:29:38,809 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:29:38,809 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model llama3:8b, mock=True
+2025-04-20 22:29:38,809 - core.simulation - INFO - Loaded LLM Narrator with model llama3:8b (mock=True)
+2025-04-20 22:29:38,810 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:29:38,810 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:29:38,811 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:29:38,811 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 22:29:38,812 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 22:29:38,814 - __main__ - INFO - Tick 4/5 - Population: 5
+2025-04-20 22:29:38,814 - __main__ - INFO - Simulation complete
+2025-04-20 22:29:38,814 - __main__ - INFO - Final population: 5
+2025-04-20 22:29:38,814 - __main__ - INFO - Total interactions: 0
+2025-04-20 22:29:38,814 - __main__ - INFO - Total narrative events: 0
+2025-04-20 22:31:12,305 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:31:12,305 - __main__ - INFO - Initializing simulation with population 20
+2025-04-20 22:31:12,306 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:31:12,306 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:31:12,406 - narrative.narrator - INFO - Initialized narrator with verbosity level 3
+2025-04-20 22:31:12,406 - core.simulation - INFO - Loaded rule-based Narrator with verbosity 3
+2025-04-20 22:31:12,407 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:31:12,407 - core.simulation - INFO - Initializing simulation with 20 agents
+2025-04-20 22:31:12,409 - core.simulation - INFO - Simulation initialized with 20 agents
+2025-04-20 22:31:12,409 - __main__ - INFO - Running simulation for 100 ticks...
+2025-04-20 22:31:12,409 - __main__ - INFO - Tick 0/100 - Population: 20
+2025-04-20 22:31:12,411 - narrative.narrator - INFO - Generated daily summary for day 10 with 0 events
+2025-04-20 22:31:12,412 - __main__ - INFO - Tick 10/100 - Population: 19
+2025-04-20 22:31:12,414 - narrative.narrator - INFO - Generated daily summary for day 20 with 0 events
+2025-04-20 22:31:12,414 - __main__ - INFO - Tick 20/100 - Population: 19
+2025-04-20 22:31:12,416 - narrative.narrator - INFO - Generated daily summary for day 30 with 0 events
+2025-04-20 22:31:12,416 - __main__ - INFO - Tick 30/100 - Population: 18
+2025-04-20 22:31:12,418 - narrative.narrator - INFO - Generated daily summary for day 40 with 0 events
+2025-04-20 22:31:12,419 - __main__ - INFO - Tick 40/100 - Population: 17
+2025-04-20 22:31:12,420 - narrative.narrator - INFO - Generated daily summary for day 50 with 0 events
+2025-04-20 22:31:12,421 - __main__ - INFO - Tick 50/100 - Population: 15
+2025-04-20 22:31:12,423 - narrative.narrator - INFO - Generated daily summary for day 60 with 0 events
+2025-04-20 22:31:12,423 - __main__ - INFO - Tick 60/100 - Population: 15
+2025-04-20 22:31:12,425 - narrative.narrator - INFO - Generated daily summary for day 70 with 0 events
+2025-04-20 22:31:12,425 - __main__ - INFO - Tick 70/100 - Population: 14
+2025-04-20 22:31:12,426 - narrative.narrator - INFO - Generated daily summary for day 80 with 0 events
+2025-04-20 22:31:12,427 - __main__ - INFO - Tick 80/100 - Population: 13
+2025-04-20 22:31:12,428 - narrative.narrator - INFO - Generated daily summary for day 90 with 0 events
+2025-04-20 22:31:12,429 - __main__ - INFO - Tick 90/100 - Population: 14
+2025-04-20 22:31:12,430 - narrative.narrator - INFO - Generated daily summary for day 100 with 0 events
+2025-04-20 22:31:12,430 - __main__ - INFO - Tick 99/100 - Population: 12
+2025-04-20 22:31:12,430 - __main__ - INFO - Simulation complete
+2025-04-20 22:31:12,431 - __main__ - INFO - Final population: 12
+2025-04-20 22:31:12,431 - __main__ - INFO - Total interactions: 0
+2025-04-20 22:31:12,431 - __main__ - INFO - Total narrative events: 0
+2025-04-20 22:31:16,820 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:31:16,820 - __main__ - INFO - Initializing simulation with population 20
+2025-04-20 22:31:16,821 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:31:16,822 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:31:16,923 - narrative.narrator - INFO - Initialized narrator with verbosity level 3
+2025-04-20 22:31:16,924 - core.simulation - INFO - Loaded rule-based Narrator with verbosity 3
+2025-04-20 22:31:16,924 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:31:16,925 - core.simulation - INFO - Initializing simulation with 20 agents
+2025-04-20 22:31:16,926 - core.simulation - INFO - Simulation initialized with 20 agents
+2025-04-20 22:31:16,926 - __main__ - INFO - Running simulation for 100 ticks...
+2025-04-20 22:31:16,927 - __main__ - INFO - Tick 0/100 - Population: 20
+2025-04-20 22:31:16,929 - narrative.narrator - INFO - Generated daily summary for day 10 with 0 events
+2025-04-20 22:31:16,929 - __main__ - INFO - Tick 10/100 - Population: 15
+2025-04-20 22:31:16,931 - narrative.narrator - INFO - Generated daily summary for day 20 with 0 events
+2025-04-20 22:31:16,931 - __main__ - INFO - Tick 20/100 - Population: 13
+2025-04-20 22:31:16,932 - narrative.narrator - INFO - Generated daily summary for day 30 with 0 events
+2025-04-20 22:31:16,933 - __main__ - INFO - Tick 30/100 - Population: 11
+2025-04-20 22:31:16,934 - narrative.narrator - INFO - Generated daily summary for day 40 with 0 events
+2025-04-20 22:31:16,935 - __main__ - INFO - Tick 40/100 - Population: 11
+2025-04-20 22:31:16,936 - narrative.narrator - INFO - Generated daily summary for day 50 with 0 events
+2025-04-20 22:31:16,936 - __main__ - INFO - Tick 50/100 - Population: 11
+2025-04-20 22:31:16,938 - narrative.narrator - INFO - Generated daily summary for day 60 with 0 events
+2025-04-20 22:31:16,938 - __main__ - INFO - Tick 60/100 - Population: 11
+2025-04-20 22:31:16,939 - narrative.narrator - INFO - Generated daily summary for day 70 with 0 events
+2025-04-20 22:31:16,940 - __main__ - INFO - Tick 70/100 - Population: 11
+2025-04-20 22:31:16,941 - narrative.narrator - INFO - Generated daily summary for day 80 with 0 events
+2025-04-20 22:31:16,941 - __main__ - INFO - Tick 80/100 - Population: 9
+2025-04-20 22:31:16,943 - narrative.narrator - INFO - Generated daily summary for day 90 with 0 events
+2025-04-20 22:31:16,943 - __main__ - INFO - Tick 90/100 - Population: 11
+2025-04-20 22:31:16,944 - narrative.narrator - INFO - Generated daily summary for day 100 with 0 events
+2025-04-20 22:31:16,945 - __main__ - INFO - Tick 99/100 - Population: 10
+2025-04-20 22:31:16,945 - __main__ - INFO - Simulation complete
+2025-04-20 22:31:16,945 - __main__ - INFO - Final population: 10
+2025-04-20 22:31:16,945 - __main__ - INFO - Total interactions: 0
+2025-04-20 22:31:16,945 - __main__ - INFO - Total narrative events: 0
+2025-04-20 22:32:06,775 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:32:06,775 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:32:06,874 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:32:06,875 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:32:06,875 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:32:06,880 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:32:06,880 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=True
+2025-04-20 22:32:06,881 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=True)
+2025-04-20 22:32:06,881 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:32:06,881 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:32:06,882 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:32:06,882 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 22:32:06,883 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 22:32:06,886 - __main__ - INFO - Tick 4/5 - Population: 4
+2025-04-20 22:32:06,886 - __main__ - INFO - Simulation complete
+2025-04-20 22:32:06,886 - __main__ - INFO - Final population: 4
+2025-04-20 22:32:06,886 - __main__ - INFO - Total interactions: 0
+2025-04-20 22:32:06,886 - __main__ - INFO - Total narrative events: 0
+2025-04-20 22:44:13,846 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:44:13,846 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:44:13,941 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:44:13,942 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:44:13,942 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:44:13,947 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:44:13,947 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=True
+2025-04-20 22:44:13,948 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=True)
+2025-04-20 22:44:13,948 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:44:13,948 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:44:13,949 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:44:13,949 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 22:44:13,950 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 22:44:13,953 - __main__ - INFO - Tick 4/5 - Population: 7
+2025-04-20 22:44:13,953 - __main__ - INFO - Simulation complete
+2025-04-20 22:44:13,953 - __main__ - INFO - Final population: 7
+2025-04-20 22:44:13,953 - __main__ - INFO - Total interactions: 0
+2025-04-20 22:44:13,953 - __main__ - INFO - Total narrative events: 0
+2025-04-20 22:46:04,769 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:46:04,769 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:46:04,873 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:46:04,873 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:46:04,874 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:46:04,879 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:46:04,879 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=True
+2025-04-20 22:46:04,879 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=True)
+2025-04-20 22:46:04,880 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:46:04,880 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:46:04,881 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:46:04,881 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 22:46:04,882 - core.simulation - INFO - Created demo interaction between Rosa Okafor and Nora Singh
+2025-04-20 22:46:04,882 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 22:46:04,885 - __main__ - INFO - Tick 4/5 - Population: 6
+2025-04-20 22:46:04,885 - __main__ - INFO - Simulation complete
+2025-04-20 22:46:04,885 - __main__ - INFO - Final population: 6
+2025-04-20 22:46:04,885 - __main__ - INFO - Total interactions: 1
+2025-04-20 22:46:04,885 - __main__ - INFO - Total narrative events: 5
+2025-04-20 22:46:12,331 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:46:12,331 - __main__ - INFO - Initializing simulation with population 10
+2025-04-20 22:46:12,438 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:46:12,439 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:46:12,439 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:46:12,441 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:46:12,441 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=True
+2025-04-20 22:46:12,441 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=True)
+2025-04-20 22:46:12,442 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:46:12,442 - core.simulation - INFO - Initializing simulation with 10 agents
+2025-04-20 22:46:12,443 - core.simulation - INFO - Simulation initialized with 10 agents
+2025-04-20 22:46:12,443 - __main__ - INFO - Running simulation for 10 ticks...
+2025-04-20 22:46:12,445 - core.simulation - INFO - Created demo interaction between Zach Rodriguez and Yasmin Diaz
+2025-04-20 22:46:12,445 - __main__ - INFO - Tick 0/10 - Population: 10
+2025-04-20 22:46:12,454 - __main__ - INFO - Tick 9/10 - Population: 9
+2025-04-20 22:46:12,454 - __main__ - INFO - Simulation complete
+2025-04-20 22:46:12,454 - __main__ - INFO - Final population: 9
+2025-04-20 22:46:12,454 - __main__ - INFO - Total interactions: 1
+2025-04-20 22:46:12,454 - __main__ - INFO - Total narrative events: 10
+2025-04-20 22:46:34,915 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:46:34,915 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:46:35,012 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=True)
+2025-04-20 22:46:35,013 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:46:35,013 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:46:35,014 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:46:35,014 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=True
+2025-04-20 22:46:35,014 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=True)
+2025-04-20 22:46:35,015 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:46:35,015 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:46:35,016 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:46:35,016 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 22:46:35,017 - core.simulation - INFO - Created demo interaction between Miguel Singh and Gabriel Patel
+2025-04-20 22:46:35,017 - __main__ - INFO - Tick 0/5 - Population: 5
+2025-04-20 22:46:35,020 - __main__ - INFO - Tick 4/5 - Population: 5
+2025-04-20 22:46:35,020 - __main__ - INFO - Simulation complete
+2025-04-20 22:46:35,020 - __main__ - INFO - Final population: 5
+2025-04-20 22:46:35,020 - __main__ - INFO - Total interactions: 1
+2025-04-20 22:46:35,020 - __main__ - INFO - Total narrative events: 5
+2025-04-20 22:46:50,073 - __main__ - INFO - Configuring simulation...
+2025-04-20 22:46:50,073 - __main__ - INFO - Initializing simulation with population 5
+2025-04-20 22:46:50,183 - agents.llm_agent - WARNING - Failed to connect to Ollama: 404 Client Error: Not Found for url: http://localhost:11434/api/generate. Falling back to mock mode.
+2025-04-20 22:46:50,183 - core.simulation - INFO - Loaded LLM agent with model gemma:1b (mock=False)
+2025-04-20 22:46:50,183 - core.simulation - WARNING - UltimatumGameHandler not found
+2025-04-20 22:46:50,184 - core.simulation - WARNING - TrustGameHandler not found
+2025-04-20 22:46:50,185 - narrative.narrator - INFO - Initialized narrator with verbosity level 4
+2025-04-20 22:46:50,185 - narrative.llm_narrator - INFO - Initialized LLM Narrator with model gemma3:1b, mock=False
+2025-04-20 22:46:52,499 - narrative.llm_narrator - INFO - Successfully connected to Ollama with model gemma3:1b
+2025-04-20 22:46:52,499 - core.simulation - INFO - Loaded LLM Narrator with model gemma3:1b (mock=False)
+2025-04-20 22:46:52,500 - core.simulation - WARNING - PopulationController not found
+2025-04-20 22:46:52,500 - core.simulation - INFO - Initializing simulation with 5 agents
+2025-04-20 22:46:52,500 - core.simulation - INFO - Simulation initialized with 5 agents
+2025-04-20 22:46:52,501 - __main__ - INFO - Running simulation for 5 ticks...
+2025-04-20 22:46:52,502 - core.simulation - INFO - Created demo interaction between Priya Lopez and Alice Nguyen
+2025-04-20 22:47:05,299 - __main__ - INFO - Tick 0/5 - Population: 4
+2025-04-20 22:47:25,875 - narrative.llm_narrator - ERROR - Error generating LLM narrative: Extra data: line 6 column 1 (char 1398)
+2025-04-20 22:47:25,875 - narrative.llm_narrator - WARNING - LLM narrative generation failed, falling back to rule-based generation
+2025-04-20 22:47:35,845 - narrative.llm_narrator - ERROR - Error generating LLM narrative: Extra data: line 6 column 1 (char 1896)
+2025-04-20 22:47:35,846 - narrative.llm_narrator - WARNING - LLM narrative generation failed, falling back to rule-based generation
+2025-04-20 22:47:51,322 - narrative.llm_narrator - ERROR - Error generating LLM narrative: Extra data: line 6 column 1 (char 1513)
+2025-04-20 22:47:51,322 - narrative.llm_narrator - WARNING - LLM narrative generation failed, falling back to rule-based generation
+2025-04-20 22:47:51,323 - __main__ - INFO - Tick 4/5 - Population: 4
+2025-04-20 22:47:51,323 - __main__ - INFO - Simulation complete
+2025-04-20 22:47:51,323 - __main__ - INFO - Final population: 4
+2025-04-20 22:47:51,323 - __main__ - INFO - Total interactions: 1
+2025-04-20 22:47:51,323 - __main__ - INFO - Total narrative events: 5

@@ -1,257 +1,170 @@
-from datetime import datetime
-import random
+"""
+Ultimatum Game interaction for ProtoNomia.
+This module implements the handler for the Ultimatum Game economic interaction.
+"""
 import logging
-from typing import Dict, List, Any, Optional
+from datetime import datetime
+from typing import Dict, List, Optional, Any
 
-from ...models.base import (
-    Agent, EconomicInteraction, EconomicInteractionType, InteractionRole,
-    InteractionOutcome, InteractionStrategy, ResourceBalance, ResourceType
+from models.base import (
+    Agent, ResourceType, ResourceBalance, EconomicInteraction, 
+    EconomicInteractionType, InteractionRole, InteractionOutcome
 )
-from .base import InteractionHandler
 
+# Initialize logger
 logger = logging.getLogger(__name__)
 
-class UltimatumGameHandler(InteractionHandler):
-    """Handler for the Ultimatum Game interaction
+
+class UltimatumGameHandler:
+    """
+    Handles Ultimatum Game interactions between agents.
     
     In the Ultimatum Game:
-    1. The proposer offers a split of a resource
-    2. The responder either accepts (both get their shares) or rejects (both get nothing)
-    
-    This tests fairness norms and bargaining behavior.
+    1. A proposer offers a split of a resource
+    2. A responder can accept or reject the offer
+    3. If accepted, both get their share
+    4. If rejected, both get nothing
     """
     
-    interaction_type = EconomicInteractionType.ULTIMATUM
+    def __init__(self):
+        """Initialize the Ultimatum Game handler"""
+        pass
     
-    def create_interaction(self, proposer: Agent, responder: Agent, 
-                          amount: float, resource_type: ResourceType = ResourceType.CREDITS) -> EconomicInteraction:
-        """Create a new ultimatum game interaction
+    def execute(
+        self, 
+        proposer: Agent, 
+        responder: Agent,
+        total_amount: float,
+        offer_amount: float,
+        responder_accepts: bool,
+        currency: ResourceType = ResourceType.CREDITS
+    ) -> EconomicInteraction:
+        """
+        Execute an Ultimatum Game interaction between two agents.
         
         Args:
             proposer: The agent making the offer
             responder: The agent responding to the offer
-            amount: The total amount to be split
-            resource_type: The type of resource being split
+            total_amount: The total amount being divided
+            offer_amount: The amount offered to the responder
+            responder_accepts: Whether the responder accepts the offer
+            currency: The type of resource being exchanged
             
         Returns:
-            A new ultimatum game interaction
+            EconomicInteraction: The completed interaction
         """
-        # Check if proposer has enough resources
-        proposer_balance = self.get_resource_balance(proposer, resource_type)
+        logger.info(f"Executing Ultimatum Game: {proposer.name} offers {offer_amount} of {total_amount} {currency} to {responder.name}")
         
-        if proposer_balance < amount:
-            raise ValueError(f"Proposer {proposer.name} doesn't have enough {resource_type} ({proposer_balance}) for this interaction ({amount})")
-        
-        # Create the interaction
-        return EconomicInteraction(
-            interaction_type=self.interaction_type,
+        # Create the interaction object
+        interaction = EconomicInteraction(
+            interaction_type=EconomicInteractionType.ULTIMATUM,
             participants={
                 proposer.id: InteractionRole.PROPOSER,
                 responder.id: InteractionRole.RESPONDER
             },
             parameters={
-                "resource_type": resource_type,
-                "total_amount": amount,
-                "proposed_amount": None,  # Will be set when proposer makes an offer
-                "response": None,  # Will be set when responder responds
-                "stage": "proposal"  # Current stage: proposal, response, completed
+                "total_amount": total_amount,
+                "offer_amount": offer_amount,
+                "responder_accepts": responder_accepts,
+                "currency": currency.value
             },
-            start_time=datetime.now(),
-            is_complete=False
+            start_time=datetime.now()
         )
-    
-    def progress_interaction(self, interaction: EconomicInteraction) -> EconomicInteraction:
-        """Progress the ultimatum game to its next stage
         
-        Args:
-            interaction: The interaction to progress
+        # Record initial resource states
+        proposer_resources_before = self._get_resource_state(proposer)
+        responder_resources_before = self._get_resource_state(responder)
+        
+        # Execute the game logic
+        proposer_change = 0.0
+        responder_change = 0.0
+        
+        if responder_accepts:
+            # Offer accepted: transfer resources
+            proposer_change = total_amount - offer_amount  # Proposer keeps the rest
+            responder_change = offer_amount               # Responder gets the offer
             
-        Returns:
-            The updated interaction
-        """
-        if interaction.is_complete:
-            return interaction
-        
-        stage = interaction.parameters.get("stage")
-        
-        if stage == "proposal":
-            interaction = self._handle_proposal_stage(interaction)
-        elif stage == "response":
-            interaction = self._handle_response_stage(interaction)
-        
-        return interaction
-    
-    def _handle_proposal_stage(self, interaction: EconomicInteraction) -> EconomicInteraction:
-        """Handle the proposal stage of the ultimatum game
-        
-        Args:
-            interaction: The interaction to update
+            # Update agent resources
+            self._update_resource(proposer, currency, proposer_change)
+            self._update_resource(responder, currency, responder_change)
             
-        Returns:
-            The updated interaction
-        """
-        # Find proposer
-        proposer_id = next(id for id, role in interaction.participants.items() 
-                          if role == InteractionRole.PROPOSER)
-        
-        # For MVP, simulate a proposal based on simple personality-driven strategy
-        # In a full implementation, this would use more complex agent decision-making
-        total_amount = interaction.parameters.get("total_amount")
-        proposed_amount = self._calculate_proposal_amount(proposer_id, total_amount)
-        
-        # Update interaction parameters
-        params = interaction.parameters.copy()
-        params["proposed_amount"] = proposed_amount
-        params["stage"] = "response"
-        
-        interaction.parameters = params
-        
-        return interaction
-    
-    def _calculate_proposal_amount(self, proposer_id: str, total_amount: float) -> float:
-        """Calculate the amount to propose based on agent personality
-        
-        Args:
-            proposer_id: ID of the proposing agent
-            total_amount: Total amount to be split
-            
-        Returns:
-            Amount to propose to the responder
-        """
-        # This would use the agent's personality and strategy in a full implementation
-        # For MVP, use a random value weighted by fairness preference
-        fairness = random.uniform(0.2, 0.5)  # Simulated fairness preference
-        
-        # More sophisticated calculation would consider past interactions, relationship, etc.
-        proportion = max(0.01, min(0.99, random.normalvariate(fairness, 0.1)))
-        return round(total_amount * proportion, 2)
-    
-    def _handle_response_stage(self, interaction: EconomicInteraction) -> EconomicInteraction:
-        """Handle the response stage of the ultimatum game
-        
-        Args:
-            interaction: The interaction to update
-            
-        Returns:
-            The updated interaction
-        """
-        # Find responder
-        responder_id = next(id for id, role in interaction.participants.items() 
-                           if role == InteractionRole.RESPONDER)
-        
-        # For MVP, simulate a response based on simple fairness threshold
-        total_amount = interaction.parameters.get("total_amount")
-        proposed_amount = interaction.parameters.get("proposed_amount")
-        
-        acceptance = self._decide_acceptance(responder_id, proposed_amount, total_amount)
-        
-        # Update interaction parameters
-        params = interaction.parameters.copy()
-        params["response"] = acceptance
-        params["stage"] = "completed"
-        
-        interaction.parameters = params
-        
-        # Complete the interaction and calculate outcomes
-        interaction = self.complete_interaction(interaction)
-        
-        return interaction
-    
-    def _decide_acceptance(self, responder_id: str, proposed_amount: float, total_amount: float) -> bool:
-        """Decide whether to accept the proposal
-        
-        Args:
-            responder_id: ID of the responding agent
-            proposed_amount: Amount proposed to the responder
-            total_amount: Total amount being split
-            
-        Returns:
-            True if the offer is accepted, False otherwise
-        """
-        # This would use the agent's personality and strategy in a full implementation
-        # For MVP, use a simple fairness threshold
-        proportion = proposed_amount / total_amount
-        threshold = random.uniform(0.1, 0.3)  # Minimum acceptable proportion
-        
-        return proportion >= threshold
-    
-    def complete_interaction(self, interaction: EconomicInteraction) -> EconomicInteraction:
-        """Complete the interaction and calculate outcomes
-        
-        Args:
-            interaction: The interaction to complete
-            
-        Returns:
-            The completed interaction with outcomes
-        """
-        # Extract relevant parameters
-        total_amount = interaction.parameters.get("total_amount")
-        proposed_amount = interaction.parameters.get("proposed_amount")
-        acceptance = interaction.parameters.get("response")
-        resource_type = interaction.parameters.get("resource_type", ResourceType.CREDITS)
-        
-        # Find participant IDs
-        proposer_id = next(id for id, role in interaction.participants.items() 
-                          if role == InteractionRole.PROPOSER)
-        responder_id = next(id for id, role in interaction.participants.items() 
-                           if role == InteractionRole.RESPONDER)
-        
-        # Calculate outcomes based on acceptance
-        if acceptance:
-            # Offer accepted: proposer gets (total - proposed), responder gets proposed
-            proposer_gain = total_amount - proposed_amount
-            responder_gain = proposed_amount
+            logger.info(f"Offer accepted: {proposer.name} keeps {proposer_change}, {responder.name} gets {responder_change}")
         else:
-            # Offer rejected: both get nothing
-            proposer_gain = 0
-            responder_gain = 0
+            # Offer rejected: no one gets anything
+            proposer_change = 0.0
+            responder_change = 0.0
+            logger.info(f"Offer rejected: no resources transferred")
         
-        # Create outcome objects
-        outcomes = [
-            InteractionOutcome(
-                interaction_id=interaction.id,
-                agent_id=proposer_id,
-                role=InteractionRole.PROPOSER,
-                resources_before=[ResourceBalance(
-                    resource_type=resource_type,
-                    amount=total_amount
-                )],
-                resources_after=[ResourceBalance(
-                    resource_type=resource_type,
-                    amount=proposer_gain
-                )],
-                utility_change=proposer_gain - total_amount,
-                strategy_used=InteractionStrategy(
-                    strategy_type="fair_split" if proposed_amount / total_amount >= 0.4 else "selfish",
-                    parameters={"offered_proportion": proposed_amount / total_amount}
-                )
-            ),
-            InteractionOutcome(
-                interaction_id=interaction.id,
-                agent_id=responder_id,
-                role=InteractionRole.RESPONDER,
-                resources_before=[ResourceBalance(
-                    resource_type=resource_type,
-                    amount=0
-                )],
-                resources_after=[ResourceBalance(
-                    resource_type=resource_type,
-                    amount=responder_gain
-                )],
-                utility_change=responder_gain,
-                strategy_used=InteractionStrategy(
-                    strategy_type="accept" if acceptance else "reject",
-                    parameters={"acceptance_threshold": proposed_amount / total_amount if acceptance else (proposed_amount / total_amount) + 0.1}
-                )
-            )
-        ]
+        # Record outcomes
+        proposer_outcome = InteractionOutcome(
+            interaction_id=interaction.id,
+            agent_id=proposer.id,
+            role=InteractionRole.PROPOSER,
+            resources_before=proposer_resources_before,
+            resources_after=self._get_resource_state(proposer),
+            utility_change=proposer_change
+        )
         
-        # Update the interaction
-        interaction.outcomes = outcomes
-        interaction.is_complete = True
+        responder_outcome = InteractionOutcome(
+            interaction_id=interaction.id,
+            agent_id=responder.id,
+            role=InteractionRole.RESPONDER,
+            resources_before=responder_resources_before,
+            resources_after=self._get_resource_state(responder),
+            utility_change=responder_change
+        )
+        
+        # Update interaction
+        interaction.outcomes = [proposer_outcome, responder_outcome]
         interaction.end_time = datetime.now()
+        interaction.is_complete = True
         
-        # Calculate narrative significance
-        interaction.narrative_significance = self.calculate_narrative_significance(interaction, outcomes)
+        # Set narrative significance based on the interaction
+        fairness = offer_amount / total_amount
+        if responder_accepts:
+            if fairness < 0.3:
+                # Very unfair offer was accepted - noteworthy!
+                interaction.narrative_significance = 0.8
+            elif fairness > 0.5:
+                # Fair or generous offer was accepted - somewhat noteworthy
+                interaction.narrative_significance = 0.4
+            else:
+                # Moderately unfair but accepted - less noteworthy
+                interaction.narrative_significance = 0.3
+        else:
+            if fairness > 0.4:
+                # Fairly reasonable offer was rejected - noteworthy!
+                interaction.narrative_significance = 0.7
+            else:
+                # Unfair offer was rejected - expected, less noteworthy
+                interaction.narrative_significance = 0.3
         
         return interaction
+    
+    def _get_resource_state(self, agent: Agent) -> List[ResourceBalance]:
+        """Get a copy of the agent's current resources"""
+        return [
+            ResourceBalance(
+                resource_type=resource.resource_type,
+                amount=resource.amount,
+                last_updated=resource.last_updated
+            )
+            for resource in agent.resources
+        ]
+    
+    def _update_resource(self, agent: Agent, resource_type: ResourceType, change: float) -> None:
+        """Update the agent's resource of the given type"""
+        # Find the resource
+        for resource in agent.resources:
+            if resource.resource_type == resource_type:
+                resource.amount += change
+                resource.last_updated = datetime.now()
+                return
+        
+        # If resource doesn't exist yet, add it
+        if change > 0:
+            agent.resources.append(ResourceBalance(
+                resource_type=resource_type,
+                amount=change,
+                last_updated=datetime.now()
+            ))

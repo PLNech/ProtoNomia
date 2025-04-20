@@ -1,719 +1,441 @@
-import random
+"""
+Narrator module for ProtoNomia.
+This module handles the generation of narrative events from economic interactions.
+"""
 import logging
-import json
-from typing import Dict, List, Optional, Any, Tuple, Set
-from datetime import datetime, timedelta
-import instructor
-from openai import OpenAI
+import random
+from datetime import datetime
+from typing import List, Dict, Optional, Any
 
-from ..models.base import (
-    Agent, EconomicInteraction, EconomicInteractionType, 
-    NarrativeEvent, NarrativeArc, SimulationState
+from models.base import (
+    Agent, EconomicInteraction, EconomicInteractionType, InteractionRole, 
+    NarrativeEvent, NarrativeArc
 )
-from ..models.actions import AgentAction, ActionType
 
+# Initialize logger
 logger = logging.getLogger(__name__)
 
-class NarrativeGenerator:
-    """Generates narrative content from simulation events"""
+
+class Narrator:
+    """
+    Narrator class for generating narrative events and arcs from economic interactions.
+    The narrator creates engaging stories from the events in the simulation.
+    """
     
-    def __init__(
+    def __init__(self, verbosity: int = 3):
+        """
+        Initialize the narrator.
+        
+        Args:
+            verbosity: Level of detail in generated narratives (1-5)
+        """
+        self.verbosity = max(1, min(5, verbosity))  # Ensure verbosity is between 1 and 5
+        logger.info(f"Initialized narrator with verbosity level {self.verbosity}")
+    
+    def generate_event_from_interaction(
         self, 
-        ollama_base_url: str = "http://localhost:11434/v1",
-        model_name: str = "gemma:1b",
-        temperature: float = 0.8,
-        verbosity: int = 3,
-        cyberpunk_flavor: float = 0.7
-    ):
-        """Initialize the narrative generator
-        
-        Args:
-            ollama_base_url: Base URL for Ollama API
-            model_name: Name of the model to use
-            temperature: Temperature for LLM generation (0.0-1.0)
-            verbosity: Level of narrative detail (1-5)
-            cyberpunk_flavor: How strongly to emphasize cyberpunk elements (0.0-1.0)
-        """
-        self.model_name = model_name
-        self.temperature = temperature
-        self.verbosity = verbosity
-        self.cyberpunk_flavor = cyberpunk_flavor
-        
-        # Initialize OpenAI-compatible client with Instructor
-        self.client = instructor.from_openai(
-            OpenAI(
-                base_url=ollama_base_url,
-                api_key="ollama",  # Required but unused
-            ),
-            mode=instructor.Mode.JSON
-        )
-        
-        # Track active narrative arcs
-        self.active_arcs: Dict[str, NarrativeArc] = {}
-        
-        # Track agent backgrounds
-        self.agent_backgrounds: Dict[str, str] = {}
-        
-        # Recent events for context
-        self.recent_events: List[NarrativeEvent] = []
-        
-        # Track interesting relationships
-        self.interesting_relationships: Set[Tuple[str, str]] = set()
-    
-    def _generate_event_description(
-        self, 
-        interaction: Optional[EconomicInteraction] = None,
-        action: Optional[AgentAction] = None,
-        agents: Dict[str, Agent] = {}
-    ) -> str:
-        """Generate a narrative description of an event using the LLM
-        
-        Args:
-            interaction: The economic interaction (if applicable)
-            action: The agent action (if applicable)
-            agents: Dictionary of agent_id -> Agent for context
-            
-        Returns:
-            A narrative description of the event
-        """
-        # Build the prompt based on what we're describing
-        prompt = "Generate a brief cyberpunk Mars narrative description of this event:\n\n"
-        
-        if interaction:
-            prompt += self._build_interaction_prompt(interaction, agents)
-        elif action:
-            prompt += self._build_action_prompt(action, agents)
-        else:
-            return "An unremarkable event occurred."
-        
-        # Add cyberpunk flavor instruction
-        if self.cyberpunk_flavor > 0.5:
-            prompt += "\nUse strong cyberpunk language, themes, and imagery in your description."
-        
-        # Add verbosity instruction
-        if self.verbosity == 1:
-            prompt += "\nKeep it extremely brief, just 1-2 sentences."
-        elif self.verbosity == 2:
-            prompt += "\nKeep it brief, 2-3 sentences."
-        elif self.verbosity == 3:
-            prompt += "\nProvide a moderate amount of detail, 3-4 sentences."
-        elif self.verbosity == 4:
-            prompt += "\nProvide good detail, 4-6 sentences."
-        elif self.verbosity >= 5:
-            prompt += "\nProvide rich detail, 6-8 sentences."
-        
-        try:
-            # Call the LLM for narrative generation
-            messages = [
-                {"role": "system", "content": "You are a cyberpunk narrative generator for a Mars economy simulation. Generate vivid, engaging narrative descriptions of events in a cyberpunk Mars colony in the year 2993."},
-                {"role": "user", "content": prompt}
-            ]
-            
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=self.temperature,
-                max_tokens=250
-            )
-            
-            description = response.choices[0].message.content.strip()
-            
-            # Remove any quotes the LLM might add
-            if description.startswith('"') and description.endswith('"'):
-                description = description[1:-1]
-            
-            return description
-            
-        except Exception as e:
-            logger.error(f"Error generating narrative description: {str(e)}")
-            
-            # Fallback descriptions
-            if interaction:
-                return self._generate_fallback_interaction_description(interaction, agents)
-            elif action:
-                return self._generate_fallback_action_description(action, agents)
-            else:
-                return "An event occurred in the Mars colony."
-    
-    def _build_interaction_prompt(self, interaction: EconomicInteraction, agents: Dict[str, Agent]) -> str:
-        """Build a prompt for describing an economic interaction
-        
-        Args:
-            interaction: The economic interaction
-            agents: Dictionary of agent_id -> Agent for context
-            
-        Returns:
-            A prompt for the LLM
-        """
-        # Base information
-        prompt = f"Interaction type: {interaction.interaction_type.value}\n"
-        
-        # Add participant information
-        participant_info = []
-        for agent_id, role in interaction.participants.items():
-            if agent_id in agents:
-                agent = agents[agent_id]
-                participant_info.append(f"{agent.name} ({role.value}, {agent.faction.value})")
-            else:
-                participant_info.append(f"Unknown agent ({role.value})")
-        
-        prompt += f"Participants: {', '.join(participant_info)}\n"
-        
-        # Add outcome information
-        if interaction.is_complete and interaction.outcomes:
-            outcome_info = []
-            for outcome in interaction.outcomes:
-                agent_id = outcome.agent_id
-                agent_name = agents[agent_id].name if agent_id in agents else "Unknown agent"
-                
-                # Calculate resource changes
-                resource_changes = []
-                for before in outcome.resources_before:
-                    # Find matching "after" resource
-                    after = next((a for a in outcome.resources_after if a.resource_type == before.resource_type), None)
-                    if after:
-                        change = after.amount - before.amount
-                        if abs(change) > 0.01:  # Only report meaningful changes
-                            direction = "gained" if change > 0 else "lost"
-                            resource_changes.append(f"{direction} {abs(change):.2f} {before.resource_type.value}")
-                
-                # Add strategy if available
-                strategy_info = ""
-                if outcome.strategy_used:
-                    strategy_info = f" using {outcome.strategy_used.strategy_type} strategy"
-                
-                outcome_str = f"{agent_name}{strategy_info} {', '.join(resource_changes)}"
-                outcome_info.append(outcome_str)
-            
-            prompt += f"Outcomes: {'. '.join(outcome_info)}\n"
-        
-        # Add specific interaction details based on type
-        params = interaction.parameters
-        if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
-            prompt += f"Details: A {params.get('total_amount', '?')} {params.get('resource_type', '?')} ultimatum with {params.get('proposed_amount', '?')} offered. "
-            prompt += f"The offer was {'accepted' if params.get('response', False) else 'rejected'}.\n"
-        
-        elif interaction.interaction_type == EconomicInteractionType.TRUST:
-            prompt += f"Details: Initial investment of {params.get('invested_amount', '?')} {params.get('resource_type', '?')}, "
-            prompt += f"multiplied to {params.get('multiplied_amount', '?')}, with {params.get('returned_amount', '?')} returned.\n"
-        
-        elif interaction.interaction_type == EconomicInteractionType.PUBLIC_GOODS:
-            contributions = params.get('contributions', {})
-            avg_contribution = sum(contributions.values()) / len(contributions) if contributions else 0
-            prompt += f"Details: {len(contributions)} agents contributed to a public good, average contribution {avg_contribution:.2f}.\n"
-        
-        # Add narrative significance
-        prompt += f"Narrative significance: {interaction.narrative_significance:.2f} (0-1 scale)\n"
-        
-        return prompt
-    
-    def _build_action_prompt(self, action: AgentAction, agents: Dict[str, Agent]) -> str:
-        """Build a prompt for describing an agent action
-        
-        Args:
-            action: The agent action
-            agents: Dictionary of agent_id -> Agent for context
-            
-        Returns:
-            A prompt for the LLM
-        """
-        # Get the agent
-        agent = agents.get(action.agent_id, None)
-        agent_name = agent.name if agent else "Unknown agent"
-        agent_faction = agent.faction.value if agent else "unknown faction"
-        
-        # Base information
-        prompt = f"Action type: {action.action_type.value}\n"
-        prompt += f"Agent: {agent_name} ({agent_faction})\n"
-        
-        # Add agent's reasoning if available
-        if action.reasoning:
-            prompt += f"Agent's reasoning: {action.reasoning}\n"
-        
-        # Add action-specific details
-        if action.action_type == ActionType.REST:
-            prompt += "Details: The agent decided to rest and recover.\n"
-        
-        elif action.action_type == ActionType.OFFER and action.offer_data:
-            target_id = action.offer_data.target_agent_id
-            target_name = agents[target_id].name if target_id in agents else "another agent"
-            prompt += f"Details: Offered {action.offer_data.offer_amount} {action.offer_data.offer_resource_type} "
-            prompt += f"to {target_name} in exchange for {action.offer_data.request_amount} {action.offer_data.request_resource_type}.\n"
-        
-        elif action.action_type == ActionType.SEARCH_JOB:
-            prompt += "Details: The agent is searching for employment.\n"
-            
-        elif action.action_type == ActionType.WORK and action.work_data:
-            prompt += f"Details: Working on job {action.work_data.job_id} with effort level {action.work_data.effort_level}.\n"
-            
-        elif action.action_type == ActionType.BUY and action.buy_data:
-            prompt += f"Details: Attempting to buy {action.buy_data.quantity} {action.buy_data.item_type}"
-            if action.buy_data.max_price:
-                prompt += f" for at most {action.buy_data.max_price} per unit"
-            if action.buy_data.seller_id:
-                seller_name = agents[action.buy_data.seller_id].name if action.buy_data.seller_id in agents else "a specific seller"
-                prompt += f" from {seller_name}"
-            prompt += ".\n"
-            
-        elif action.action_type == ActionType.ACCEPT and action.accept_data:
-            prompt += f"Details: Accepted offer {action.accept_data.offer_id}.\n"
-            
-        elif action.action_type == ActionType.REJECT and action.reject_data:
-            prompt += f"Details: Rejected offer {action.reject_data.offer_id}"
-            if action.reject_data.reason:
-                prompt += f" because: {action.reject_data.reason}"
-            prompt += ".\n"
-        
-        return prompt
-    
-    def _generate_fallback_interaction_description(self, interaction: EconomicInteraction, agents: Dict[str, Agent]) -> str:
-        """Generate a fallback description for an interaction when LLM fails
-        
-        Args:
-            interaction: The economic interaction
-            agents: Dictionary of agent_id -> Agent for context
-            
-        Returns:
-            A fallback description
-        """
-        # Extract participant names
-        participant_names = []
-        for agent_id in interaction.participants:
-            if agent_id in agents:
-                participant_names.append(agents[agent_id].name)
-            else:
-                participant_names.append("an unknown agent")
-        
-        # Basic description based on interaction type
-        if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
-            description = f"{participant_names[0]} made an ultimatum offer to {participant_names[1]}."
-            if interaction.is_complete:
-                response = interaction.parameters.get("response", None)
-                if response is True:
-                    description += f" The offer was accepted."
-                elif response is False:
-                    description += f" The offer was rejected."
-            
-        elif interaction.interaction_type == EconomicInteractionType.TRUST:
-            description = f"{participant_names[0]} initiated a trust exchange with {participant_names[1]}."
-            if interaction.is_complete:
-                returned = interaction.parameters.get("returned_amount", 0)
-                invested = interaction.parameters.get("invested_amount", 0)
-                if returned >= invested:
-                    description += f" Trust was honored with a positive return."
-                else:
-                    description += f" Trust was broken when the return was less than expected."
-            
-        elif interaction.interaction_type == EconomicInteractionType.PUBLIC_GOODS:
-            description = f"{', '.join(participant_names[:-1])}, and {participant_names[-1]} participated in a public goods game."
-            
-        else:
-            description = f"{', '.join(participant_names)} engaged in a {interaction.interaction_type.value} interaction."
-        
-        return description
-    
-    def _generate_fallback_action_description(self, action: AgentAction, agents: Dict[str, Agent]) -> str:
-        """Generate a fallback description for an action when LLM fails
-        
-        Args:
-            action: The agent action
-            agents: Dictionary of agent_id -> Agent for context
-            
-        Returns:
-            A fallback description
-        """
-        # Get agent name
-        agent_name = agents[action.agent_id].name if action.agent_id in agents else "An agent"
-        
-        # Basic description based on action type
-        if action.action_type == ActionType.REST:
-            return f"{agent_name} decided to rest and recover energy."
-            
-        elif action.action_type == ActionType.OFFER:
-            target_id = action.offer_data.target_agent_id if action.offer_data else None
-            target_name = agents[target_id].name if target_id and target_id in agents else "another agent"
-            return f"{agent_name} made an offer to {target_name}."
-            
-        elif action.action_type == ActionType.NEGOTIATE:
-            return f"{agent_name} attempted to negotiate an existing offer."
-            
-        elif action.action_type == ActionType.ACCEPT:
-            return f"{agent_name} accepted an offer."
-            
-        elif action.action_type == ActionType.REJECT:
-            return f"{agent_name} rejected an offer."
-            
-        elif action.action_type == ActionType.SEARCH_JOB:
-            return f"{agent_name} searched for employment."
-            
-        elif action.action_type == ActionType.WORK:
-            return f"{agent_name} performed work at their job."
-            
-        elif action.action_type == ActionType.BUY:
-            item = action.buy_data.item_type if action.buy_data else "goods"
-            return f"{agent_name} attempted to purchase {item}."
-            
-        else:
-            return f"{agent_name} performed a {action.action_type.value} action."
-    
-    def generate_agent_background(self, agent: Agent) -> str:
-        """Generate a background story for a new agent
-        
-        Args:
-            agent: The agent to generate a background for
-            
-        Returns:
-            A narrative background for the agent
-        """
-        # Check if we already have a background for this agent
-        if agent.id in self.agent_backgrounds:
-            return self.agent_backgrounds[agent.id]
-        
-        # Build the prompt for agent background
-        prompt = f"Generate a brief cyberpunk Mars background story for this character:\n\n"
-        prompt += f"Name: {agent.name}\n"
-        prompt += f"Faction: {agent.faction.value}\n"
-        prompt += f"Personality: "
-        
-        # Add personality traits
-        traits = []
-        if agent.personality.cooperativeness > 0.7:
-            traits.append("highly cooperative")
-        elif agent.personality.cooperativeness < 0.3:
-            traits.append("uncooperative")
-        
-        if agent.personality.risk_tolerance > 0.7:
-            traits.append("risk-taking")
-        elif agent.personality.risk_tolerance < 0.3:
-            traits.append("risk-averse")
-        
-        if agent.personality.fairness_preference > 0.7:
-            traits.append("strongly values fairness")
-        elif agent.personality.fairness_preference < 0.3:
-            traits.append("unconcerned with fairness")
-        
-        if agent.personality.altruism > 0.7:
-            traits.append("altruistic")
-        elif agent.personality.altruism < 0.3:
-            traits.append("selfish")
-        
-        if agent.personality.rationality > 0.7:
-            traits.append("highly rational")
-        elif agent.personality.rationality < 0.3:
-            traits.append("impulsive")
-        
-        if agent.personality.long_term_orientation > 0.7:
-            traits.append("future-focused")
-        elif agent.personality.long_term_orientation < 0.3:
-            traits.append("present-focused")
-        
-        prompt += ", ".join(traits) + "\n"
-        
-        # Add notable skills
-        if agent.skills:
-            top_skills = sorted(agent.skills.items(), key=lambda x: x[1], reverse=True)[:3]
-            prompt += f"Top Skills: {', '.join([skill for skill, level in top_skills])}\n"
-        
-        # Add cyberpunk flavor instruction
-        prompt += "\nWrite a 3-5 sentence cyberpunk-style background that explains how they ended up on Mars and their current situation. Include interesting details about their past and motivations."
-        
-        try:
-            # Call the LLM for background generation
-            messages = [
-                {"role": "system", "content": "You are a cyberpunk character background generator for a Mars colony simulation set in 2993. Create evocative, memorable character backgrounds with cyberpunk themes and technology."},
-                {"role": "user", "content": prompt}
-            ]
-            
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=self.temperature,
-                max_tokens=200
-            )
-            
-            background = response.choices[0].message.content.strip()
-            
-            # Remove any quotes the LLM might add
-            if background.startswith('"') and background.endswith('"'):
-                background = background[1:-1]
-            
-            # Store the background for future reference
-            self.agent_backgrounds[agent.id] = background
-            
-            return background
-            
-        except Exception as e:
-            logger.error(f"Error generating agent background: {str(e)}")
-            
-            # Generate a fallback background
-            faction_backgrounds = {
-                AgentFaction.TERRA_CORP: f"{agent.name} is a corporate representative sent from Earth to oversee Terra Corp interests on Mars.",
-                AgentFaction.MARS_NATIVE: f"{agent.name} was born and raised in the domes of Mars, never having visited Earth.",
-                AgentFaction.INDEPENDENT: f"{agent.name} came to Mars seeking freedom from Earth's control and now operates as an independent contractor.",
-                AgentFaction.GOVERNMENT: f"{agent.name} works for the Mars Colonial Authority, maintaining order in the settlements.",
-                AgentFaction.UNDERGROUND: f"{agent.name} operates in the shadows of Mars society, involved in various underground activities."
-            }
-            
-            background = faction_backgrounds.get(agent.faction, f"{agent.name} is a resident of Mars in the year 2993.")
-            self.agent_backgrounds[agent.id] = background
-            
-            return background
-    
-    def generate_narrative_event(
-        self, 
-        interaction: Optional[EconomicInteraction] = None,
-        action: Optional[AgentAction] = None,
-        agents: Dict[str, Agent] = {},
-        timestamp: Optional[datetime] = None
+        interaction: EconomicInteraction,
+        agents: List[Agent]
     ) -> NarrativeEvent:
-        """Generate a narrative event from an interaction or action
+        """
+        Generate a narrative event from an economic interaction.
         
         Args:
-            interaction: The economic interaction (if applicable)
-            action: The agent action (if applicable)
-            agents: Dictionary of agent_id -> Agent for context
-            timestamp: Event timestamp (defaults to now)
+            interaction: The economic interaction to generate a narrative from
+            agents: List of agents involved in the interaction
             
         Returns:
-            A NarrativeEvent object
+            NarrativeEvent: The generated narrative event
         """
-        if not timestamp:
-            timestamp = datetime.now()
+        # Map agent IDs to agent objects for easier lookup
+        agent_map = {agent.id: agent for agent in agents}
         
-        # Determine agents involved
-        agents_involved = []
-        if interaction:
-            agents_involved = list(interaction.participants.keys())
-            event_title = f"{interaction.interaction_type.value.title()} Interaction"
-            interaction_id = interaction.id
-            # Set significance based on interaction's narrative_significance
-            significance = interaction.narrative_significance
-        elif action:
-            agents_involved = [action.agent_id]
-            event_title = f"{action.action_type.value.title()} Action"
-            interaction_id = None
-            # Set significance based on action type
-            action_significance = {
-                ActionType.REST: 0.1,
-                ActionType.OFFER: 0.5,
-                ActionType.NEGOTIATE: 0.6,
-                ActionType.ACCEPT: 0.5,
-                ActionType.REJECT: 0.6,
-                ActionType.SEARCH_JOB: 0.3,
-                ActionType.WORK: 0.2,
-                ActionType.BUY: 0.3,
-                ActionType.SELL: 0.3,
-                ActionType.MOVE: 0.4,
-                ActionType.LEARN: 0.3,
-                ActionType.SOCIALIZE: 0.4,
-                ActionType.INVEST: 0.5,
-                ActionType.DONATE: 0.6,
-                ActionType.PRODUCE: 0.3,
-                ActionType.CONSUME: 0.2,
-                ActionType.STEAL: 0.8,
-                ActionType.SABOTAGE: 0.9,
-                ActionType.FORM_COALITION: 0.7
-            }
-            significance = action_significance.get(action.action_type, 0.3)
+        # Get participant agent names
+        participant_names = {}
+        for agent_id, role in interaction.participants.items():
+            if agent_id in agent_map:
+                participant_names[role] = agent_map[agent_id].name
+        
+        # Generate title and description based on interaction type
+        title, description, tags = "", "", []
+        
+        if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
+            title, description, tags = self._generate_ultimatum_narrative(
+                interaction, participant_names, agent_map
+            )
+        elif interaction.interaction_type == EconomicInteractionType.TRUST:
+            title, description, tags = self._generate_trust_narrative(
+                interaction, participant_names, agent_map
+            )
         else:
-            event_title = "Simulation Event"
-            interaction_id = None
-            significance = 0.2
+            # Generic fallback for other interaction types
+            title, description, tags = self._generate_generic_narrative(
+                interaction, participant_names, agent_map
+            )
         
-        # Get agent names for the title
-        agent_names = []
-        for agent_id in agents_involved:
-            if agent_id in agents:
-                agent_names.append(agents[agent_id].name)
-        
-        if agent_names:
-            if len(agent_names) == 1:
-                event_title = f"{agent_names[0]}'s {event_title}"
-            elif len(agent_names) == 2:
-                event_title = f"{agent_names[0]} and {agent_names[1]}'s {event_title}"
-            else:
-                event_title = f"{agent_names[0]} et al.'s {event_title}"
-        
-        # Generate description
-        description = self._generate_event_description(interaction, action, agents)
-        
-        # Create tags
-        tags = []
-        if interaction:
-            tags.append(interaction.interaction_type.value)
-            if interaction.is_complete:
-                tags.append("completed")
-        elif action:
-            tags.append(action.action_type.value)
-        
-        for agent_id in agents_involved:
-            if agent_id in agents:
-                tags.append(agents[agent_id].faction.value)
-        
-        # Create the event
+        # Create and return the narrative event
         event = NarrativeEvent(
-            timestamp=timestamp,
-            title=event_title,
+            timestamp=datetime.now(),
+            title=title,
             description=description,
-            agents_involved=agents_involved,
-            interaction_id=interaction_id,
-            significance=significance,
+            agents_involved=list(interaction.participants.keys()),
+            interaction_id=interaction.id,
+            significance=interaction.narrative_significance,
             tags=tags
         )
         
-        # Add to recent events
-        self.recent_events.append(event)
-        if len(self.recent_events) > 20:  # Keep only last 20 events
-            self.recent_events.pop(0)
-        
+        logger.debug(f"Generated narrative event: {title}")
         return event
     
-    def check_for_new_arcs(self, event: NarrativeEvent, agents: Dict[str, Agent]) -> Optional[NarrativeArc]:
-        """Check if a new narrative arc should be created based on this event
+    def _generate_ultimatum_narrative(
+        self, 
+        interaction: EconomicInteraction,
+        participant_names: Dict[InteractionRole, str],
+        agent_map: Dict[str, Agent]
+    ) -> tuple:
+        """Generate narrative for an Ultimatum Game interaction"""
+        # Extract parameters
+        total_amount = interaction.parameters.get("total_amount", 0)
+        offer_amount = interaction.parameters.get("offer_amount", 0)
+        responder_accepts = interaction.parameters.get("responder_accepts", False)
+        currency = interaction.parameters.get("currency", "credits")
         
-        Args:
-            event: The newly created event
-            agents: Dictionary of agent_id -> Agent for context
-            
-        Returns:
-            A new NarrativeArc if one should be created, None otherwise
-        """
-        # Look for patterns in recent events that might suggest a narrative arc
+        # Get agent names
+        proposer_name = participant_names.get(InteractionRole.PROPOSER, "Unknown Proposer")
+        responder_name = participant_names.get(InteractionRole.RESPONDER, "Unknown Responder")
         
-        # Example: If the same agents have interacted multiple times recently
-        agent_pairs = {}
-        for recent_event in self.recent_events[-10:]:  # Look at last 10 events
-            if len(recent_event.agents_involved) == 2:
-                pair = tuple(sorted(recent_event.agents_involved))
-                agent_pairs[pair] = agent_pairs.get(pair, 0) + 1
+        # Calculate offer fairness
+        fairness = offer_amount / total_amount if total_amount > 0 else 0
         
-        # If any pair has interacted 3+ times, consider creating an arc
-        for pair, count in agent_pairs.items():
-            if count >= 3 and pair not in self.interesting_relationships:
-                self.interesting_relationships.add(pair)
-                
-                # Get agent names
-                agent1 = agents.get(pair[0], None)
-                agent2 = agents.get(pair[1], None)
-                
-                if agent1 and agent2:
-                    # Create a new arc
-                    arc_title = f"Developing Relationship: {agent1.name} & {agent2.name}"
-                    arc = NarrativeArc(
-                        title=arc_title,
-                        description=f"A pattern of interactions between {agent1.name} and {agent2.name} suggests an evolving relationship.",
-                        events=[e.id for e in self.recent_events if set(pair).issubset(set(e.agents_involved))],
-                        agents_involved=list(pair),
-                        start_time=self.recent_events[-1].timestamp
+        # Generate title based on the interaction outcome
+        if responder_accepts:
+            if fairness < 0.3:
+                title = f"{responder_name} Accepts Unfair Deal from {proposer_name}"
+                tags = ["unfair_deal", "acceptance", "ultimatum"]
+            elif fairness > 0.5:
+                title = f"{proposer_name} Makes Fair Offer to {responder_name}"
+                tags = ["fair_deal", "cooperation", "ultimatum"]
+            else:
+                title = f"{proposer_name} and {responder_name} Conclude Deal"
+                tags = ["deal", "bargaining", "ultimatum"]
+        else:
+            if fairness > 0.4:
+                title = f"{responder_name} Rejects Reasonable Offer from {proposer_name}"
+                tags = ["rejection", "principle", "ultimatum"]
+            else:
+                title = f"{responder_name} Rejects Unfair Offer from {proposer_name}"
+                tags = ["unfair_deal", "rejection", "ultimatum"]
+        
+        # Generate description with varying detail based on verbosity
+        if self.verbosity >= 4:
+            # High verbosity - detailed description
+            if responder_accepts:
+                if fairness < 0.3:
+                    description = (
+                        f"In a tense negotiation at {self._get_random_location()}, {proposer_name} offered a mere {offer_amount} "
+                        f"{currency} of a {total_amount} {currency} pot to {responder_name}. Despite the clearly unfair "
+                        f"terms, {responder_name} reluctantly accepted the offer, prioritizing some gain over none. "
+                        f"The acceptance surprised onlookers, who whispered about {responder_name}'s desperation "
+                        f"or perhaps a hidden debt to {proposer_name}. For their part, {proposer_name} walked away "
+                        f"with a satisfied smirk, having secured {total_amount - offer_amount} {currency} "
+                        f"from the deal."
                     )
-                    
-                    # Add to active arcs
-                    self.active_arcs[arc.id] = arc
-                    
-                    return arc
+                elif fairness > 0.5:
+                    description = (
+                        f"In a display of equitable negotiation at {self._get_random_location()}, {proposer_name} "
+                        f"offered {offer_amount} {currency} from a total of {total_amount} {currency} to {responder_name}. "
+                        f"The fair proposal was quickly accepted, creating a positive atmosphere and potentially "
+                        f"strengthening future relations between them. Observers noted how {proposer_name}'s "
+                        f"reputation for fairness might serve them well in Mars' tight-knit economic community."
+                    )
+                else:
+                    description = (
+                        f"At {self._get_random_location()}, {proposer_name} proposed a split of {total_amount} {currency}, "
+                        f"offering {offer_amount} {currency} to {responder_name} and keeping {total_amount - offer_amount} "
+                        f"{currency} for themselves. After brief consideration, {responder_name} accepted the terms. "
+                        f"The somewhat uneven split raised a few eyebrows, but both parties seemed satisfied with the outcome."
+                    )
+            else:
+                if fairness > 0.4:
+                    description = (
+                        f"In a surprising turn at {self._get_random_location()}, {responder_name} firmly rejected "
+                        f"{proposer_name}'s offer of {offer_amount} {currency} from a {total_amount} {currency} pot. "
+                        f"Despite the relatively balanced proposal, {responder_name} stood on principle, preferring "
+                        f"to walk away with nothing rather than accept the terms. {proposer_name} appeared visibly "
+                        f"frustrated, having miscalculated what would constitute an acceptable offer, and likewise "
+                        f"left empty-handed."
+                    )
+                else:
+                    description = (
+                        f"At a tense meeting in {self._get_random_location()}, {proposer_name} attempted to impose unfavorable "
+                        f"terms on {responder_name}, offering just {offer_amount} {currency} from a {total_amount} {currency} "
+                        f"total. {responder_name} didn't hesitate to reject the insulting proposal, leaving {proposer_name} "
+                        f"with nothing as well. Observers commented on {proposer_name}'s tactical error in underestimating "
+                        f"{responder_name}'s dignity and willingness to sacrifice potential gain to punish unfairness."
+                    )
+        elif self.verbosity >= 2:
+            # Medium verbosity - moderate description
+            if responder_accepts:
+                description = (
+                    f"{proposer_name} offered {responder_name} {offer_amount} {currency} from a total of {total_amount} "
+                    f"{currency}. {responder_name} accepted the offer, resulting in {proposer_name} keeping "
+                    f"{total_amount - offer_amount} {currency} for themselves."
+                )
+            else:
+                description = (
+                    f"{proposer_name} offered {responder_name} {offer_amount} {currency} from a total of {total_amount} "
+                    f"{currency}. {responder_name} rejected the offer, so both parties received nothing."
+                )
+        else:
+            # Low verbosity - minimal description
+            if responder_accepts:
+                description = f"{proposer_name} offered {offer_amount}/{total_amount} {currency} to {responder_name} who accepted."
+            else:
+                description = f"{proposer_name} offered {offer_amount}/{total_amount} {currency} to {responder_name} who rejected."
         
-        # Example: Check for economic pattern arcs
-        # TODO: Implement more sophisticated arc detection
-        
-        return None
+        return title, description, tags
     
-    def update_active_arcs(self, event: NarrativeEvent) -> List[NarrativeArc]:
-        """Update active narrative arcs with a new event
+    def _generate_trust_narrative(
+        self, 
+        interaction: EconomicInteraction,
+        participant_names: Dict[InteractionRole, str],
+        agent_map: Dict[str, Agent]
+    ) -> tuple:
+        """Generate narrative for a Trust Game interaction"""
+        # Extract parameters
+        investment = interaction.parameters.get("investment_amount", 0)
+        multiplier = interaction.parameters.get("multiplier", 3.0)
+        returned = interaction.parameters.get("return_amount", 0)
+        currency = interaction.parameters.get("currency", "credits")
         
-        Args:
-            event: The newly created event
-            
-        Returns:
-            List of updated arcs
-        """
-        updated_arcs = []
+        # Get agent names
+        investor_name = participant_names.get(InteractionRole.INVESTOR, "Unknown Investor")
+        trustee_name = participant_names.get(InteractionRole.TRUSTEE, "Unknown Trustee")
         
-        for arc_id, arc in list(self.active_arcs.items()):
-            # Check if this event should be part of this arc
-            if set(arc.agents_involved).intersection(set(event.agents_involved)):
-                # Add the event to the arc
-                arc.events.append(event.id)
-                updated_arcs.append(arc)
-                
-                # Check if the arc should be completed
-                if len(arc.events) >= 10:  # Arbitrary limit
-                    arc.is_complete = True
-                    arc.end_time = event.timestamp
-                    # Remove from active arcs
-                    self.active_arcs.pop(arc_id, None)
+        # Calculate multiplied amount and return ratio
+        multiplied = investment * multiplier
+        return_ratio = returned / multiplied if multiplied > 0 else 0
         
-        return updated_arcs
-    
-    def get_narrative_summary(self, time_period: str = "day") -> str:
-        """Generate a summary of recent narrative events
+        # Generate title based on the interaction details
+        if investment > 5.0 and return_ratio < 0.2:
+            title = f"{trustee_name} Betrays {investor_name}'s Trust"
+            tags = ["betrayal", "distrust", "high_stakes"]
+        elif investment > 5.0 and return_ratio > 0.5:
+            title = f"{investor_name} and {trustee_name} Build Mutual Trust"
+            tags = ["cooperation", "trust", "reciprocity"]
+        elif investment < 2.0 and return_ratio > 0.7:
+            title = f"{trustee_name} Shows Unexpected Generosity to {investor_name}"
+            tags = ["generosity", "unexpected", "goodwill"]
+        elif investment < 2.0:
+            title = f"{investor_name} Shows Little Trust in {trustee_name}"
+            tags = ["caution", "distrust", "minimal_risk"]
+        else:
+            title = f"{investor_name} Invests in {trustee_name}"
+            tags = ["investment", "trust", "business"]
         
-        Args:
-            time_period: The time period to summarize ("day", "week", "month")
-            
-        Returns:
-            A narrative summary
-        """
-        if not self.recent_events:
-            return "No notable events have occurred recently."
-        
-        # Build a prompt for the summary
-        prompt = f"Generate a cyberpunk narrative summary of these recent events on Mars:\n\n"
-        
-        # Add recent events
-        for i, event in enumerate(self.recent_events[-10:]):  # Last 10 events
-            prompt += f"Event {i+1}: {event.title}\n{event.description}\n\n"
-        
-        # Add time period instructions
-        prompt += f"\nCreate a compelling {time_period}ly summary that connects these events into a coherent narrative. Use vivid cyberpunk language and imagery about Mars in 2993."
-        
-        try:
-            # Call the LLM for summary generation
-            messages = [
-                {"role": "system", "content": "You are a cyberpunk narrative generator for a Mars economy simulation. Create compelling, evocative summaries that capture the essence of life on Mars in 2993."},
-                {"role": "user", "content": prompt}
-            ]
-            
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=self.temperature,
-                max_tokens=500
+        # Generate description with varying detail based on verbosity
+        if self.verbosity >= 4:
+            # High verbosity - detailed description
+            if investment > 5.0 and return_ratio < 0.2:
+                description = (
+                    f"In a dramatic display of broken trust at {self._get_random_location()}, {investor_name} took a significant "
+                    f"risk by investing {investment} {currency} with {trustee_name}. The investment grew to {multiplied:.1f} "
+                    f"{currency} under {trustee_name}'s management, but when the time came to share the profits, "
+                    f"{trustee_name} returned a mere {returned:.1f} {currency} to {investor_name}, keeping the lion's share "
+                    f"for themselves. The betrayal was met with murmurs throughout the Martian financial community, and "
+                    f"{investor_name} was seen later drowning their sorrows at a local establishment, vowing never to "
+                    f"trust so freely again."
+                )
+            elif investment > 5.0 and return_ratio > 0.5:
+                description = (
+                    f"A model partnership formed at {self._get_random_location()} when {investor_name} placed a substantial "
+                    f"investment of {investment} {currency} in {trustee_name}'s hands. When the investment grew to "
+                    f"{multiplied:.1f} {currency}, {trustee_name} honored their implicit agreement by returning "
+                    f"{returned:.1f} {currency} to {investor_name}, keeping {multiplied - returned:.1f} {currency} "
+                    f"for themselves. Observers noted that such demonstrations of mutual trust and fair dealing are "
+                    f"what allow Mars' economy to thrive despite the harsh conditions. Both parties were seen later "
+                    f"celebrating their successful venture."
+                )
+            elif investment < 2.0 and return_ratio > 0.7:
+                description = (
+                    f"In an unexpected turn of events at {self._get_random_location()}, {investor_name} made a token "
+                    f"investment of just {investment} {currency} with {trustee_name}, clearly showing limited trust. "
+                    f"When the amount grew to {multiplied:.1f} {currency}, {trustee_name} surprised everyone by "
+                    f"returning {returned:.1f} {currency} to {investor_name} - a far more generous share than "
+                    f"expected given the minimal initial trust. {investor_name} appeared both grateful and somewhat "
+                    f"embarrassed, perhaps recognizing they had misjudged {trustee_name}'s character."
+                )
+            else:
+                description = (
+                    f"At {self._get_random_location()}, {investor_name} cautiously invested {investment} {currency} with "
+                    f"{trustee_name}. The investment grew to {multiplied:.1f} {currency}, from which {trustee_name} "
+                    f"returned {returned:.1f} {currency} to {investor_name}. The transaction proceeded without "
+                    f"drama, though attentive observers might have noted the careful calculations both parties "
+                    f"seemed to be making throughout the exchange."
+                )
+        elif self.verbosity >= 2:
+            # Medium verbosity - moderate description
+            description = (
+                f"{investor_name} invested {investment} {currency} with {trustee_name}, which grew to "
+                f"{multiplied:.1f} {currency}. {trustee_name} then returned {returned:.1f} {currency} to "
+                f"{investor_name}, keeping {multiplied - returned:.1f} {currency}."
             )
-            
-            summary = response.choices[0].message.content.strip()
-            return summary
-            
-        except Exception as e:
-            logger.error(f"Error generating narrative summary: {str(e)}")
-            
-            # Generate a fallback summary
-            event_titles = [e.title for e in self.recent_events[-5:]]
-            return f"Recent notable events on Mars include: {'; '.join(event_titles)}."
-
-# Factory function to create a narrative generator
-def create_narrative_generator(
-    ollama_base_url: str = "http://localhost:11434/v1",
-    model_name: str = "gemma:1b",
-    temperature: float = 0.8,
-    verbosity: int = 3,
-    cyberpunk_flavor: float = 0.7
-) -> NarrativeGenerator:
-    """Create a narrative generator
-    
-    Args:
-        ollama_base_url: Base URL for Ollama API
-        model_name: Name of the model to use
-        temperature: Temperature for LLM generation (0.0-1.0)
-        verbosity: Level of narrative detail (1-5)
-        cyberpunk_flavor: How strongly to emphasize cyberpunk elements (0.0-1.0)
+        else:
+            # Low verbosity - minimal description
+            description = (
+                f"{investor_name} invested {investment}, received {returned:.1f} back from {trustee_name} "
+                f"(multiplier: {multiplier})."
+            )
         
-    Returns:
-        A narrative generator
-    """
-    return NarrativeGenerator(
-        ollama_base_url=ollama_base_url,
-        model_name=model_name,
-        temperature=temperature,
-        verbosity=verbosity,
-        cyberpunk_flavor=cyberpunk_flavor
-    )
+        return title, description, tags
+    
+    def _generate_generic_narrative(
+        self, 
+        interaction: EconomicInteraction,
+        participant_names: Dict[InteractionRole, str],
+        agent_map: Dict[str, Agent]
+    ) -> tuple:
+        """Generate a generic narrative for any interaction type"""
+        interaction_type = interaction.interaction_type.value.replace('_', ' ').title()
+        agent_names = list(participant_names.values())
+        
+        title = f"{interaction_type} between {' and '.join(agent_names)}"
+        
+        # Simple description based on verbosity
+        if self.verbosity >= 3:
+            description = (
+                f"A {interaction_type} interaction took place involving {', '.join(agent_names)}. "
+                f"This economic exchange occurred at {self._get_random_location()} and had parameters: "
+                f"{', '.join([f'{k}: {v}' for k, v in interaction.parameters.items()])}."
+            )
+        else:
+            description = f"{interaction_type} interaction between {' and '.join(agent_names)}."
+        
+        tags = [interaction.interaction_type.value, "economic_interaction"]
+        
+        return title, description, tags
+    
+    def create_arc(
+        self,
+        title: str,
+        description: str,
+        events: List[NarrativeEvent],
+        agents: List[Agent]
+    ) -> NarrativeArc:
+        """
+        Create a narrative arc from a series of related events.
+        
+        Args:
+            title: Title of the narrative arc
+            description: Description of the narrative arc
+            events: List of events in the arc
+            agents: List of agents involved in the arc
+            
+        Returns:
+            NarrativeArc: The created narrative arc
+        """
+        # Create narrative arc
+        arc = NarrativeArc(
+            title=title,
+            description=description,
+            events=[event.id for event in events],
+            agents_involved=[agent.id for agent in agents],
+            start_time=min(event.timestamp for event in events),
+            is_complete=False
+        )
+        
+        logger.info(f"Created narrative arc: {title} with {len(events)} events")
+        return arc
+    
+    def generate_daily_summary(self, day: int, events: List[NarrativeEvent], agents: List[Agent]) -> str:
+        """
+        Generate a daily summary of significant events.
+        
+        Args:
+            day: The day number
+            events: List of narrative events for the day
+            agents: List of all agents in the simulation
+            
+        Returns:
+            str: A daily summary narrative
+        """
+        # Sort events by significance
+        significant_events = sorted(events, key=lambda e: e.significance, reverse=True)
+        
+        # Map agent IDs to names
+        agent_map = {agent.id: agent.name for agent in agents}
+        
+        # Start with a header
+        summary = f"# Day {day} on Mars\n\n"
+        
+        # Add a general introduction
+        summary += self._generate_daily_intro(day, len(events), len(agents)) + "\n\n"
+        
+        # Add significant events
+        if significant_events:
+            summary += "## Notable Events\n\n"
+            
+            for i, event in enumerate(significant_events[:min(5, len(significant_events))]):
+                # Get agent names involved
+                agent_names = [agent_map.get(agent_id, "Unknown") for agent_id in event.agents_involved]
+                
+                # Add event to summary
+                summary += f"### {event.title}\n"
+                summary += f"{event.description}\n\n"
+        else:
+            summary += "## A Quiet Day\n\nNo significant events were recorded today.\n\n"
+        
+        # Add a conclusion
+        summary += self._generate_daily_conclusion(day, events)
+        
+        logger.info(f"Generated daily summary for day {day} with {len(events)} events")
+        return summary
+    
+    def _generate_daily_intro(self, day: int, event_count: int, agent_count: int) -> str:
+        """Generate an introduction for the daily summary"""
+        intros = [
+            f"Day {day} on Mars saw {event_count} notable interactions among the {agent_count} residents of the colony.",
+            f"The Martian sun rose over the domes of the colony for the {day}th day, as {agent_count} residents went about their business.",
+            f"Life continued in the Mars colony on Day {day}, with {event_count} economic exchanges recorded among the {agent_count} inhabitants.",
+            f"The red dust swirled outside the habitats on Day {day}, while inside, {agent_count} colonists engaged in {event_count} economic interactions."
+        ]
+        return random.choice(intros)
+    
+    def _generate_daily_conclusion(self, day: int, events: List[NarrativeEvent]) -> str:
+        """Generate a conclusion for the daily summary"""
+        if events:
+            conclusions = [
+                "As the Martian night fell, residents returned to their habitats, contemplating the day's events and planning for tomorrow.",
+                "Another day concluded on the red planet, with economic ripples from today's events sure to be felt in the days to come.",
+                "The colony's economic web grew more complex with today's interactions, shaping the future of Mars society in subtle ways.",
+                "With the day's business concluded, the colony's digital networks hummed with analysis of the changing economic landscape."
+            ]
+        else:
+            conclusions = [
+                "A peaceful day ended on Mars, with residents enjoying the relative calm before tomorrow's inevitable challenges.",
+                "The quiet day gave residents time to maintain their habitats and prepare for future economic opportunities.",
+                "Despite the lack of significant events, the underlying currents of the Martian economy continued to evolve.",
+                "Sometimes, a day without major upheaval is exactly what a frontier economy needs to build long-term stability."
+            ]
+        return random.choice(conclusions)
+    
+    def _get_random_location(self) -> str:
+        """Generate a random location in the Mars colony"""
+        locations = [
+            "Olympus Market",
+            "Tharsis Trading Hub",
+            "Valles Marineris Exchange",
+            "Elysium Commons",
+            "Hellas Basin Bazaar",
+            "Arcadia Planitia Mall",
+            "Utopia Business District",
+            "Cydonia Market Square",
+            "Syrtis Major Agora",
+            "Acidalia Financial Center",
+            "Chryse Marketplace",
+            "Argyre Commerce Hub",
+            "Promethei Terminal",
+            "Amazonis Trade Center",
+            "Isidis Commerce Zone"
+        ]
+        return random.choice(locations)
