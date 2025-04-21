@@ -8,18 +8,12 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
 # Import ProtoNomia modules
-try:
-    from models.base import (
-        Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, 
-        ResourceType, EconomicInteraction, EconomicInteractionType, 
-        InteractionRole, SimulationConfig, SimulationState
-    )
-    from core.simulation import Simulation
-except ImportError as e:
-    print(f"Error importing required modules: {e}")
-    print("Make sure you're running this script from the project root directory.")
-    sys.exit(1)
-
+from models.base import (
+    Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, 
+    ResourceType, EconomicInteraction, EconomicInteractionType, 
+    InteractionRole, SimulationConfig, SimulationState
+)
+from core.simulation import Simulation
 
 # Configure logging
 logging.basicConfig(
@@ -92,9 +86,6 @@ def parse_args():
     parser.add_argument('--top-k', type=int, default=40,
                         help='Top-k tokens to consider for LLM generation (default: 40)')
     
-    parser.add_argument('--mock-llm', action='store_true',
-                        help='Mock LLM responses instead of calling Ollama')
-    
     return parser.parse_args()
 
 
@@ -128,7 +119,6 @@ def run_simulation(args):
         use_llm=args.use_llm, 
         model_name=args.model_name,
         narrator_model_name=args.narrator_model_name,
-        mock_llm=args.mock_llm,
         temperature=args.temperature,
         top_p=args.top_p,
         top_k=args.top_k

@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 import logging
 
-from ...models.base import (
+from models.base import (
     Agent, EconomicInteraction, EconomicInteractionType, InteractionRole,
     InteractionOutcome, InteractionStrategy, ResourceBalance, ResourceType
 )

@@ -240,4 +240,47 @@ Implement an Ollama-based Narrator for the ProtoNomia simulation that generates 
 - [M] `core/simulation.py` - Modified to use LLMNarrator when use_llm is true, added LLM parameters
 - [M] `headless.py` - Added narrator-model-name and LLM generation parameters
 - [A] `tests/test_llm_narrator.py` - Tests for the LLMNarrator
-- [A] `DEVLOG.md` - Development log documenting the changes 
+- [A] `DEVLOG.md` - Development log documenting the changes
+
+## Test Refactoring and LLM Integration
+
+### Date
+2025-04-21
+
+### Description
+Refactored the test suite to separate unit tests from LLM integration tests, improving test organization and execution efficiency. Also fixed several implementation issues in the simulation code to ensure it runs correctly without depending on mock behavior.
+
+Key accomplishments:
+- Created tests/unit and tests/llm directories to separate test types
+- Removed tests that validated mock behavior
+- Created proper LLM integration tests with appropriate environment variable controls
+- Fixed compatibility issues in the Simulation class
+- Added comprehensive documentation in DOCS.md
+- Added pytest configuration to support test organization
+- Fixed resource handling in the simulation to work with the current data model
+- Successfully ran the simulation in headless mode
+
+### Demand
+Ok can you now remove any test that was validating mock behavior? and ensure we have tests validating llm calls, factorize them under tests/llm/ so that we know when we run tests/unit/ quick tests vs tests/llm/ longer-running ones.
+Then continue your dev, ensure @design.md design is complete, validate your dev with tests and running headless script.
+
+### Files
+- [A] DOCS.md
+- [A] pytest.ini
+- [A] tests/unit/__init__.py
+- [A] tests/llm/__init__.py
+- [A] tests/unit/test_headless.py
+- [A] tests/unit/test_simulation.py
+- [A] tests/llm/test_llm_agent_integration.py
+- [A] tests/llm/test_llm_narrator_integration.py
+- [A] tests/llm/test_simulation_llm_integration.py
+- [M] core/simulation.py
+
+### Bugs
+- Fixed type issues with AgentFaction.TERRA_ALIGNED (changed to AgentFaction.TERRA_CORP)
+- Fixed AgentFaction.CORPORATE (changed to AgentFaction.UNDERGROUND)
+- Fixed ResourceType.FOOD (changed to ResourceType.PHYSICAL_GOODS)
+- Fixed resources handling in _create_random_agent to use List[ResourceBalance]
+- Fixed _update_economic_indicators to work with List[ResourceBalance]
+- Fixed population_controller.process_lifecycle method call
+- Fixed InteractionRole issues in _create_interaction 

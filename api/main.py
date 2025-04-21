@@ -8,8 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 
-from ..core.simulation import ProtoNomiaSimulation, create_simulation
-from ..models.base import SimulationConfig
+from core.simulation import Simulation
+from models.base import SimulationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +23,8 @@ class SimulationConfigRequest(BaseModel):
     resource_scarcity: float = Field(0.5, ge=0.0, le=1.0, description="Resource scarcity level (0.0-1.0)")
     technological_level: float = Field(0.8, ge=0.0, le=1.0, description="Technological advancement level (0.0-1.0)")
     narrative_verbosity: int = Field(3, ge=1, le=5, description="Narrative detail level (1-5)")
-    agent_model: str = Field("gemma:4b", description="LLM model for agent decisions")
-    narrator_model: str = Field("gemma:4b", description="LLM model for narrative generation")
+    agent_model: str = Field("gemma3:1b", description="LLM model for agent decisions")
+    narrator_model: str = Field("gemma3:1b", description="LLM model for narrative generation")
     ollama_base_url: str = Field("http://localhost:11434/v1", description="Ollama API base URL")
 
 class SimulationResponse(BaseModel):
@@ -97,7 +97,7 @@ class ConnectionManager:
         if simulation_id in self.active_connections:
             if websocket in self.active_connections[simulation_id]:
                 self.active_connections[simulation_id].remove(websocket)
-            
+
             # Clean up empty lists
             if not self.active_connections[simulation_id]:
                 del self.active_connections[simulation_id]
@@ -127,7 +127,7 @@ app.add_middleware(
 manager = ConnectionManager()
 
 # Store active simulations
-simulations: Dict[str, ProtoNomiaSimulation] = {}
+simulations: Dict[str, Simulation] = {}
 
 # Background tasks
 running_tasks: Dict[str, asyncio.Task] = {}
@@ -218,7 +218,7 @@ def on_tick_completed(tick, date):
 # Background simulation runner
 async def run_simulation(simulation_id: str, speed: float = 1.0):
     """Run a simulation in the background
-    
+
     Args:
         simulation_id: ID of the simulation to run
         speed: How many seconds between ticks (lower is faster)
@@ -226,15 +226,15 @@ async def run_simulation(simulation_id: str, speed: float = 1.0):
     if simulation_id not in simulations:
         logger.error(f"Simulation {simulation_id} not found")
         return
-    
+
     sim = simulations[simulation_id]
     logger.info(f"Starting simulation {simulation_id} at speed {speed}")
-    
+
     try:
         while True:
             # Run one tick
             result = await sim.simulate_tick()
-            
+
             # Wait for the next tick
             await asyncio.sleep(speed)
     except asyncio.CancelledError:
@@ -253,7 +253,7 @@ async def create_new_simulation(config: SimulationConfigRequest):
     """Create a new simulation"""
     # For MVP, we only support one simulation
     simulation_id = "current"
-    
+
     # Stop any existing simulation
     if simulation_id in running_tasks:
         running_tasks[simulation_id].cancel()
@@ -261,7 +261,7 @@ async def create_new_simulation(config: SimulationConfigRequest):
             await running_tasks[simulation_id]
         except asyncio.CancelledError:
             pass
-    
+
     # Create simulation config
     sim_config = SimulationConfig(
         name=config.name,
@@ -272,7 +272,7 @@ async def create_new_simulation(config: SimulationConfigRequest):
         technological_level=config.technological_level,
         narrative_verbosity=config.narrative_verbosity
     )
-    
+
     # Create and initialize simulation
     sim = create_simulation(
         config=sim_config,
@@ -280,19 +280,19 @@ async def create_new_simulation(config: SimulationConfigRequest):
         agent_model=config.agent_model,
         narrator_model=config.narrator_model
     )
-    
+
     # Register event handlers
     sim.register_event_listener("agent_created", on_agent_created)
     sim.register_event_listener("interaction_completed", on_interaction_completed)
     sim.register_event_listener("narrative_event", on_narrative_event)
     sim.register_event_listener("tick_completed", on_tick_completed)
-    
+
     # Store simulation
     simulations[simulation_id] = sim
-    
+
     # Get simulation state
     state = sim.get_state_snapshot()
-    
+
     return {
         "id": simulation_id,
         "name": config.name,
@@ -309,10 +309,10 @@ async def get_simulation(simulation_id: str):
     """Get information about a simulation"""
     if simulation_id not in simulations:
         raise HTTPException(status_code=404, detail="Simulation not found")
-    
+
     sim = simulations[simulation_id]
     state = sim.get_state_snapshot()
-    
+
     return {
         "id": simulation_id,
         "name": sim.config.name,
@@ -329,7 +329,7 @@ async def start_simulation(simulation_id: str, speed: float = Query(1.0, ge=0.1,
     """Start or resume a simulation"""
     if simulation_id not in simulations:
         raise HTTPException(status_code=404, detail="Simulation not found")
-    
+
     # Cancel existing task if running
     if simulation_id in running_tasks:
         running_tasks[simulation_id].cancel()
@@ -337,11 +337,11 @@ async def start_simulation(simulation_id: str, speed: float = Query(1.0, ge=0.1,
             await running_tasks[simulation_id]
         except asyncio.CancelledError:
             pass
-    
+
     # Start new background task
     task = asyncio.create_task(run_simulation(simulation_id, speed))
     running_tasks[simulation_id] = task
-    
+
     return {"message": f"Simulation {simulation_id} started with speed {speed}"}
 
 @app.post("/simulations/{simulation_id}/stop")
@@ -349,7 +349,7 @@ async def stop_simulation(simulation_id: str):
     """Stop a running simulation"""
     if simulation_id not in simulations:
         raise HTTPException(status_code=404, detail="Simulation not found")
-    
+
     if simulation_id in running_tasks:
         running_tasks[simulation_id].cancel()
         try:
@@ -358,7 +358,7 @@ async def stop_simulation(simulation_id: str):
             pass
         running_tasks.pop(simulation_id)
         return {"message": f"Simulation {simulation_id} stopped"}
-    
+
     return {"message": f"Simulation {simulation_id} is not running"}
 
 @app.post("/simulations/{simulation_id}/tick", response_model=TickResponse)
@@ -366,7 +366,7 @@ async def run_single_tick(simulation_id: str):
     """Run a single tick of the simulation"""
     if simulation_id not in simulations:
         raise HTTPException(status_code=404, detail="Simulation not found")
-    
+
     # Cancel running task if present
     if simulation_id in running_tasks:
         running_tasks[simulation_id].cancel()
@@ -375,16 +375,16 @@ async def run_single_tick(simulation_id: str):
         except asyncio.CancelledError:
             pass
         running_tasks.pop(simulation_id)
-    
+
     # Run a single tick
     sim = simulations[simulation_id]
     result = await sim.simulate_tick()
-    
+
     return result
 
 @app.get("/simulations/{simulation_id}/agents", response_model=List[AgentResponse])
 async def get_agents(
-    simulation_id: str, 
+    simulation_id: str,
     alive_only: bool = Query(True, description="Only return living agents"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of agents to return"),
     faction: Optional[str] = Query(None, description="Filter by faction")
@@ -392,9 +392,9 @@ async def get_agents(
     """Get agents in a simulation"""
     if simulation_id not in simulations:
         raise HTTPException(status_code=404, detail="Simulation not found")
-    
+
     sim = simulations[simulation_id]
-    
+
     # Filter agents
     filtered_agents = []
     for agent_id, agent in sim.agents.items():
@@ -402,13 +402,13 @@ async def get_agents(
             continue
         if faction and agent.faction.value != faction:
             continue
-        
+
         agent_data = sim.get_agent_details(agent_id)
         filtered_agents.append(agent_data)
-        
+
         if len(filtered_agents) >= limit:
             break
-    
+
     return filtered_agents
 
 @app.get("/simulations/{simulation_id}/agents/{agent_id}", response_model=AgentResponse)
@@ -416,13 +416,13 @@ async def get_agent(simulation_id: str, agent_id: str):
     """Get information about a specific agent"""
     if simulation_id not in simulations:
         raise HTTPException(status_code=404, detail="Simulation not found")
-    
+
     sim = simulations[simulation_id]
     agent_details = sim.get_agent_details(agent_id)
-    
+
     if not agent_details:
         raise HTTPException(status_code=404, detail="Agent not found")
-    
+
     return agent_details
 
 @app.get("/simulations/{simulation_id}/narrative/events", response_model=List[NarrativeEventResponse])
@@ -433,10 +433,10 @@ async def get_narrative_events(
     """Get recent narrative events"""
     if simulation_id not in simulations:
         raise HTTPException(status_code=404, detail="Simulation not found")
-    
+
     sim = simulations[simulation_id]
     events = sim.get_recent_narrative_events(limit)
-    
+
     return events
 
 @app.get("/simulations/{simulation_id}/narrative/summary", response_model=NarrativeSummaryResponse)
@@ -447,10 +447,10 @@ async def get_narrative_summary(
     """Get a narrative summary of recent events"""
     if simulation_id not in simulations:
         raise HTTPException(status_code=404, detail="Simulation not found")
-    
+
     sim = simulations[simulation_id]
     summary = sim.narrator.get_narrative_summary(period)
-    
+
     return {
         "summary": summary,
         "date": sim.current_date.isoformat()
@@ -461,10 +461,10 @@ async def get_economic_report(simulation_id: str):
     """Get economic report for a simulation"""
     if simulation_id not in simulations:
         raise HTTPException(status_code=404, detail="Simulation not found")
-    
+
     sim = simulations[simulation_id]
     report = sim.get_economic_report()
-    
+
     return report
 
 @app.websocket("/ws/{simulation_id}")
@@ -475,14 +475,14 @@ async def websocket_endpoint(websocket: WebSocket, simulation_id: str):
         await websocket.send_json({"error": "Simulation not found"})
         await websocket.close()
         return
-    
+
     await manager.connect(websocket, simulation_id)
-    
+
     try:
         while True:
             # Wait for client messages
             _ = await websocket.receive_text()
-            
+
             # Send current state
             sim = simulations[simulation_id]
             state = sim.get_state_snapshot()

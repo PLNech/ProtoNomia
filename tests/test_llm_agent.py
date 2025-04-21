@@ -106,7 +106,7 @@ class TestLLMAgent:
         )
         
         # Create LLM agent and force it to mock mode
-        llm_agent = LLMAgent(model_name="gemma:4b", mock=True)
+        llm_agent = LLMAgent(model_name="gemma3:1b")
         
         # Override the mock method to return a REST action specifically
         original_mock_method = llm_agent._mock_llm_response
@@ -132,7 +132,7 @@ class TestLLMAgent:
         )
         
         # Create LLM agent and force it to mock mode
-        llm_agent = LLMAgent(model_name="gemma:4b", mock=True)
+        llm_agent = LLMAgent(model_name="gemma3:1b")
         
         # Override the mock method to return a BUY action specifically
         extra_data = {"desired_item": "item1", "reason": "Need food"}
@@ -160,7 +160,7 @@ class TestLLMAgent:
         )
         
         # Create LLM agent and force it to mock mode
-        llm_agent = LLMAgent(model_name="gemma:4b", mock=True)
+        llm_agent = LLMAgent(model_name="gemma3:1b")
         
         # Override the mock method to return an OFFER action specifically
         extra_data = {
@@ -193,7 +193,7 @@ class TestLLMAgent:
         mock_post.return_value = mock_response
         
         # Create LLM agent with a modified _parse_action_response method that returns REST action
-        llm_agent = LLMAgent(model_name="gemma:4b", mock=True)
+        llm_agent = LLMAgent(model_name="gemma3:1b")
         original_parse_method = llm_agent._parse_action_response
         llm_agent._parse_action_response = lambda response: LLMAgentActionResponse(type=ActionType.REST)
         

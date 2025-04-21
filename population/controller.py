@@ -1,12 +1,11 @@
-import random
 import logging
-from typing import Dict, List, Optional, Tuple, Set
+import random
 from datetime import datetime, timedelta
-import uuid
+from typing import Dict, List, Optional, Tuple, Any
 
-from ..models.base import (
-    Agent, AgentType, AgentFaction, AgentPersonality, AgentNeeds,
-    ResourceType, ResourceBalance, PopulationEvent, PopulationControlParams
+from models.base import (
+    Agent, AgentType, AgentFaction, AgentPersonality, ResourceType, ResourceBalance, PopulationEvent,
+    PopulationControlParams
 )
 
 logger = logging.getLogger(__name__)

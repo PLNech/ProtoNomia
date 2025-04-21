@@ -9,7 +9,7 @@ import json
 from unittest.mock import patch
 
 # Add project root to path for imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 import headless
 
@@ -77,7 +77,7 @@ class TestHeadlessScript:
             args = headless.parse_args()
             
             # Patch the Simulation class to avoid actual initialization
-            with patch('core.simulation.Simulation') as mock_sim:
+            with patch('headless.Simulation') as mock_sim:
                 # Set up mocks
                 mock_sim_instance = mock_sim.return_value
                 mock_sim_instance.initialize.return_value = None
@@ -87,53 +87,4 @@ class TestHeadlessScript:
                 result = headless.run_simulation(args)
                 
                 # The simulation should have exited early due to timeout
-                assert mock_sim_instance.step.call_count < args.ticks
-    
-    @pytest.mark.skipif(True, reason="Integration test that requires implemented modules")
-    def test_output_file_generation(self):
-        """Test that an output file is generated correctly"""
-        # Create a temporary file for output
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as temp_file:
-            output_path = temp_file.name
-        
-        try:
-            # Run with minimal ticks and output to the temp file
-            with patch('sys.argv', [
-                'headless.py',
-                '--ticks', '2',
-                '--initial-population', '3',
-                '--output', output_path
-            ]):
-                args = headless.parse_args()
-                
-                # Patch the Simulation class to avoid actual initialization
-                with patch('headless.Simulation') as mock_sim:
-                    # Set up mocks
-                    mock_sim_instance = mock_sim.return_value
-                    mock_sim_instance.initialize.return_value = None
-                    mock_sim_instance.step.return_value = mock_sim_instance.state
-                    mock_sim_instance.state.population_size = 3
-                    mock_sim_instance.state.active_interactions = []
-                    mock_sim_instance.state.completed_interactions = []
-                    mock_sim_instance.state.narrative_events = []
-                    mock_sim_instance.state.economic_indicators = {}
-                    
-                    # Run simulation
-                    headless.run_simulation(args)
-                    
-                    # Check that the output file exists and contains valid JSON
-                    assert os.path.exists(output_path)
-                    with open(output_path, 'r') as f:
-                        data = json.load(f)
-                        
-                        # Check basic structure
-                        assert 'config' in data
-                        assert 'metrics' in data
-                        assert 'final_state' in data
-                        
-                        # Check metrics has correct number of entries
-                        assert len(data['metrics']) == 2  # One for each tick
-        finally:
-            # Clean up
-            if os.path.exists(output_path):
-                os.unlink(output_path) 
+                assert mock_sim_instance.step.call_count < args.ticks 

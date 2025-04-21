@@ -12,9 +12,19 @@ from models.base import (
     Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, 
     ResourceType, EconomicInteraction, EconomicInteractionType, 
     InteractionRole, SimulationConfig, SimulationState, 
-    NarrativeEvent, NarrativeArc, PopulationControlParams, PopulationEvent
+    NarrativeEvent, NarrativeArc, PopulationControlParams, PopulationEvent, AgentNeeds
 )
 from models.actions import AgentAction, ActionType
+
+# Import required modules
+from agents.llm_agent import LLMAgent
+from narrative.narrator import Narrator
+from narrative.llm_narrator import LLMNarrator
+from economics.interactions.base import InteractionHandler
+from economics.interactions.ultimatum import UltimatumGameHandler
+from economics.interactions.trust import TrustGameHandler
+from economics.interactions.public_goods import PublicGoodsGameHandler
+from population.controller import PopulationController
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -31,9 +41,8 @@ class Simulation:
         self, 
         config: SimulationConfig,
         use_llm: bool = False,
-        model_name: str = "gemma:4b",
+        model_name: str = "gemma3:1b",
         narrator_model_name: str = "gemma3:1b",
-        mock_llm: bool = False,
         temperature: float = 0.8,
         top_p: float = 0.95,
         top_k: int = 40
@@ -46,7 +55,6 @@ class Simulation:
             use_llm: Whether to use LLM for agent decision making
             model_name: Name of the LLM model to use with Ollama for agents
             narrator_model_name: Name of the LLM model to use with Ollama for narration
-            mock_llm: Whether to mock LLM responses
             temperature: Controls randomness in LLM generation (0.0-1.0)
             top_p: Nucleus sampling probability threshold (0.0-1.0)
             top_k: Number of highest probability tokens to consider
@@ -55,7 +63,6 @@ class Simulation:
         self.use_llm = use_llm
         self.model_name = model_name
         self.narrator_model_name = narrator_model_name
-        self.mock_llm = mock_llm
         self.temperature = temperature
         self.top_p = top_p
         self.top_k = top_k
@@ -95,78 +102,53 @@ class Simulation:
             economic_indicators={}
         )
         
-        # Load modules as needed
-        self._load_modules()
+        # Initialize required modules
+        self._initialize_modules()
     
-    def _load_modules(self):
-        """Load required modules based on configuration"""
-        # Import agent module
-        if self.use_llm or self.mock_llm:
-            try:
-                from agents.llm_agent import LLMAgent
-                self.llm_agent = LLMAgent(model_name=self.model_name, mock=self.mock_llm)
-                logger.info(f"Loaded LLM agent with model {self.model_name} (mock={self.mock_llm})")
-            except ImportError:
-                logger.warning("LLM agent module not found, falling back to rule-based agent")
-                self.use_llm = False
+    def _initialize_modules(self):
+        """Initialize all required modules for the simulation"""
+        # Initialize economic interaction handlers
+        self.interaction_handlers = {
+            EconomicInteractionType.ULTIMATUM: UltimatumGameHandler(),
+            EconomicInteractionType.TRUST: TrustGameHandler(),
+            EconomicInteractionType.PUBLIC_GOODS: PublicGoodsGameHandler()
+        }
+        logger.info(f"Initialized interaction handlers: {list(self.interaction_handlers.keys())}")
         
-        # Import economic interaction handlers
-        try:
-            from economics.interactions.ultimatum import UltimatumGameHandler
-            self.ultimatum_handler = UltimatumGameHandler()
-            logger.info("Loaded UltimatumGameHandler")
-        except ImportError:
-            self.ultimatum_handler = None
-            logger.warning("UltimatumGameHandler not found")
+        # Initialize the population controller
+        self.population_controller = PopulationController(self.population_params)
+        logger.info("Initialized PopulationController")
+        
+        # Initialize agent module based on use_llm setting
+        if self.use_llm:
+            # Use LLM for agent decision making
+            self.llm_agent = LLMAgent(
+                model_name=self.model_name,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                top_k=self.top_k
+            )
+            logger.info(f"Initialized LLM agent with model {self.model_name}")
             
-        try:
-            from economics.interactions.trust import TrustGameHandler
-            self.trust_handler = TrustGameHandler()
-            logger.info("Loaded TrustGameHandler")
-        except ImportError:
-            self.trust_handler = None
-            logger.warning("TrustGameHandler not found")
-            
-        # Import narrator - use LLM narrator if use_llm is true
-        if self.use_llm or self.mock_llm:
-            try:
-                from narrative.llm_narrator import LLMNarrator
-                self.narrator = LLMNarrator(
-                    verbosity=self.config.narrative_verbosity,
-                    model_name=self.narrator_model_name,
-                    mock_llm=self.mock_llm,
-                    temperature=self.temperature,
-                    top_p=self.top_p,
-                    top_k=self.top_k
-                )
-                logger.info(f"Loaded LLM Narrator with model {self.narrator_model_name} (mock={self.mock_llm})")
-            except ImportError:
-                logger.warning("LLM Narrator module not found, falling back to rule-based narrator")
-                try:
-                    from narrative.narrator import Narrator
-                    self.narrator = Narrator(verbosity=self.config.narrative_verbosity)
-                    logger.info(f"Loaded rule-based Narrator with verbosity {self.config.narrative_verbosity}")
-                except ImportError:
-                    self.narrator = None
-                    logger.warning("Narrator module not found")
+            # Use LLM for narrative generation
+            logger.info(f"Initializing LLM Narrator with model {self.narrator_model_name}")
+            self.narrator = LLMNarrator(
+                verbosity=self.config.narrative_verbosity,
+                model_name=self.narrator_model_name,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                top_k=self.top_k
+            )
+            logger.info(f"Initialized LLM Narrator with model {self.narrator_model_name}")
         else:
             # Use rule-based narrator
-            try:
-                from narrative.narrator import Narrator
-                self.narrator = Narrator(verbosity=self.config.narrative_verbosity)
-                logger.info(f"Loaded rule-based Narrator with verbosity {self.config.narrative_verbosity}")
-            except ImportError:
-                self.narrator = None
-                logger.warning("Narrator module not found")
-        
-        # Import population controller
-        try:
-            from population.controller import PopulationController
-            self.population_controller = PopulationController(self.population_params)
-            logger.info("Loaded PopulationController")
-        except ImportError:
-            self.population_controller = None
-            logger.warning("PopulationController not found")
+            logger.info("Initializing traditional Narrator")
+            self.narrator = Narrator(verbosity=self.config.narrative_verbosity)
+            logger.info(f"Initialized rule-based Narrator with verbosity {self.config.narrative_verbosity}")
+            
+            # No LLM agent needed for rule-based simulation
+            self.llm_agent = None
+            logger.info("Using rule-based agent decision making")
     
     def initialize(self):
         """Initialize the simulation by creating the initial population"""
@@ -248,478 +230,548 @@ class Simulation:
         )[0]
         
         # Choose random faction
-        faction = random.choice(list(AgentFaction))
+        faction_weights = [
+            (AgentFaction.TERRA_CORP, 0.3),
+            (AgentFaction.MARS_NATIVE, 0.4),
+            (AgentFaction.INDEPENDENT, 0.2),
+            (AgentFaction.GOVERNMENT, 0.05),
+            (AgentFaction.UNDERGROUND, 0.05)
+        ]
+        faction = random.choices(
+            [f[0] for f in faction_weights],
+            weights=[f[1] for f in faction_weights],
+            k=1
+        )[0]
         
-        # Generate name based on type
-        first_names = ["Alice", "Bob", "Charlie", "Diana", "Eliot", "Fatima", "Gabriel", "Hannah", 
-                     "Isaac", "Julia", "Kai", "Luna", "Miguel", "Nora", "Oscar", "Priya", 
-                     "Quinn", "Rosa", "Santiago", "Tara", "Uriel", "Violet", "Wei", "Xander", 
-                     "Yasmin", "Zach"]
-        last_names = ["Adams", "Becker", "Chen", "Diaz", "Evans", "Fischer", "Gupta", "Hernandez", 
-                    "Ibrahim", "Johnson", "Kim", "Lopez", "Mueller", "Nguyen", "Okafor", 
-                    "Patel", "Quinn", "Rodriguez", "Singh", "Thompson", "Ueda", "Vasquez", 
-                    "Wang", "Xu", "Yamaguchi", "Zhang"]
+        # Generate a name based on type and faction
+        name = self._generate_agent_name(agent_type, faction)
         
-        if agent_type == AgentType.INDIVIDUAL:
-            name = f"{random.choice(first_names)} {random.choice(last_names)}"
-        elif agent_type == AgentType.CORPORATION:
-            corps = ["MarsTech", "RedPlanet", "AresIndustries", "PhobosEnergy", "DeimosMining", 
-                   "OlympusCorp", "VallesMariners", "TerraForming", "CydoniaSystems", "UtopiaLabs"]
-            name = f"{random.choice(corps)}"
-        elif agent_type == AgentType.COLLECTIVE:
-            collectives = ["Mars Citizens Union", "Tharsis Cooperative", "Hellas Basin Commune", 
-                         "Olympus Mons Collective", "Valles Network", "Arcadia Alliance", 
-                         "Elysium Syndicate", "Isidis Community"]
-            name = f"{random.choice(collectives)}"
-        elif agent_type == AgentType.GOVERNMENT:
-            govs = ["Mars Central Authority", "Tharsis Administration", "Olympus Mons Council", 
-                  "Valles Marineris District", "Hellas Regional Government", "Terra-Mars Liaison Office"]
-            name = f"{random.choice(govs)}"
-        else:  # AI
-            ai_names = ["ARIA", "MARS-OS", "OLYMPUS", "PHOBOS", "DEIMOS", "TERRA-LINK", 
-                      "RED", "HELLAS", "THARSIS", "ARCADIA"]
-            name = f"{random.choice(ai_names)}"
+        # Generate resources
+        resources = [
+            ResourceBalance(
+                resource_type=ResourceType.CREDITS,
+                amount=random.randint(100, 1000)
+            ),
+            ResourceBalance(
+                resource_type=ResourceType.PHYSICAL_GOODS,
+                amount=random.randint(10, 100)
+            ),
+            ResourceBalance(
+                resource_type=ResourceType.WATER,
+                amount=random.randint(10, 100)
+            ),
+            ResourceBalance(
+                resource_type=ResourceType.DIGITAL_GOODS,
+                amount=random.randint(0, 50)
+            )
+        ]
         
-        # Create initial resources based on agent type
-        resources = []
-        
-        # All agents have credits
-        credit_amount = 0
-        if agent_type == AgentType.INDIVIDUAL:
-            credit_amount = random.uniform(10.0, 100.0)
-        elif agent_type == AgentType.CORPORATION:
-            credit_amount = random.uniform(500.0, 5000.0)
-        elif agent_type == AgentType.COLLECTIVE:
-            credit_amount = random.uniform(200.0, 1000.0)
-        elif agent_type == AgentType.GOVERNMENT:
-            credit_amount = random.uniform(1000.0, 10000.0)
-        else:  # AI
-            credit_amount = random.uniform(50.0, 500.0)
-        
-        resources.append(ResourceBalance(
-            resource_type=ResourceType.CREDITS,
-            amount=credit_amount
-        ))
-        
-        # Add health for individuals
-        if agent_type == AgentType.INDIVIDUAL:
-            resources.append(ResourceBalance(
-                resource_type=ResourceType.HEALTH,
-                amount=random.uniform(0.7, 1.0)
-            ))
-        
-        # Create agent
-        return Agent(
+        # Create the agent
+        agent = Agent(
+            id=f"agent_{len(self.agents) + 1}",
             name=name,
             agent_type=agent_type,
             faction=faction,
             personality=personality,
+            birth_date=self.state.current_date - timedelta(days=random.randint(18*365, 65*365)),
             resources=resources,
-            birth_date=self.state.current_date - timedelta(days=random.randint(0, 10000)),
-            is_alive=True
+            needs=AgentNeeds(
+                subsistence=random.uniform(0.7, 1.0),
+                security=random.uniform(0.5, 1.0),
+                social=random.uniform(0.5, 1.0),
+                esteem=random.uniform(0.5, 1.0),
+                self_actualization=random.uniform(0.5, 1.0)
+            ),
+            location="Olympus Mons District"
         )
+        
+        return agent
+    
+    def _generate_agent_name(self, agent_type: AgentType, faction: AgentFaction) -> str:
+        """Generate a name for an agent based on its type and faction"""
+        if agent_type == AgentType.INDIVIDUAL:
+            # Human name
+            first_names = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Freya", "Gabriel", 
+                          "Hannah", "Isaac", "Julia", "Kai", "Luna", "Marco", "Nora", 
+                          "Orion", "Piper", "Quinn", "Ren", "Sasha", "Theo", "Uma", 
+                          "Victor", "Willow", "Xander", "Yuna", "Zane"]
+            last_names = ["Smith", "Johnson", "Williams", "Jones", "Brown", "Davis", "Miller",
+                         "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White",
+                         "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark",
+                         "Rodriguez", "Lewis", "Lee", "Walker", "Hall", "Allen", "Young", "King"]
+            
+            # Add some faction influence to names
+            if faction == AgentFaction.MARS_NATIVE:
+                last_names.extend(["Olympus", "Ares", "Tharsis", "Mariner", "Valles", "Phobos", "Deimos"])
+            elif faction == AgentFaction.TERRA_CORP:
+                last_names.extend(["Earth", "Terra", "Luna", "Sol", "Pacific", "Atlantic", "Ridge"])
+            elif faction == AgentFaction.UNDERGROUND:
+                last_names.extend(["Weyland", "Tyrell", "Rosen", "Tessier", "Ashpool", "Zaibatsu"])
+            
+            return f"{random.choice(first_names)} {random.choice(last_names)}"
+        
+        elif agent_type == AgentType.CORPORATION:
+            # Corporate name
+            prefixes = ["Mars", "Red", "Olympus", "Tharsis", "Ares", "Deimos", "Phobos", "Terra", 
+                       "Cyber", "Quantum", "Stellar", "Neo", "Alpha", "Horizon", "Prime", "Apex"]
+            suffixes = ["Corp", "Industries", "Dynamics", "Systems", "Tech", "Solutions", "Enterprises",
+                       "Holdings", "Robotics", "AI", "Mining", "Exports", "Labs", "Ventures", "Collective"]
+            
+            return f"{random.choice(prefixes)} {random.choice(suffixes)}"
+        
+        elif agent_type == AgentType.COLLECTIVE:
+            # Collective name
+            adjectives = ["United", "Allied", "Autonomous", "Free", "Democratic", "Independent", 
+                         "Progressive", "Sustainable", "Cooperative", "Mutual", "Communal"]
+            nouns = ["Workers", "Miners", "Farmers", "Engineers", "Colonists", "Citizens", 
+                    "Settlers", "Technicians", "Artisans", "Traders", "Hackers", "Pioneers"]
+            
+            return f"{random.choice(adjectives)} {random.choice(nouns)} Collective"
+        
+        elif agent_type == AgentType.GOVERNMENT:
+            # Government name
+            prefixes = ["Bureau of", "Ministry of", "Department of", "Office of", "Agency for", 
+                       "Commission on", "Authority for", "Division of"]
+            domains = ["Colonial Affairs", "Resource Management", "Economic Development", 
+                      "Infrastructure", "Public Safety", "Health & Medicine", "Scientific Research",
+                      "Educational Standards", "Interplanetary Relations", "Trade Regulation"]
+            
+            return f"{random.choice(prefixes)} {random.choice(domains)}"
+        
+        elif agent_type == AgentType.AI:
+            # AI name
+            prefixes = ["ARES", "OLYMPUS", "MARS", "TERRA", "CYDONIA", "PHOBOS", "DEIMOS", 
+                       "HELLAS", "ELYSIUM", "VALLES"]
+            suffixes = ["OS", "AI", "MIND", "CORE", "NET", "MATRIX", "SYSTEM", "PROTOCOL", 
+                       "SENTINEL", "GUARDIAN", "NODE", "NEXUS", "PRIME", "ALPHA", "OMEGA"]
+            
+            return f"{random.choice(prefixes)}-{random.choice(suffixes)}"
+        
+        else:
+            # Generic name
+            return f"Agent {len(self.agents) + 1}"
     
     def _process_lifecycle_events(self):
-        """Process agent lifecycle events like birth, death, etc."""
-        if self.population_controller is None:
-            # Simple implementation if controller not available
-            self._simple_lifecycle_events()
-        else:
-            # Use population controller
-            events = self.population_controller.process_population(
-                list(self.agents.values()),
-                self.state.current_date,
-                self.state.economic_indicators,
-                self.config.max_population
+        """Process agent lifecycle events (births, deaths, etc.)"""
+        if self.population_controller:
+            # Use the population controller to handle lifecycle events
+            population_events, new_agents = self.population_controller.process_lifecycle_events(
+                agents=self.agents,
+                current_date=self.state.current_date,
+                max_population=self.config.max_population
             )
             
-            # Apply lifecycle events
-            for event in events:
-                if event.event_type == "birth":
-                    agent = self._create_random_agent()
-                    self.agents[agent.id] = agent
-                    self.state.active_agents.append(agent.id)
-                elif event.event_type == "death":
-                    if event.agent_id in self.agents:
-                        self.agents[event.agent_id].is_alive = False
-                        self.agents[event.agent_id].death_date = self.state.current_date
+            # Add any new agents from the controller
+            for agent in new_agents:
+                self.agents[agent.id] = agent
+                self.state.active_agents.append(agent.id)
+                logger.debug(f"New agent added: {agent.name} ({agent.id})")
+            
+            # Process population events
+            for event in population_events:
+                if event.event_type == "death":
+                    # Mark agent as deceased
+                    if event.agent_id in self.state.active_agents:
                         self.state.active_agents.remove(event.agent_id)
                         self.state.deceased_agents.append(event.agent_id)
-        
-        # Update population size
-        self.state.population_size = len(self.state.active_agents)
+                        logger.debug(f"Agent died: {self.agents[event.agent_id].name} ({event.agent_id})")
+        else:
+            # Simple lifecycle events without the controller
+            self._simple_lifecycle_events()
     
     def _simple_lifecycle_events(self):
-        """Simple implementation of lifecycle events without controller"""
-        # Simple birth process if under max population
-        if len(self.state.active_agents) < self.config.max_population:
-            for _ in range(max(1, int(len(self.state.active_agents) * 0.01))):
-                if random.random() < 0.05:  # 5% chance of birth per tick
-                    agent = self._create_random_agent()
-                    self.agents[agent.id] = agent
-                    self.state.active_agents.append(agent.id)
+        """Simple lifecycle events when population controller is not available"""
+        # Simple birth logic - add new agents if below population target
+        if (len(self.state.active_agents) < self.config.max_population and 
+            random.random() < 0.05):  # 5% chance of birth per tick
+            agent = self._create_random_agent()
+            self.agents[agent.id] = agent
+            self.state.active_agents.append(agent.id)
+            logger.debug(f"New agent born: {agent.name} ({agent.id})")
         
-        # Simple death process
-        for agent_id in list(self.state.active_agents):
-            if agent_id in self.agents:
-                agent = self.agents[agent_id]
-                # Age-based death probability
-                age = agent.calculate_age(self.state.current_date)
-                death_prob = min(0.001 + (age / 36500) * 0.1, 0.1)  # Increases with age
-                
-                if random.random() < death_prob:
-                    agent.is_alive = False
-                    agent.death_date = self.state.current_date
-                    self.state.active_agents.remove(agent_id)
-                    self.state.deceased_agents.append(agent_id)
+        # Simple death logic - randomly remove agents
+        if len(self.state.active_agents) > 0 and random.random() < 0.01:  # 1% chance of death per tick
+            agent_id = random.choice(self.state.active_agents)
+            self.state.active_agents.remove(agent_id)
+            self.state.deceased_agents.append(agent_id)
+            logger.debug(f"Agent died: {self.agents[agent_id].name} ({agent_id})")
     
     def _process_agent_actions(self):
-        """Process agent actions and interactions"""
-        # Process active interactions from previous ticks
-        self._process_active_interactions()
-        
-        # Generate and process new actions for each agent
+        """Process agent actions for the current tick"""
+        # For each active agent, generate and process an action
         for agent_id in self.state.active_agents:
             agent = self.agents[agent_id]
             
-            # Generate action
+            # Generate an action for the agent
             action = self._generate_agent_action(agent)
             
-            # Process action
+            # Process the action if one was generated
             if action:
                 self._process_action(action)
+        
+        # Process active interactions
+        self._process_active_interactions()
     
     def _generate_agent_action(self, agent: Agent) -> Optional[AgentAction]:
-        """Generate an action for the agent"""
-        # If using LLM and it's available
-        if self.use_llm and hasattr(self, 'llm_agent'):
-            # Create decision context
-            context = self._create_decision_context(agent)
-            
-            # Generate action using LLM
-            return self.llm_agent.generate_action(agent, context)
-        else:
-            # Simple rule-based action generation
-            return self._generate_rule_based_action(agent)
+        """Generate an action for an agent"""
+        try:
+            # If using LLM, use LLMAgent to generate actions
+            if self.use_llm and self.llm_agent:
+                context = self._create_decision_context(agent)
+                return self.llm_agent.generate_action(agent, context)
+            else:
+                # Use rule-based action generation
+                return self._generate_rule_based_action(agent)
+        except Exception as e:
+            logger.error(f"Error generating action for agent {agent.id}: {e}")
+            return None
     
     def _create_decision_context(self, agent: Agent):
-        """Create a decision context for the agent"""
+        """Create a decision context for an agent"""
+        # Import here to avoid circular imports
         from models.actions import AgentDecisionContext
         
-        # Convert resources to dictionary
-        resources = {r.resource_type.value: r.amount for r in agent.resources}
+        # Get a list of neighbor agents
+        neighbors = []
+        for other_id in self.state.active_agents:
+            if other_id != agent.id:
+                neighbors.append(other_id)
         
-        # Convert needs to dictionary
-        needs = {
-            "subsistence": agent.needs.subsistence,
-            "security": agent.needs.security,
-            "social": agent.needs.social,
-            "esteem": agent.needs.esteem,
-            "self_actualization": agent.needs.self_actualization
-        }
+        # Limit to a reasonable number of neighbors
+        if len(neighbors) > 5:
+            neighbors = random.sample(neighbors, 5)
         
-        # Get neighbors (nearby agents)
-        neighbors = random.sample(
-            [a_id for a_id in self.state.active_agents if a_id != agent.id],
-            min(3, len(self.state.active_agents) - 1)
-        )
-        
-        # Create pending offers (simplified)
+        # Get pending offers for this agent
         pending_offers = []
+        for interaction_id in self.state.active_interactions:
+            interaction = self.interactions[interaction_id]
+            if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
+                if agent.id in interaction.participants:
+                    role = interaction.participants[agent.id]
+                    if role == InteractionRole.RESPONDER:
+                        # This is an offer waiting for this agent to respond
+                        initiator_id = next((id for id, r in interaction.participants.items() 
+                                           if r == InteractionRole.INITIATOR), None)
+                        if initiator_id:
+                            pending_offers.append({
+                                "id": interaction.id,
+                                "from_agent": initiator_id,
+                                "what": interaction.parameters.get("offer_amount", 0),
+                                "against_what": interaction.parameters.get("total_amount", 100),
+                                "status": "pending"
+                            })
         
-        # Create jobs available (simplified)
+        # Get available jobs
         jobs_available = [
-            {"id": f"job{i}", "type": "generic", "pay": "10 credits", "difficulty": "medium"}
-            for i in range(2)
-        ]
+            {"id": f"job_{i}", "title": "Software Engineer", "salary": 1000, "duration": 30},
+            {"id": f"job_{i+1}", "title": "Mining Technician", "salary": 800, "duration": 15},
+            {"id": f"job_{i+2}", "title": "Hydroponics Specialist", "salary": 900, "duration": 20}
+        ] if random.random() < 0.3 else []  # Only show jobs sometimes
         
-        # Create items for sale (simplified)
+        # Get items for sale
         items_for_sale = [
-            {"id": f"item{i}", "type": "food", "price": "5 credits", "quality": "good"}
-            for i in range(2)
-        ]
+            {"id": f"item_{i}", "name": "Food Pack", "price": 50, "seller": "market"},
+            {"id": f"item_{i+1}", "name": "Water Filter", "price": 200, "seller": "market"},
+            {"id": f"item_{i+2}", "name": "Entertainment Module", "price": 150, "seller": "market"}
+        ] if random.random() < 0.3 else []  # Only show items sometimes
         
-        # Get recent interactions (simplified)
-        recent_interactions = []
-        
+        # Create the context
         return AgentDecisionContext(
-            agent_id=agent.id,
-            name=agent.name,
-            resources=resources,
-            needs=needs,
             turn=self.state.current_tick,
-            max_turns=100000,  # Arbitrary large number
+            max_turns=1000,  # Arbitrary large number
             neighbors=neighbors,
+            resources={k.value: v for k, v in agent.resources.balances.items()},
+            needs=agent.needs,
             pending_offers=pending_offers,
             jobs_available=jobs_available,
             items_for_sale=items_for_sale,
-            recent_interactions=recent_interactions
+            recent_interactions=[]  # Not implemented yet
         )
     
     def _generate_rule_based_action(self, agent: Agent) -> AgentAction:
-        """Generate a rule-based action for the agent"""
-        # Simple rule-based action generation
+        """Generate a rule-based action for an agent"""
+        # Simple rule-based decision making
         action_type = random.choice(list(ActionType))
         
-        # Create action
+        # Create the action
         action = AgentAction(
             type=action_type,
             agent_id=agent.id,
             turn=self.state.current_tick,
-            timestamp=time.time()
+            timestamp=time.time(),
+            extra={}
         )
-        
-        # If REST action, no additional details needed
-        if action_type == ActionType.REST:
-            pass
-        
-        # For other actions, we would need to add appropriate details
-        # This is a simplified implementation
         
         return action
     
     def _process_action(self, action: AgentAction):
         """Process an agent action"""
-        # Handle based on action type
-        if action.type == ActionType.REST:
-            # For REST, just update agent's needs
-            if action.agent_id in self.agents:
-                agent = self.agents[action.agent_id]
-                # Increase health if available
-                for resource in agent.resources:
-                    if resource.resource_type == ResourceType.HEALTH and resource.amount < 1.0:
-                        resource.amount = min(1.0, resource.amount + 0.1)
+        # Sample implementation - just log the action
+        logger.debug(f"Processing action: {action.type} by agent {action.agent_id}")
         
-        elif action.type == ActionType.OFFER:
-            # Create interaction based on the offer
-            # This is a simplified implementation
-            pass
+        # Handle different action types
+        if action.type == ActionType.OFFER:
+            # Create a new interaction
+            if action.offer_details and action.offer_details.to_agent_id:
+                self._create_interaction(
+                    initiator_id=action.agent_id,
+                    responder_id=action.offer_details.to_agent_id,
+                    interaction_type=EconomicInteractionType.ULTIMATUM,
+                    parameters={
+                        "offer_amount": 30,  # Placeholder values
+                        "total_amount": 100
+                    }
+                )
         
-        # Other action types would be handled similarly
+        # Other action types would be handled here
     
     def _process_active_interactions(self):
         """Process all active interactions"""
-        # Process each active interaction
         for interaction_id in list(self.state.active_interactions):
-            if interaction_id in self.interactions:
-                interaction = self.interactions[interaction_id]
-                
-                # Process based on interaction type
-                if interaction.interaction_type == EconomicInteractionType.ULTIMATUM and self.ultimatum_handler:
-                    # Process ultimatum game
-                    updated_interaction = self._process_ultimatum_game(interaction)
+            interaction = self.interactions[interaction_id]
+            
+            # Process based on interaction type
+            if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
+                handler = self.interaction_handlers.get(EconomicInteractionType.ULTIMATUM)
+                if handler:
+                    updated_interaction = handler.process(interaction, self.agents)
                     self.interactions[interaction_id] = updated_interaction
-                
-                elif interaction.interaction_type == EconomicInteractionType.TRUST and self.trust_handler:
-                    # Process trust game
-                    updated_interaction = self._process_trust_game(interaction)
+                    
+                    # Check if the interaction is complete
+                    if updated_interaction.is_complete:
+                        # Move to completed interactions
+                        self.state.active_interactions.remove(interaction_id)
+                        self.state.completed_interactions.append(interaction_id)
+                        logger.debug(f"Completed interaction: {interaction_id}")
+            
+            elif interaction.interaction_type == EconomicInteractionType.TRUST:
+                handler = self.interaction_handlers.get(EconomicInteractionType.TRUST)
+                if handler:
+                    updated_interaction = handler.process(interaction, self.agents)
                     self.interactions[interaction_id] = updated_interaction
-                
-                # Check if interaction is complete
-                if interaction.is_complete:
-                    self.state.active_interactions.remove(interaction_id)
-                    self.state.completed_interactions.append(interaction_id)
-    
-    def _process_ultimatum_game(self, interaction: EconomicInteraction) -> EconomicInteraction:
-        """Process an Ultimatum Game interaction"""
-        # Identify proposer and responder
-        proposer_id = next((a_id for a_id, role in interaction.participants.items() 
-                          if role == InteractionRole.PROPOSER), None)
-        responder_id = next((a_id for a_id, role in interaction.participants.items() 
-                           if role == InteractionRole.RESPONDER), None)
-        
-        if proposer_id is None or responder_id is None:
-            interaction.is_complete = True
-            return interaction
-        
-        # Get agents
-        if proposer_id not in self.agents or responder_id not in self.agents:
-            interaction.is_complete = True
-            return interaction
-        
-        proposer = self.agents[proposer_id]
-        responder = self.agents[responder_id]
-        
-        # Get parameters
-        total_amount = interaction.parameters.get("total_amount", 10.0)
-        offer_amount = interaction.parameters.get("offer_amount", total_amount / 2)
-        currency = interaction.parameters.get("currency", ResourceType.CREDITS)
-        
-        # Determine responder's acceptance based on personality
-        # More fair-minded responders reject unfair offers
-        fairness = offer_amount / total_amount
-        acceptance_threshold = 1.0 - responder.personality.fairness_preference
-        responder_accepts = fairness >= acceptance_threshold
-        
-        # Execute the interaction
-        result = self.ultimatum_handler.execute(
-            proposer=proposer,
-            responder=responder,
-            total_amount=total_amount,
-            offer_amount=offer_amount,
-            responder_accepts=responder_accepts
-        )
-        
-        # Update the interaction
-        interaction.is_complete = True
-        interaction.end_time = self.state.current_date
-        interaction.outcomes = result.outcomes
-        
-        return interaction
-    
-    def _process_trust_game(self, interaction: EconomicInteraction) -> EconomicInteraction:
-        """Process a Trust Game interaction"""
-        # Identify investor and trustee
-        investor_id = next((a_id for a_id, role in interaction.participants.items() 
-                          if role == InteractionRole.INVESTOR), None)
-        trustee_id = next((a_id for a_id, role in interaction.participants.items() 
-                         if role == InteractionRole.TRUSTEE), None)
-        
-        if investor_id is None or trustee_id is None:
-            interaction.is_complete = True
-            return interaction
-        
-        # Get agents
-        if investor_id not in self.agents or trustee_id not in self.agents:
-            interaction.is_complete = True
-            return interaction
-        
-        investor = self.agents[investor_id]
-        trustee = self.agents[trustee_id]
-        
-        # Get parameters
-        investment_amount = interaction.parameters.get("investment_amount", 10.0)
-        multiplier = interaction.parameters.get("multiplier", 3.0)
-        
-        # Determine trustee's reciprocation based on personality
-        # More cooperative and fair trustees return more
-        trustee_reciprocation = (trustee.personality.cooperativeness + 
-                                trustee.personality.fairness_preference) / 2
-        return_amount = trustee_reciprocation * investment_amount * multiplier
-        
-        # Execute the interaction
-        result = self.trust_handler.execute(
-            investor=investor,
-            trustee=trustee,
-            investment_amount=investment_amount,
-            multiplier=multiplier,
-            return_amount=return_amount
-        )
-        
-        # Update the interaction
-        interaction.is_complete = True
-        interaction.end_time = self.state.current_date
-        interaction.outcomes = result.outcomes
-        
-        return interaction
+                    
+                    # Check if the interaction is complete
+                    if updated_interaction.is_complete:
+                        # Move to completed interactions
+                        self.state.active_interactions.remove(interaction_id)
+                        self.state.completed_interactions.append(interaction_id)
+                        logger.debug(f"Completed interaction: {interaction_id}")
+            
+            elif interaction.interaction_type == EconomicInteractionType.PUBLIC_GOODS:
+                handler = self.interaction_handlers.get(EconomicInteractionType.PUBLIC_GOODS)
+                if handler:
+                    updated_interaction = handler.process(interaction, self.agents)
+                    self.interactions[interaction_id] = updated_interaction
+                    
+                    # Check if the interaction is complete
+                    if updated_interaction.is_complete:
+                        # Move to completed interactions
+                        self.state.active_interactions.remove(interaction_id)
+                        self.state.completed_interactions.append(interaction_id)
+                        logger.debug(f"Completed interaction: {interaction_id}")
     
     def _generate_narrative(self):
-        """Generate narrative events from significant interactions"""
-        if self.narrator is None:
-            return
-        
-        # Get recent completed interactions
-        recent_interactions = [
-            self.interactions[i_id] for i_id in self.state.completed_interactions[-10:]
-            if i_id in self.interactions
-        ]
-        
-        # Generate events from significant interactions
-        for interaction in recent_interactions:
-            if interaction.narrative_significance > 0.2:  # Only for significant interactions
+        """Generate narrative events from interactions"""
+        # Check if any completed interactions need narrative events
+        for interaction_id in self.state.completed_interactions:
+            # Skip if we already have a narrative event for this interaction
+            if any(e.interaction_id == interaction_id for e in self.narrative_events.values()):
+                continue
+            
+            interaction = self.interactions[interaction_id]
+            
+            # Use the narrator to generate a narrative event
+            if self.narrator:
                 event = self.narrator.generate_event_from_interaction(
                     interaction=interaction,
-                    agents=[self.agents[a_id] for a_id in interaction.participants.keys() 
-                           if a_id in self.agents]
+                    agents=[self.agents[agent_id] for agent_id in interaction.participants.keys() 
+                            if agent_id in self.agents]
                 )
                 
-                if event:
-                    self.narrative_events[event.id] = event
-                    self.state.narrative_events.append(event.id)
+                # Store the event
+                self.narrative_events[event.id] = event
+                self.state.narrative_events.append(event.id)
+                logger.debug(f"Generated narrative event: {event.title}")
         
-        # Periodically generate daily summaries (simplified)
-        if (self.state.current_tick % 10) == 0:  # Every 10 ticks
-            # Generate a daily summary
-            day = self.state.current_tick // 1  # 1 tick = 1 day
-            recent_events = [
-                self.narrative_events[e_id] for e_id in self.state.narrative_events[-20:]
-                if e_id in self.narrative_events
-            ]
+        # Generate a daily summary if it's a new day
+        if self.state.current_tick % 1 == 0 and self.narrator:
+            # Get events for the day
+            day_events = [self.narrative_events[event_id] for event_id in self.state.narrative_events
+                        if event_id not in self.state.narrative_arcs]
             
-            self.narrator.generate_daily_summary(
-                day=day,
-                events=recent_events,
-                agents=list(self.agents.values())
+            # Generate a summary
+            summary = self.narrator.generate_daily_summary(
+                day=self.state.current_tick,
+                events=day_events,
+                agents=[self.agents[agent_id] for agent_id in self.state.active_agents]
             )
+            
+            # Create a narrative arc for the day
+            arc = NarrativeArc(
+                id=f"day_{self.state.current_tick}",
+                title=f"Day {self.state.current_tick} on Mars",
+                description=summary,
+                events=[event.id for event in day_events],
+                arc_type="daily_summary",
+                start_time=datetime.now(),
+                end_time=datetime.now()
+            )
+            
+            # Store the arc
+            self.narrative_arcs[arc.id] = arc
+            self.state.narrative_arcs.append(arc.id)
+            logger.debug(f"Generated daily summary: {arc.title}")
     
     def _update_economic_indicators(self):
-        """Update economic indicators for the simulation"""
-        # Calculate basic economic indicators
-        
-        # Total wealth
-        total_credits = sum(
-            r.amount for agent in self.agents.values() 
-            for r in agent.resources if r.resource_type == ResourceType.CREDITS
-        )
-        
-        # Wealth distribution (Gini-like measure)
-        if len(self.agents) > 1:
-            credits_per_agent = [
-                next((r.amount for r in agent.resources if r.resource_type == ResourceType.CREDITS), 0)
+        """Update economic indicators based on current state"""
+        # Calculate total resources by type
+        total_resources = {}
+        for resource_type in ResourceType:
+            total_resources[resource_type] = sum(
+                next((r.amount for r in agent.resources if r.resource_type == resource_type), 0)
                 for agent in self.agents.values()
-            ]
-            credits_per_agent.sort()
-            n = len(credits_per_agent)
-            inequality = sum(i * credits_per_agent[i] for i in range(n)) / (n * sum(credits_per_agent))
-        else:
-            inequality = 0
+                if agent.id in self.state.active_agents
+            )
         
-        # Interaction metrics
-        cooperation_rate = 0
-        if len(self.state.completed_interactions) > 0:
-            # Simplified cooperation metric
-            cooperation_rate = random.uniform(0.3, 0.7)  # Placeholder
+        # Calculate inequality (Gini coefficient) for credits
+        credits = [next((r.amount for r in agent.resources if r.resource_type == ResourceType.CREDITS), 0)
+                 for agent in self.agents.values() 
+                 if agent.id in self.state.active_agents]
+        inequality = self._calculate_gini(credits) if credits else 0
         
-        # Update indicators
+        # Calculate average resource holdings
+        avg_resources = {
+            resource_type: total / len(self.state.active_agents) if len(self.state.active_agents) > 0 else 0
+            for resource_type, total in total_resources.items()
+        }
+        
+        # Calculate interaction rates
+        interaction_rate = len(self.state.completed_interactions) / max(1, len(self.state.active_agents))
+        
+        # Store economic indicators
         self.state.economic_indicators = {
-            "total_credits": total_credits,
-            "wealth_inequality": inequality,
-            "population": self.state.population_size,
-            "cooperation_rate": cooperation_rate,
-            "active_interactions": len(self.state.active_interactions),
-            "completed_interactions": len(self.state.completed_interactions)
+            "total_resources": {k.value: v for k, v in total_resources.items()},
+            "avg_resources": {k.value: v for k, v in avg_resources.items()},
+            "inequality": inequality,
+            "interaction_rate": interaction_rate,
+            "population": len(self.state.active_agents)
         }
     
-    def _create_demo_interaction(self):
-        """Create a sample interaction to demonstrate narrative generation"""
-        # Only proceed if we have at least 2 agents
-        if len(self.state.active_agents) < 2:
-            return
-            
-        # Select two random agents
-        agent_ids = random.sample(self.state.active_agents, 2)
-        agent1 = self.agents[agent_ids[0]]
-        agent2 = self.agents[agent_ids[1]]
+    def _calculate_gini(self, values) -> float:
+        """Calculate the Gini coefficient as a measure of inequality"""
+        if not values or all(v == 0 for v in values):
+            return 0
         
-        # Create an ultimatum game interaction
+        # Sort values
+        sorted_values = sorted(values)
+        n = len(sorted_values)
+        
+        # Calculate Gini coefficient
+        cumsum = 0
+        for i, value in enumerate(sorted_values):
+            cumsum += value * (n - i - 0.5)
+        
+        return (2 * cumsum) / (n * sum(sorted_values)) - 1
+    
+    def _create_interaction(
+        self, 
+        initiator_id: str, 
+        responder_id: str,
+        interaction_type: EconomicInteractionType,
+        parameters: Dict[str, Any]
+    ) -> str:
+        """Create a new interaction between agents"""
+        # Determine appropriate roles based on interaction type
+        if interaction_type == EconomicInteractionType.ULTIMATUM:
+            initiator_role = InteractionRole.PROPOSER
+            responder_role = InteractionRole.RESPONDER
+        elif interaction_type == EconomicInteractionType.TRUST:
+            initiator_role = InteractionRole.INVESTOR
+            responder_role = InteractionRole.TRUSTEE
+        elif interaction_type == EconomicInteractionType.PUBLIC_GOODS:
+            initiator_role = InteractionRole.CONTRIBUTOR
+            responder_role = InteractionRole.CONTRIBUTOR
+        else:
+            initiator_role = InteractionRole.PARTICIPANT
+            responder_role = InteractionRole.PARTICIPANT
+        
+        # Create the interaction
         interaction = EconomicInteraction(
-            interaction_type=EconomicInteractionType.ULTIMATUM,
+            id=f"interaction_{len(self.interactions) + 1}",
+            interaction_type=interaction_type,
             participants={
-                agent1.id: InteractionRole.PROPOSER,
-                agent2.id: InteractionRole.RESPONDER
+                initiator_id: initiator_role,
+                responder_id: responder_role
             },
-            parameters={
-                "total_amount": 100.0,
-                "offer_amount": 30.0,
-                "responder_accepts": True,
-                "currency": "credits"
-            },
-            is_complete=True,
-            narrative_significance=0.8
+            parameters=parameters,
+            start_time=datetime.now(),
+            end_time=None,
+            is_complete=False,
+            narrative_significance=random.uniform(0.1, 1.0)
         )
         
-        # Add to simulation
+        # Store the interaction
         self.interactions[interaction.id] = interaction
-        self.state.completed_interactions.append(interaction.id)
+        self.state.active_interactions.append(interaction.id)
         
-        logger.info(f"Created demo interaction between {agent1.name} and {agent2.name}")
+        logger.debug(f"Created interaction: {interaction.id} ({interaction.interaction_type.value})")
+        return interaction.id
+    
+    def _create_demo_interaction(self):
+        """Create a demo interaction to ensure there's at least one for testing"""
+        if len(self.state.active_agents) < 2:
+            return
+        
+        # Choose two random agents
+        agents = random.sample(self.state.active_agents, 2)
+        
+        # Choose a random interaction type
+        interaction_type = random.choice(list(self.interaction_handlers.keys()))
+        
+        # Create parameters based on interaction type
+        if interaction_type == EconomicInteractionType.ULTIMATUM:
+            parameters = {
+                "offer_amount": 40,
+                "total_amount": 100,
+                "responder_accepts": random.choice([True, False])
+            }
+        elif interaction_type == EconomicInteractionType.TRUST:
+            parameters = {
+                "investment": 50,
+                "multiplier": 3,
+                "returned": random.randint(0, 150)
+            }
+        elif interaction_type == EconomicInteractionType.PUBLIC_GOODS:
+            participants = {agent_id: random.randint(10, 50) for agent_id in random.sample(self.state.active_agents, min(4, len(self.state.active_agents)))}
+            total = sum(participants.values())
+            multiplier = 2
+            total_return = total * multiplier
+            per_agent = total_return / len(participants)
+            parameters = {
+                "contributions": participants,
+                "total_contribution": total,
+                "multiplier": multiplier,
+                "total_return": total_return,
+                "individual_returns": {agent_id: per_agent for agent_id in participants}
+            }
+        else:
+            parameters = {}
+        
+        # Create the interaction
+        interaction_id = self._create_interaction(
+            initiator_id=agents[0],
+            responder_id=agents[1],
+            interaction_type=interaction_type,
+            parameters=parameters
+        )
+        
+        # Mark the interaction as complete for narrative generation
+        interaction = self.interactions[interaction_id]
+        interaction.is_complete = True
+        interaction.end_time = datetime.now()
+        
+        # Move to completed interactions
+        self.state.active_interactions.remove(interaction_id)
+        self.state.completed_interactions.append(interaction_id)
+        
+        logger.debug(f"Created and completed demo interaction: {interaction_id}")

@@ -4,7 +4,6 @@ This module handles the integration with language models for agent decision maki
 """
 import json
 import logging
-import random
 import time
 from typing import Dict, Optional
 
@@ -28,8 +27,7 @@ class LLMAgent:
     
     def __init__(
         self, 
-        model_name: str = "gemma3:1b", 
-        mock: bool = False,
+        model_name: str = "gemma3:1b",
         temperature: float = 0.7,
         top_p: float = 0.9,
         top_k: int = 40,
@@ -42,7 +40,6 @@ class LLMAgent:
         
         Args:
             model_name: Name of the Ollama model to use
-            mock: Whether to mock LLM responses
             temperature: Controls randomness in generation
             top_p: Nucleus sampling probability threshold
             top_k: Number of highest probability tokens to consider
@@ -51,7 +48,6 @@ class LLMAgent:
             timeout: Request timeout in seconds
         """
         self.model_name = model_name
-        self.mock = mock
         self.temperature = temperature
         self.top_p = top_p
         self.top_k = top_k
@@ -60,23 +56,17 @@ class LLMAgent:
         self.timeout = timeout
         
         # Create the OllamaClient for structured output generation
-        if not self.mock:
-            try:
-                # Use the OllamaClient that handles all the patching
-                self.ollama_client = OllamaClient(
-                    base_url="http://localhost:11434",
-                    model_name=model_name,
-                    temperature=temperature,
-                    top_p=top_p,
-                    top_k=top_k,
-                    max_tokens=max_tokens,
-                    max_retries=max_retries,
-                    timeout=timeout
-                )
-                logger.info(f"Successfully initialized LLMAgent with model {model_name}")
-            except Exception as e:
-                logger.warning(f"Failed to connect to Ollama: {e}. Falling back to mock mode.")
-                self.mock = True
+        self.ollama_client = OllamaClient(
+            base_url="http://localhost:11434",
+            model_name=model_name,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            max_tokens=max_tokens,
+            max_retries=max_retries,
+            timeout=timeout
+        )
+        logger.info(f"Successfully initialized LLMAgent with model {model_name}")
     
     def generate_action(self, agent: Agent, context: AgentDecisionContext) -> AgentAction:
         """
@@ -98,21 +88,12 @@ class LLMAgent:
         )
         
         try:
-            # Get structured response
-            if self.mock:
-                action_response = self._mock_agent_action(agent, context)
-            else:
-                try:
-                    action_response = self.ollama_client.generate_structured_output(
-                        prompt=prompt,
-                        response_model=AgentActionResponse,
-                        system_prompt=system_prompt
-                    )
-                except Exception as e:
-                    logger.error(f"Error generating action with OllamaClient: {e}")
-                    # Fall back to mock response if LLM fails
-                    logger.warning("Falling back to mock agent action generation")
-                    action_response = self._mock_agent_action(agent, context)
+            # Get structured response using Ollama
+            action_response = self.ollama_client.generate_structured_output(
+                prompt=prompt,
+                response_model=AgentActionResponse,
+                system_prompt=system_prompt
+            )
             
             # Convert the structured response to an AgentAction
             action_type_str = action_response.type
@@ -153,79 +134,6 @@ class LLMAgent:
                 extra={"reason": "Error in LLM processing, defaulting to REST"}
             )
     
-    def _mock_agent_action(self, agent: Agent, context: AgentDecisionContext) -> AgentActionResponse:
-        """
-        Generate a mock agent action for testing or fallback.
-        
-        Args:
-            agent: The agent to generate a response for
-            context: Decision context for the agent
-            
-        Returns:
-            AgentActionResponse: A structured mock response
-        """
-        # For mocking, we'll generate a response based on personality and context
-        action_type = random.choice(list(ActionType))
-        
-        # Bias toward certain actions based on personality
-        if hasattr(agent, 'personality') and agent.personality:
-            if agent.personality.cooperativeness > 0.7:
-                # Cooperative agents more likely to OFFER or ACCEPT
-                action_type = random.choice([ActionType.OFFER, ActionType.ACCEPT, ActionType.WORK])
-            elif agent.personality.risk_tolerance > 0.7:
-                # Risk-tolerant agents more likely to BUY or SEARCH_JOB
-                action_type = random.choice([ActionType.BUY, ActionType.SEARCH_JOB])
-            elif agent.personality.fairness_preference > 0.7:
-                # Fair agents more likely to NEGOTIATE
-                action_type = random.choice([ActionType.NEGOTIATE, ActionType.OFFER])
-        
-        # Generate extra data for action
-        extra = {}
-        if action_type == ActionType.OFFER:
-            extra = {
-                "what": "10 credits",
-                "against_what": "5 digital_goods",
-                "to_agent_id": random.choice(context.neighbors) if context.neighbors else None
-            }
-        elif action_type == ActionType.NEGOTIATE:
-            if context.pending_offers:
-                extra = {
-                    "offer_id": context.pending_offers[0]["id"],
-                    "message": "I would like to counter with a better offer."
-                }
-            else:
-                action_type = ActionType.REST  # Default if no offers
-        elif action_type == ActionType.ACCEPT or action_type == ActionType.REJECT:
-            if context.pending_offers:
-                extra = {
-                    "offer_id": context.pending_offers[0]["id"]
-                }
-            else:
-                action_type = ActionType.REST  # Default if no offers
-        elif action_type == ActionType.WORK:
-            if context.jobs_available:
-                extra = {
-                    "job_id": context.jobs_available[0]["id"]
-                }
-            else:
-                action_type = ActionType.SEARCH_JOB
-        elif action_type == ActionType.BUY:
-            if context.items_for_sale:
-                extra = {
-                    "desired_item": context.items_for_sale[0]["id"]
-                }
-            else:
-                action_type = ActionType.REST
-        
-        # Generate a mock reasoning
-        reasoning = f"Mock reasoning for choosing {action_type.value} based on agent personality."
-        
-        return AgentActionResponse(
-            type=action_type.value,
-            extra=extra,
-            reasoning=reasoning
-        )
-    
     def _fill_action_details(self, action: AgentAction) -> None:
         """
         Fill in the action-specific details based on the action type.
@@ -265,103 +173,129 @@ class LLMAgent:
 
 def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
     """
-    Format a prompt for the LLM based on the agent and context.
+    Format the prompt for agent decision making.
     
     Args:
-        agent: The agent to generate a prompt for
-        context: Decision context for the agent
+        agent: The agent making the decision
+        context: The decision context
         
     Returns:
-        str: The formatted prompt
+        str: Formatted prompt for the LLM
     """
-    # Format the agent resources
-    resources_str = ", ".join([f"{k}: {v}" for k, v in context.resources.items()])
+    # Format basic agent information
+    prompt = (
+        f"You are an agent in a simulated economy on Mars in the year 2993.\n\n"
+        f"### YOUR PROFILE\n"
+        f"- Name: {agent.name}\n"
+        f"- Age: {agent.age} years\n"
+        f"- Type: {agent.agent_type.value}\n"
+        f"- Faction: {agent.faction.value if agent.faction else 'None'}\n"
+    )
     
-    # Format the agent needs
-    needs_str = ", ".join([f"{k}: {v}" for k, v in context.needs.items()])
+    # Add personality traits if available
+    if hasattr(agent, 'personality') and agent.personality:
+        prompt += "- Personality traits:\n"
+        for trait_name in [
+            'cooperativeness', 'risk_tolerance', 'fairness_preference', 
+            'altruism', 'rationality', 'long_term_orientation'
+        ]:
+            trait_value = getattr(agent.personality, trait_name, None)
+            if trait_value is not None:
+                prompt += f"  - {trait_name}: {trait_value:.2f}\n"
     
-    # Format neighbors
-    neighbors_str = ", ".join(context.neighbors) if context.neighbors else "none"
+    # Add resource information
+    prompt += "\n### YOUR RESOURCES\n"
+    if hasattr(agent, 'resources') and agent.resources:
+        for resource_type, amount in agent.resources.balances.items():
+            prompt += f"- {resource_type}: {amount}\n"
+    else:
+        prompt += "- No resources\n"
     
-    # Format pending offers
-    pending_offers_str = ""
-    for offer in context.pending_offers:
-        pending_offers_str += f"  - Offer {offer['id']} from {offer['from']}: {offer['what']} for {offer['for']}\n"
+    # Add job information
+    prompt += f"\n- Current job: {agent.job if hasattr(agent, 'job') and agent.job else 'None'}\n"
     
-    if not pending_offers_str:
-        pending_offers_str = "  none\n"
+    # Add needs information (rest, hunger, etc.)
+    prompt += "\n### YOUR NEEDS\n"
+    if hasattr(agent, 'needs'):
+        for need_name, need_value in agent.needs.items():
+            prompt += f"- {need_name}: {need_value}/100\n"
+    else:
+        prompt += "- Energy: 80/100\n- Hunger: 70/100\n"
     
-    # Format jobs
-    jobs_str = ""
-    for job in context.jobs_available:
-        jobs_str += f"  - Job {job['id']}: {job['type']} for {job['pay']} (difficulty: {job['difficulty']})\n"
+    # Add social context
+    prompt += "\n### SOCIAL CONTEXT\n"
+    if context.neighbors:
+        prompt += f"- Your neighbors: {', '.join(neighbor for neighbor in context.neighbors)}\n"
+    else:
+        prompt += "- You have no neighbors nearby\n"
     
-    if not jobs_str:
-        jobs_str = "  none\n"
+    # Add pending offers
+    if context.pending_offers:
+        prompt += "\n### PENDING OFFERS\n"
+        for i, offer in enumerate(context.pending_offers):
+            prompt += (
+                f"- Offer {i+1} (ID: {offer['id']}):\n"
+                f"  - From: {offer['from_agent']}\n"
+                f"  - What: {offer['what']}\n"
+                f"  - Against what: {offer['against_what']}\n"
+                f"  - Status: {offer['status']}\n"
+            )
     
-    # Format items for sale
-    items_str = ""
-    for item in context.items_for_sale:
-        items_str += f"  - Item {item['id']}: {item['type']} for {item['price']} (quality: {item['quality']})\n"
+    # Add available jobs
+    if context.jobs_available:
+        prompt += "\n### AVAILABLE JOBS\n"
+        for i, job in enumerate(context.jobs_available):
+            prompt += (
+                f"- Job {i+1} (ID: {job['id']}):\n"
+                f"  - Title: {job['title']}\n"
+                f"  - Salary: {job['salary']}\n"
+                f"  - Duration: {job['duration']}\n"
+            )
     
-    if not items_str:
-        items_str = "  none\n"
+    # Add items for sale
+    if context.items_for_sale:
+        prompt += "\n### ITEMS FOR SALE\n"
+        for i, item in enumerate(context.items_for_sale):
+            prompt += (
+                f"- Item {i+1} (ID: {item['id']}):\n"
+                f"  - Name: {item['name']}\n"
+                f"  - Price: {item['price']}\n"
+                f"  - Seller: {item['seller']}\n"
+            )
     
-    # Format recent interactions
-    interactions_str = ""
-    for interaction in context.recent_interactions:
-        interactions_str += f"  - Turn {interaction['turn']}: {interaction['type']} with {interaction['with']} ({interaction['outcome']})\n"
+    # Add turn information
+    prompt += f"\n### TURN INFORMATION\n"
+    prompt += f"- Current turn: {context.turn}/{context.max_turns}\n"
     
-    if not interactions_str:
-        interactions_str = "  none\n"
+    # Add available actions
+    prompt += (
+        f"\n### AVAILABLE ACTIONS\n"
+        f"- REST: recover energy\n"
+        f"- OFFER(what:str, against_what:str, to_agent_id:str): make an offer to another agent\n"
+        f"- NEGOTIATE(offer_id:str, message:str): negotiate an offer\n"
+        f"- ACCEPT(offer_id:str): accept an offer\n"
+        f"- REJECT(offer_id:str): reject an offer\n"
+        f"- SEARCH_JOB(): look for a job\n"
+        f"- WORK(job_id:str): work at a job\n"
+        f"- BUY(desired_item:str): buy an item\n"
+    )
     
-    # Format the available actions
-    actions_str = ", ".join([action_type.value for action_type in ActionType])
+    # Add request for action
+    prompt += (
+        f"\n### TASK\n"
+        f"Based on your profile, resources, needs, and available actions, decide what to do next.\n"
+        f"Think step by step about what would be the most beneficial course of action considering your personality traits and current situation.\n"
+        f"Return your choice in this format:\n\n"
+        f"Reasoning: <briefly explain your reasoning>\nCHOICE: {{'type': '<ACTION_TYPE>', 'extra': {{<additional parameters needed for the action>}}}}\n"
+    )
     
-    # Construct prompt (optimized for all models)
-    prompt = f"""
-You are an agent in a simulated cyberpunk Mars economy in the year 2993. You need to choose an action based on your personality and context.
-
-Your details:
-- Name: {agent.name}
-- Resources: {resources_str}
-- Needs: {needs_str}
-- Turn: {context.turn}/{context.max_turns}
-
-Social context:
-- Neighbors: {neighbors_str}
-- Pending offers:
-{pending_offers_str}
-- Available jobs:
-{jobs_str}
-- Items for sale:
-{items_str}
-- Recent interactions:
-{interactions_str}
-
-Personality traits:
-- Cooperativeness: {agent.personality.cooperativeness:.2f} (higher values mean more willing to cooperate)
-- Risk tolerance: {agent.personality.risk_tolerance:.2f} (higher values mean more willing to take risks)
-- Fairness preference: {agent.personality.fairness_preference:.2f} (higher values mean more concerned with fairness)
-- Altruism: {agent.personality.altruism:.2f} (higher values mean more selfless)
-- Rationality: {agent.personality.rationality:.2f} (higher values mean more logical decision-making)
-- Long-term orientation: {agent.personality.long_term_orientation:.2f} (higher values mean more focus on long-term outcomes)
-
-Your possible actions are: {actions_str}
-
-Based on your personality, resources, and social context, what will you do?
-Think through your options carefully, then choose the most appropriate action with necessary details.
-
-Examples:
-- REST: When you need to recover or there are no good options
-- OFFER: When you want to initiate a trade with another agent (requires what, against_what, and to_agent_id)
-- NEGOTIATE: When you want to counter an existing offer (requires offer_id and optionally a message)
-- ACCEPT/REJECT: When responding to an offer (requires offer_id)
-- WORK: When taking a job (requires job_id)
-- BUY: When purchasing an item (requires desired_item)
-- SEARCH_JOB: When looking for new job opportunities
-
-Response must be a JSON object with 'type', 'extra', and 'reasoning' fields.
-"""
+    # Add examples
+    prompt += (
+        f"\n### EXAMPLES\n"
+        f"Example 1:\nReasoning: I'm low on energy and need to recover.\nCHOICE: {{'type': 'REST', 'extra': {{'reason': 'need to recover energy'}}}}\n\n"
+        f"Example 2:\nReasoning: I want to make a trade with agent12.\nCHOICE: {{'type': 'OFFER', 'extra': {{'what': '10 credits', 'against_what': '5 food', 'to_agent_id': 'agent12'}}}}\n\n"
+        f"Example 3:\nReasoning: I need money so I'll look for a job.\nCHOICE: {{'type': 'SEARCH_JOB', 'extra': {{'reason': 'need income'}}}}\n\n"
+        f"Example 4:\nReasoning: The offer from agent5 seems fair.\nCHOICE: {{'type': 'ACCEPT', 'extra': {{'offer_id': 'offer123'}}}}\n"
+    )
     
     return prompt

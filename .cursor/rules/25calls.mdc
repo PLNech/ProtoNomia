@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Optimizing your 25 Tool Use Limit as Agent 
+Warning: we pause you every 25 tool calls.
+Each search, read file, edit file, run command, counts as one call.
+You will be interrupted before the 26th call.
+MAKE THEM COUNT: think broader in your output to be more efficient in your tool use.

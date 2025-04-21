@@ -48,8 +48,7 @@ class TestLLMNarratorIntegration:
         simulation = Simulation(
             config=config,
             use_llm=True,
-            mock_llm=True,
-            model_name="gemma:4b",
+            model_name="gemma3:1b",
             narrator_model_name="gemma3:1b"
         )
         
@@ -145,7 +144,7 @@ class TestLLMNarratorIntegration:
 
         # Create a narrator with mock mode
         from narrative.llm_narrator import LLMNarrator
-        narrator = LLMNarrator(verbosity=4, mock_llm=True)
+        narrator = LLMNarrator(verbosity=4)
         
         # Customize mock response for this specific test
         original_mock_generate = narrator._mock_generate

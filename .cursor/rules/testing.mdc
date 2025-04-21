@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Test-Driven Development: Always write tests first, and test your changes
+- We run under venv `source ~/.virtualenvs/protonomia/bin/activate` that requires qualified imports from root e.g. `from models.agents import X`
+- You must test simple changes with `pytest tests/your/new/test/file.py` to validate your own changes easily.
+- You should test each bigger unit of work against the whole testsuite: `pytest tests/`
+- You can test that the simulation runs, and communicates well with the LLM, using `./`

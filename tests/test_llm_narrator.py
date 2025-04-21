@@ -94,7 +94,7 @@ class TestLLMNarrator:
     
     def test_create_llm_narrator(self):
         """Test that an LLM narrator can be created with mock mode"""
-        narrator = LLMNarrator(mock_llm=True)
+        narrator = LLMNarrator()
         assert narrator.verbosity == 3
         assert narrator.model_name == "gemma3:1b"
         assert narrator.mock_llm == True

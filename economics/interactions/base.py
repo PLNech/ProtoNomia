@@ -3,7 +3,7 @@ from typing import Dict, List, Any, Optional
 from abc import ABC, abstractmethod
 import logging
 
-from ...models.base import (
+from models.base import (
     Agent, EconomicInteraction, EconomicInteractionType, InteractionRole,
     InteractionOutcome, InteractionStrategy, ResourceBalance, ResourceType
 )
@@ -61,6 +61,10 @@ class InteractionHandler(ABC):
         Returns:
             The amount of the resource, or 0 if not found
         """
+        if hasattr(agent, 'resources') and hasattr(agent.resources, 'balances'):
+            return agent.resources.balances.get(resource_type, 0.0)
+        
+        # Legacy support for old Agent model
         for resource in agent.resources:
             if resource.resource_type == resource_type:
                 return resource.amount
@@ -82,6 +86,19 @@ class InteractionHandler(ABC):
         Returns:
             True if the update was successful, False if insufficient resources
         """
+        # Check if agent uses the new ResourceBalance model
+        if hasattr(agent, 'resources') and hasattr(agent.resources, 'balances'):
+            current_amount = agent.resources.balances.get(resource_type, 0.0)
+            
+            # Check if we have enough resources to subtract
+            if amount_change < 0 and current_amount + amount_change < 0:
+                return False
+            
+            # Update the resource
+            agent.resources.balances[resource_type] = current_amount + amount_change
+            return True
+        
+        # Legacy support for old Agent model
         # Find the resource
         resource = None
         for r in agent.resources:
@@ -187,3 +204,34 @@ class InteractionHandler(ABC):
             final_significance += factor * remaining_gap
         
         return min(1.0, final_significance)
+    
+    def process(self, interaction: EconomicInteraction, agents: Dict[str, Agent]) -> EconomicInteraction:
+        """Process an interaction, updating it and potentially affected agents
+        
+        Args:
+            interaction: The interaction to process
+            agents: Dictionary of agents keyed by agent ID
+            
+        Returns:
+            Updated interaction
+        """
+        if not interaction.is_complete:
+            # Progress the interaction
+            updated_interaction = self.progress_interaction(interaction)
+            
+            # If the interaction is now complete, apply outcomes
+            if updated_interaction.is_complete:
+                updated_interaction = self.complete_interaction(updated_interaction)
+                
+                # Apply outcomes to agents
+                if hasattr(updated_interaction, 'outcomes') and updated_interaction.outcomes:
+                    for outcome in updated_interaction.outcomes:
+                        if outcome.agent_id in agents:
+                            agent = agents[outcome.agent_id]
+                            # Update resources
+                            for resource_type, amount in outcome.resource_changes.items():
+                                self.update_agent_resources(agent, resource_type, amount)
+            
+            return updated_interaction
+            
+        return interaction
