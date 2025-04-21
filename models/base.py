@@ -152,6 +152,7 @@ class Agent(BaseModel):
 
     def __hash__(self):
         return hash(self.id)
+
 # ========== Economic Interaction Models ==========
 
 class EconomicInteractionType(str, Enum):
@@ -200,7 +201,7 @@ class InteractionStrategy(BaseModel):
 class InteractionOutcome(BaseModel):
     """Result of an interaction for a specific agent"""
     interaction_id: str
-    agent_id: str
+    agent: Agent  # Direct reference to the agent instead of just ID
     role: InteractionRole
     resources_before: List[ResourceBalance]
     resources_after: List[ResourceBalance]
@@ -211,13 +212,16 @@ class EconomicInteraction(BaseModel):
     """Economic interaction between agents"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     interaction_type: EconomicInteractionType
-    participants: Dict[str, InteractionRole]  # Agent ID -> Role
+    participants: Dict[Agent, InteractionRole]  # Full Agent object -> Role mapping
     start_time: datetime = Field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
     is_complete: bool = False
     parameters: Dict[str, Any] = Field(default_factory=dict)  # Interaction-specific parameters
     outcomes: List[InteractionOutcome] = Field(default_factory=list)
     narrative_significance: float = 0.0  # How important is this for storytelling
+    
+    class Config:
+        arbitrary_types_allowed = True  # Allow non-serializable types like direct Agent references
 
 # ========== Narrative Models ==========
 

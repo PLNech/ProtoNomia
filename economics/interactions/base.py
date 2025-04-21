@@ -48,6 +48,9 @@ class InteractionHandler(ABC):
             
         Returns:
             The completed interaction with outcomes
+        
+        Implementation MUST update the agent resources directly based on the
+        calculated outcomes. Don't just calculate the outcomes - apply them!
         """
         pass
     
@@ -66,158 +69,110 @@ class InteractionHandler(ABC):
                 return resource.amount
         return 0.0
     
-    def update_agent_resources(
-        self, 
-        agent: Agent, 
-        resource_type: ResourceType, 
-        amount_change: float
-    ) -> bool:
-        """Update an agent's resource balance
+    def update_agent_resource(self, agent: Agent, resource_type: ResourceType, change: float) -> bool:
+        """Update an agent's resource of the given type by the specified amount.
         
         Args:
-            agent: The agent to update
+            agent: The agent whose resources to update
             resource_type: The type of resource to update
-            amount_change: The amount to add (positive) or subtract (negative)
+            change: The amount to add (positive) or subtract (negative)
             
         Returns:
             True if the update was successful, False if insufficient resources
         """
-        if agent.resources:
-                
-            # Legacy support for old Agent model
-            # Find the resource
-            resource = None
-            for r in agent.resources:
-                if r.resource_type == resource_type:
-                    resource = r
-                    break
-            
-            # If resource doesn't exist and we're adding, create it
-            if resource is None and amount_change > 0:
-                new_resource = ResourceBalance(
-                    resource_type=resource_type,
-                    amount=amount_change,
-                    last_updated=datetime.now()
-                )
-                agent.resources.append(new_resource)
-                return True
-            
-            # If resource doesn't exist and we're subtracting, fail
-            if resource is None and amount_change < 0:
-                return False
-            
-            # Check if we have enough resources to subtract
-            if amount_change < 0 and resource.amount + amount_change < 0:
-                return False
-            
-            # Update the resource
-            resource.amount += amount_change
-            resource.last_updated = datetime.now()
+        # Find the resource
+        resource = None
+        for r in agent.resources:
+            if r.resource_type == resource_type:
+                resource = r
+                break
+        
+        # If resource doesn't exist and we're adding, create it
+        if resource is None and change > 0:
+            agent.resources.append(ResourceBalance(
+                resource_type=resource_type,
+                amount=change,
+                last_updated=datetime.now()
+            ))
             return True
+        
+        # If resource doesn't exist and we're subtracting, fail
+        if resource is None and change < 0:
+            logger.warning(f"Cannot subtract {-change} of {resource_type} from {agent.name} - no such resource")
+            return False
+        
+        # Check if we have enough resources to subtract
+        if change < 0 and resource.amount + change < 0:
+            logger.warning(f"Cannot subtract {-change} of {resource_type} from {agent.name} - insufficient balance ({resource.amount})")
+            return False
+        
+        # Update the resource
+        resource.amount += change
+        resource.last_updated = datetime.now()
+        logger.debug(f"Updated {agent.name}'s {resource_type} by {change}, new balance: {resource.amount}")
+        return True
     
-    def calculate_narrative_significance(
-        self, 
-        interaction: EconomicInteraction, 
-        outcomes: List[InteractionOutcome]
-    ) -> float:
+    def get_resource_state(self, agent: Agent) -> List[ResourceBalance]:
+        """Get a copy of the agent's current resources
+        
+        Useful for recording the state before an interaction
+        
+        Args:
+            agent: The agent whose resources to copy
+            
+        Returns:
+            A list of ResourceBalance objects
+        """
+        return [
+            ResourceBalance(
+                resource_type=resource.resource_type,
+                amount=resource.amount,
+                last_updated=resource.last_updated
+            )
+            for resource in agent.resources
+        ]
+    
+    def apply_outcomes(self, interaction: EconomicInteraction) -> None:
+        """Apply the outcomes of an interaction to the involved agents
+        
+        This updates the agents' resources based on the outcomes calculated
+        in the complete_interaction method.
+        
+        Args:
+            interaction: The completed interaction with outcomes
+        """
+        if not interaction.is_complete or not interaction.outcomes:
+            logger.warning("Cannot apply outcomes - interaction is not complete or has no outcomes")
+            return
+        
+        for outcome in interaction.outcomes:
+            agent = outcome.agent
+            
+            # Get the resource changes by comparing before and after
+            for resource_after in outcome.resources_after:
+                resource_type = resource_after.resource_type
+                amount_after = resource_after.amount
+                
+                # Find the corresponding "before" resource
+                amount_before = 0
+                for resource_before in outcome.resources_before:
+                    if resource_before.resource_type == resource_type:
+                        amount_before = resource_before.amount
+                        break
+                
+                # Calculate and apply the change
+                change = amount_after - amount_before
+                if change != 0:
+                    self.update_agent_resource(agent, resource_type, change)
+    
+    def calculate_narrative_significance(self, interaction: EconomicInteraction) -> float:
         """Calculate the narrative significance of an interaction based on outcomes
         
         Args:
             interaction: The interaction to evaluate
-            outcomes: The outcomes of the interaction
             
         Returns:
             Narrative significance score (0.0-1.0)
         """
-        # Base significance based on interaction type
-        base_significance = {
-            EconomicInteractionType.ULTIMATUM: 0.4,
-            EconomicInteractionType.DICTATOR: 0.3,
-            EconomicInteractionType.PUBLIC_GOODS: 0.5,
-            EconomicInteractionType.TRUST: 0.6,
-            EconomicInteractionType.COURNOT: 0.3,
-            EconomicInteractionType.BERTRAND: 0.3,
-            EconomicInteractionType.DOUBLE_AUCTION: 0.4,
-            EconomicInteractionType.OLIGOPOLY: 0.5,
-            EconomicInteractionType.RENT_SEEKING: 0.5,
-            EconomicInteractionType.MATCHING: 0.3,
-            EconomicInteractionType.PRINCIPAL_AGENT: 0.5,
-            EconomicInteractionType.COORDINATION: 0.4,
-            EconomicInteractionType.SIGNALING: 0.5,
-            EconomicInteractionType.BEAUTY_CONTEST: 0.4,
-            EconomicInteractionType.COMMON_POOL: 0.6,
-            EconomicInteractionType.AGENT_BASED_MACRO: 0.3,
-            EconomicInteractionType.EVOLUTIONARY: 0.4,
-            EconomicInteractionType.INSTITUTIONAL: 0.5,
-            EconomicInteractionType.NETWORK_FORMATION: 0.4,
-            EconomicInteractionType.SABOTAGE: 0.7
-        }.get(interaction.interaction_type, 0.5)
-        
-        # Adjust based on outcomes
-        significance_factors = []
-        
-        # Look for large utility changes
-        for outcome in outcomes:
-            abs_utility_change = abs(outcome.utility_change)
-            if abs_utility_change > 100:
-                significance_factors.append(0.3)  # Very significant utility change
-            elif abs_utility_change > 50:
-                significance_factors.append(0.2)  # Significant utility change
-            elif abs_utility_change > 20:
-                significance_factors.append(0.1)  # Moderate utility change
-        
-        # Look for interesting strategy patterns
-        strategy_types = [outcome.strategy_used.strategy_type for outcome in outcomes if outcome.strategy_used]
-        
-        # Conflicting strategies are interesting
-        if "cooperator" in strategy_types and "free_rider" in strategy_types:
-            significance_factors.append(0.2)
-        
-        if "trustworthy" in strategy_types and "untrustworthy" in strategy_types:
-            significance_factors.append(0.25)
-        
-        # Extreme strategies are interesting
-        extreme_strategies = ["high_trust", "always_defect", "fair_split", "selfish"]
-        for strategy in extreme_strategies:
-            if strategy in strategy_types:
-                significance_factors.append(0.15)
-        
-        # Calculate final significance
-        final_significance = base_significance
-        for factor in significance_factors:
-            # Add each factor, but with diminishing returns
-            remaining_gap = 1.0 - final_significance
-            final_significance += factor * remaining_gap
-        
-        return min(1.0, final_significance)
-    
-    def process(self, interaction: EconomicInteraction, agents: Dict[str, Agent]) -> EconomicInteraction:
-        """Process an interaction, updating it and potentially affected agents
-        
-        Args:
-            interaction: The interaction to process
-            agents: Dictionary of agents keyed by agent ID
-            
-        Returns:
-            Updated interaction
-        """
-        if not interaction.is_complete:
-            # Progress the interaction
-            updated_interaction = self.progress_interaction(interaction)
-            
-            # If the interaction is now complete, apply outcomes
-            if updated_interaction.is_complete:
-                updated_interaction = self.complete_interaction(updated_interaction)
-                
-                # Apply outcomes to agents
-                if hasattr(updated_interaction, 'outcomes') and updated_interaction.outcomes:
-                    for outcome in updated_interaction.outcomes:
-                        if outcome.agent_id in agents:
-                            agent = agents[outcome.agent_id]
-                            # Update resources
-                            for resource_type, amount in outcome.resource_changes.items():
-                                self.update_agent_resources(agent, resource_type, amount)
-            
-            return updated_interaction
-            
-        return interaction
+        # Override in subclasses for interaction-specific significance calculation
+        return 0.5  # Default medium significance

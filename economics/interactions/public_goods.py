@@ -51,7 +51,7 @@ class PublicGoodsGameHandler(InteractionHandler):
         # Create participant dictionary
         participant_dict = {}
         for agent in participants:
-            participant_dict[agent.id] = InteractionRole.CONTRIBUTOR
+            participant_dict[agent] = InteractionRole.CONTRIBUTOR
         
         # Create the interaction
         interaction = EconomicInteraction(
@@ -103,10 +103,10 @@ class PublicGoodsGameHandler(InteractionHandler):
         endowment = params.get("endowment")
 
         contributions = {}
-        for agent_id in interaction.participants.keys():
+        for agent in interaction.participants.keys():
             # Simulate contribution decision based on personality
-            contribution = self._calculate_contribution(agent_id, endowment)
-            contributions[agent_id] = contribution
+            contribution = self._calculate_contribution(agent, endowment)
+            contributions[agent] = contribution
 
         params["contributions"] = contributions
         params["stage"] = "completed"
@@ -118,15 +118,15 @@ class PublicGoodsGameHandler(InteractionHandler):
 
         return interaction
     
-    def _calculate_contribution(self, agent_id: str, endowment: float) -> float:
+    def _calculate_contribution(self, agent: Agent, endowment: float) -> float:
         """Calculate how much an agent contributes
         
         In a full implementation, this would use agent personality and past behavior
         For MVP, we use a simple random distribution
         
         Args:
-            agent_id: The ID of the agent
-            endowment: The maximum amount the agent can contribute
+            agent: The agent making the contribution
+            endowment: The amount available to contribute
             
         Returns:
             The contribution amount
@@ -159,71 +159,67 @@ class PublicGoodsGameHandler(InteractionHandler):
     def complete_interaction(self, interaction: EconomicInteraction) -> EconomicInteraction:
         """Complete the interaction and calculate outcomes
         
+        This updates agents' resources and records outcomes.
+        
         Args:
             interaction: The interaction to complete
             
         Returns:
-            The completed interaction with outcomes
+            The completed interaction
         """
-        # Extract parameters
-        params = interaction.parameters
-        endowment = params.get("endowment")
-        multiplier = params.get("multiplier")
-        resource_type = params.get("resource_type")
-        contributions = params.get("contributions", {})
+        # Extract relevant parameters
+        endowment = interaction.parameters.get("endowment")
+        multiplier = interaction.parameters.get("multiplier")
+        contributions = interaction.parameters.get("contributions", {})
+        resource_type = interaction.parameters.get("resource_type", ResourceType.CREDITS)
         
-        # Calculate the pool and individual returns
-        total_pool = sum(contributions.values())
-        multiplied_pool = total_pool * multiplier
+        # Calculate the total contribution and return
+        total_contribution = sum(contributions.values())
+        total_return = total_contribution * multiplier
+        per_agent_return = total_return / len(interaction.participants) if interaction.participants else 0
         
-        # Every participant gets an equal share of the multiplied pool
-        num_participants = len(interaction.participants)
-        individual_return = multiplied_pool / num_participants if num_participants > 0 else 0
-        
-        # Calculate outcomes for each participant
+        # Process outcomes for each agent
         outcomes = []
-        
-        for agent_id, role in interaction.participants.items():
-            # Calculate net gain/loss
-            contribution = contributions.get(agent_id, 0)
-            net_change = individual_return - contribution
+        for agent, role in interaction.participants.items():
+            # Record initial resources
+            resources_before = self.get_resource_state(agent)
             
-            # Determine strategy type based on contribution
-            if contribution <= 0.1 * endowment:
+            # Calculate this agent's contribution and return
+            contribution = contributions.get(agent, 0)
+            
+            # Apply resource changes
+            self.update_agent_resource(agent, resource_type, -contribution)  # Take contribution
+            self.update_agent_resource(agent, resource_type, per_agent_return)  # Give share of return
+            
+            # Record final resources
+            resources_after = self.get_resource_state(agent)
+            
+            # Calculate utility change
+            utility_change = per_agent_return - contribution
+            
+            # Determine strategy type
+            if contribution <= endowment * 0.2:
                 strategy_type = "free_rider"
-            elif contribution >= 0.9 * endowment:
+            elif contribution >= endowment * 0.8:
                 strategy_type = "cooperator"
             else:
-                strategy_type = "moderate"
+                strategy_type = "moderate_contributor"
             
-            # Create the outcome
-            outcome = InteractionOutcome(
-                interaction_id=interaction.id,
-                agent_id=agent_id,
-                role=role,
-                resources_before=[
-                    ResourceBalance(
-                        resource_type=resource_type,
-                        amount=endowment
+            # Create outcome
+            outcomes.append(
+                InteractionOutcome(
+                    interaction_id=interaction.id,
+                    agent=agent,
+                    role=role,
+                    resources_before=resources_before,
+                    resources_after=resources_after,
+                    utility_change=utility_change,
+                    strategy_used=InteractionStrategy(
+                        strategy_type=strategy_type,
+                        parameters={"contribution_ratio": contribution / endowment if endowment > 0 else 0}
                     )
-                ],
-                resources_after=[
-                    ResourceBalance(
-                        resource_type=resource_type,
-                        amount=endowment - contribution + individual_return
-                    )
-                ],
-                utility_change=net_change,
-                strategy_used=InteractionStrategy(
-                    strategy_type=strategy_type,
-                    parameters={
-                        "contribution_ratio": contribution / endowment if endowment > 0 else 0,
-                        "return_ratio": individual_return / contribution if contribution > 0 else float('inf')
-                    }
                 )
             )
-            
-            outcomes.append(outcome)
         
         # Update the interaction
         interaction.outcomes = outcomes
@@ -231,23 +227,20 @@ class PublicGoodsGameHandler(InteractionHandler):
         interaction.end_time = datetime.now()
         
         # Calculate narrative significance
-        interaction.narrative_significance = self._calculate_narrative_significance(interaction)
+        interaction.narrative_significance = self._calculate_narrative_significance(contributions, endowment)
         
         return interaction
     
-    def _calculate_narrative_significance(self, interaction: EconomicInteraction) -> float:
+    def _calculate_narrative_significance(self, contributions, endowment):
         """Calculate narrative significance for this public goods game
         
         Args:
-            interaction: The completed interaction
+            contributions: The contributions made by each participant
+            endowment: The initial amount each participant receives
             
         Returns:
             A narrative significance score (0.0-1.0)
         """
-        params = interaction.parameters
-        contributions = params.get("contributions", {})
-        endowment = params.get("endowment", 0)
-        
         # Base significance for public goods games
         base_significance = 0.5
         

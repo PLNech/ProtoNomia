@@ -56,8 +56,8 @@ class UltimatumGameHandler(InteractionHandler):
         interaction = EconomicInteraction(
             interaction_type=self.interaction_type,
             participants={
-                proposer.id: InteractionRole.PROPOSER,
-                responder.id: InteractionRole.RESPONDER
+                proposer: InteractionRole.PROPOSER,
+                responder: InteractionRole.RESPONDER
             },
             parameters={
                 "resource_type": resource_type,
@@ -97,13 +97,13 @@ class UltimatumGameHandler(InteractionHandler):
     def _handle_proposal_stage(self, interaction: EconomicInteraction) -> EconomicInteraction:
         """Handle the proposal stage of the ultimatum game"""
         # Find proposer
-        proposer_id = next(id for id, role in interaction.participants.items() 
-                          if role == InteractionRole.PROPOSER)
+        proposer = next(agent for agent, role in interaction.participants.items() 
+                      if role == InteractionRole.PROPOSER)
         
         # For MVP, simulate a proposal based on simple personality-driven strategy
         # In a full implementation, this would use more complex agent decision-making
         total_amount = interaction.parameters.get("total_amount")
-        proposed_amount = self._calculate_proposal_amount(proposer_id, total_amount)
+        proposed_amount = self._calculate_proposal_amount(proposer, total_amount)
         
         # Update interaction parameters
         params = interaction.parameters.copy()
@@ -114,11 +114,10 @@ class UltimatumGameHandler(InteractionHandler):
         
         return interaction
     
-    def _calculate_proposal_amount(self, proposer_id: str, total_amount: float) -> float:
+    def _calculate_proposal_amount(self, proposer: Agent, total_amount: float) -> float:
         """Calculate the amount to propose based on agent personality"""
-        # This would use the agent's personality and strategy in a full implementation
-        # For MVP, use a random value weighted by fairness preference
-        fairness = random.uniform(0.2, 0.5)  # Simulated fairness preference
+        # Use the agent's fairness preference
+        fairness = proposer.personality.fairness_preference
         
         # More sophisticated calculation would consider past interactions, relationship, etc.
         proportion = max(0.01, min(0.99, random.normalvariate(fairness, 0.1)))
@@ -127,14 +126,14 @@ class UltimatumGameHandler(InteractionHandler):
     def _handle_response_stage(self, interaction: EconomicInteraction) -> EconomicInteraction:
         """Handle the response stage of the ultimatum game"""
         # Find responder
-        responder_id = next(id for id, role in interaction.participants.items() 
-                           if role == InteractionRole.RESPONDER)
+        responder = next(agent for agent, role in interaction.participants.items() 
+                       if role == InteractionRole.RESPONDER)
         
         # For MVP, simulate a response based on simple fairness threshold
         total_amount = interaction.parameters.get("total_amount")
         proposed_amount = interaction.parameters.get("proposed_amount")
         
-        acceptance = self._decide_acceptance(responder_id, proposed_amount, total_amount)
+        acceptance = self._decide_acceptance(responder, proposed_amount, total_amount)
         
         # Update interaction parameters
         params = interaction.parameters.copy()
@@ -148,12 +147,13 @@ class UltimatumGameHandler(InteractionHandler):
         
         return interaction
     
-    def _decide_acceptance(self, responder_id: str, proposed_amount: float, total_amount: float) -> bool:
+    def _decide_acceptance(self, responder: Agent, proposed_amount: float, total_amount: float) -> bool:
         """Decide whether to accept the proposal"""
         # This would use the agent's personality and strategy in a full implementation
-        # For MVP, use a simple fairness threshold
+        # Use a threshold based on the responder's fairness preference
+        # Less fair agents will accept less fair offers
+        threshold = max(0.05, min(0.5, responder.personality.fairness_preference * 0.3))
         proportion = proposed_amount / total_amount
-        threshold = random.uniform(0.1, 0.3)  # Minimum acceptable proportion
         
         return proportion >= threshold
     
@@ -173,37 +173,47 @@ class UltimatumGameHandler(InteractionHandler):
         acceptance = interaction.parameters.get("response")
         resource_type = interaction.parameters.get("resource_type", ResourceType.CREDITS)
         
-        # Find participant IDs
-        proposer_id = next(id for id, role in interaction.participants.items() 
-                          if role == InteractionRole.PROPOSER)
-        responder_id = next(id for id, role in interaction.participants.items() 
-                           if role == InteractionRole.RESPONDER)
+        # Find participants
+        proposer = next(agent for agent, role in interaction.participants.items() 
+                      if role == InteractionRole.PROPOSER)
+        responder = next(agent for agent, role in interaction.participants.items() 
+                       if role == InteractionRole.RESPONDER)
+        
+        # Get initial resources
+        proposer_resources_before = self.get_resource_state(proposer)
+        responder_resources_before = self.get_resource_state(responder)
         
         # Calculate outcomes based on acceptance
         if acceptance:
             # Offer accepted: proposer gets (total - proposed), responder gets proposed
             proposer_gain = total_amount - proposed_amount
             responder_gain = proposed_amount
+            
+            # Update resources
+            # First, remove the total amount from the proposer
+            self.update_agent_resource(proposer, resource_type, -total_amount)
+            
+            # Then, give each their share
+            self.update_agent_resource(proposer, resource_type, proposer_gain)
+            self.update_agent_resource(responder, resource_type, responder_gain)
         else:
             # Offer rejected: both get nothing
             proposer_gain = 0
             responder_gain = 0
         
+        # Get final resources
+        proposer_resources_after = self.get_resource_state(proposer)
+        responder_resources_after = self.get_resource_state(responder)
+        
         # Create outcome objects
         outcomes = [
             InteractionOutcome(
                 interaction_id=interaction.id,
-                agent_id=proposer_id,
+                agent=proposer,
                 role=InteractionRole.PROPOSER,
-                resources_before=[ResourceBalance(
-                    resource_type=resource_type,
-                    amount=total_amount
-                )],
-                resources_after=[ResourceBalance(
-                    resource_type=resource_type,
-                    amount=proposer_gain
-                )],
-                utility_change=proposer_gain,
+                resources_before=proposer_resources_before,
+                resources_after=proposer_resources_after,
+                utility_change=proposer_gain if acceptance else 0,
                 strategy_used=InteractionStrategy(
                     strategy_type="fair_split" if proposed_amount / total_amount >= 0.4 else "selfish",
                     parameters={"offered_proportion": proposed_amount / total_amount}
@@ -211,16 +221,10 @@ class UltimatumGameHandler(InteractionHandler):
             ),
             InteractionOutcome(
                 interaction_id=interaction.id,
-                agent_id=responder_id,
+                agent=responder,
                 role=InteractionRole.RESPONDER,
-                resources_before=[ResourceBalance(
-                    resource_type=resource_type,
-                    amount=0
-                )],
-                resources_after=[ResourceBalance(
-                    resource_type=resource_type,
-                    amount=responder_gain
-                )],
+                resources_before=responder_resources_before,
+                resources_after=responder_resources_after,
                 utility_change=responder_gain,
                 strategy_used=InteractionStrategy(
                     strategy_type="accept" if acceptance else "reject",

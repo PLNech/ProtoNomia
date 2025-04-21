@@ -341,3 +341,28 @@ Reimplement with patch using Ollama's official OpenAI compatibility layer as doc
 - Added graceful degradation when OpenAI compatibility layer is unavailable
 - Improved error reporting and fallback mechanisms
 
+## EconomicInteraction Refactoring: Direct Agent References and Resource Updates
+
+**Date:** 2024-05-27
+
+**Description:** 
+Refactored the EconomicInteraction model to store direct Agent object references instead of just agent IDs. Updated all interaction handlers to directly modify agent resources during interactions. This simplifies the code by removing the need for lookups and ensures resource changes are applied immediately. Key changes:
+1. Modified EconomicInteraction to hold full Agent objects in participants dictionary
+2. Updated InteractionOutcome to reference Agent directly instead of agent_id
+3. Added methods to InteractionHandler for updating agent resources
+4. Updated UltimatumGameHandler, TrustGameHandler, and PublicGoodsGameHandler implementations
+5. Improved personality-based decision making by using actual agent personality traits
+6. Added migration helpers for backward compatibility with old interaction format
+7. Added comprehensive unit tests for resource updates
+
+**Demand:** "Refactor EconomicInteraction to have full agent reference not just ID, use that so that the economic methods such as complete_interaction methods can be simplified by leveraging agent props directly. Handlers are now responsible for updating agents resources after the actions, make it clear in the base @InteractionHandler class and apply that in all econ handlers. Ensure your logic works with pytest tests/unit/ in our virtualenv. Ensure the simulation runs coherent with good economic narration with python headless.py --initial-population 10 --ticks 10 --verbosity 4 --log-level DEBUG --resource-scarcity 0.1"
+
+**Files:**
+- [M] models/base.py (updated EconomicInteraction and InteractionOutcome models)
+- [M] interactions.py (updated handlers and InteractionRegistry)
+- [M] tests/unit/test_economic_interactions.py (added tests for resource updates)
+
+**Bugs:**
+- Fixed inconsistency in resource updates where outcomes were calculated but not applied to agents
+- Improved personality-driven decision making that was previously using random values instead of agent traits
+
