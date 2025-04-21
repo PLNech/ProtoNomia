@@ -1,11 +1,12 @@
 """
 Integration tests for the LLMAgent with actual LLM service.
 """
-import pytest
-import sys
 import os
-from unittest.mock import patch
-import json
+import sys
+
+import pytest
+
+from settings import DEFAULT_LM
 
 # Add project root to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -75,7 +76,7 @@ class TestLLMAgentIntegration:
     def test_ollama_connection(self):
         """Test that we can connect to Ollama"""
         try:
-            agent = LLMAgent(model_name="gemma3:1b")
+            agent = LLMAgent(model_name=DEFAULT_LM)
             # If we got here without exception, connection was successful
             assert True
         except Exception as e:
@@ -83,7 +84,7 @@ class TestLLMAgentIntegration:
     
     def test_agent_action_generation(self, test_agent, decision_context):
         """Test that the agent can generate actions using LLM"""
-        agent = LLMAgent(model_name="gemma3:1b")
+        agent = LLMAgent(model_name=DEFAULT_LM)
         
         # Generate an action
         action = agent.generate_action(test_agent, decision_context)
@@ -96,7 +97,7 @@ class TestLLMAgentIntegration:
     
     def test_agent_action_stability(self, test_agent, decision_context):
         """Test that agent actions are somewhat consistent for the same input"""
-        agent = LLMAgent(model_name="gemma3:1b", temperature=0.1)  # Low temperature for more deterministic results
+        agent = LLMAgent(model_name=DEFAULT_LM, temperature=0.1)  # Low temperature for more deterministic results
         
         # Generate actions multiple times and ensure they're not all over the place
         action_types = set()

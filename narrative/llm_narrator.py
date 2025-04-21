@@ -8,11 +8,11 @@ from datetime import datetime
 
 from models.base import (
     Agent, EconomicInteraction, EconomicInteractionType, InteractionRole,
-    NarrativeEvent, NarrativeArc
+    NarrativeEvent
 )
 from narrative.narrator import Narrator
 from llm_utils import OllamaClient
-from llm_models import NarrativeResponse, DailySummaryResponse
+from settings import DEFAULT_LM
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -27,26 +27,16 @@ class LLMNarrator(Narrator):
     def __init__(
             self,
             verbosity: int = 3,
-            model_name: str = "gemma3:1b",
+            model_name: str = DEFAULT_LM,
             ollama_base_url: str = "http://localhost:11434",
             temperature: float = 0.8,
             top_p: float = 0.95,
             top_k: int = 40,
             timeout: int = 30,
-            max_retries: int = 3
+            max_retries: int = 5
     ):
         """
         Initialize the LLM Narrator.
-        
-        Args:
-            verbosity: Level of detail in generated narratives (1-5)
-            model_name: Name of the Ollama model to use
-            ollama_base_url: Base URL for the Ollama API
-            temperature: Controls randomness in generation (0.0-1.0)
-            top_p: Nucleus sampling probability threshold (0.0-1.0)
-            top_k: Number of highest probability tokens to consider
-            timeout: Request timeout in seconds
-            max_retries: Maximum number of retries on failure
         """
         super().__init__(verbosity)
         self.model_name = model_name
@@ -79,13 +69,6 @@ class LLMNarrator(Narrator):
     ) -> NarrativeEvent:
         """
         Generate a narrative event from an economic interaction using LLM.
-
-        Args:
-            interaction: The economic interaction to generate a narrative from
-            agents: List of agents involved in the interaction
-
-        Returns:
-            NarrativeEvent: The generated narrative event
         """
         try:
             # Map agent IDs to agent objects for easier lookup
@@ -96,11 +79,6 @@ class LLMNarrator(Narrator):
             for agent_id, role in interaction.participants.items():
                 if agent_id in agent_map:
                     participant_names[role] = agent_map[agent_id].name
-
-            # Log some diagnostic information
-            logger.debug(f"Generating narrative for interaction: {interaction.id}")
-            logger.debug(f"Interaction type: {interaction.interaction_type.value}")
-            logger.debug(f"Participants: {list(participant_names.values())}")
 
             # Create a prompt for the LLM
             prompt = self._create_interaction_prompt(interaction, participant_names, agent_map)
@@ -113,11 +91,9 @@ class LLMNarrator(Narrator):
             )
 
             # Generate the narrative using structured output
-            narrative_response = self.ollama_client.generate_structured(
+            narrative_response = self.ollama_client.generate_narrative(
                 prompt=prompt,
-                response_model=NarrativeResponse,
-                system_prompt=system_prompt,
-                temperature=self.temperature
+                system_prompt=system_prompt
             )
 
             # Create and return the narrative event
@@ -146,6 +122,40 @@ class LLMNarrator(Narrator):
                 significance=interaction.narrative_significance,
                 tags=["fallback", "error_recovery"]
             )
+
+    def generate_daily_summary(self, day: int, events: List[NarrativeEvent], agents: List[Agent]) -> str:
+        """
+        Generate a daily summary of events for the simulation.
+        """
+        try:
+            # Create a prompt for the daily summary
+            prompt = self._create_daily_summary_prompt(day, events, agents)
+
+            system_prompt = (
+                "You are a creative historian chronicling the emerging society on Mars in the year 2993. "
+                "Your daily summaries should not just list events, but trace how individual actions and economic decisions "
+                "are collectively shaping Mars' future. Identify patterns, tensions, and developments that would not be obvious "
+                "from isolated events. Balance factual reporting with evocative prose that captures the challenges and triumphs "
+                "of this frontier society."
+            )
+
+            # Generate the daily summary using structured output
+            summary_response = self.ollama_client.generate_daily_summary(
+                prompt=prompt,
+                system_prompt=system_prompt
+            )
+
+            # Format the final summary with the headline as the main title
+            formatted_summary = f"# {summary_response.headline}\n\n{summary_response.summary}"
+
+            return formatted_summary
+
+        except Exception as e:
+            logger.error(f"Error generating daily summary: {e}")
+            # Fallback to a simple summary in case of error
+            return f"# Day {day} on Mars\n\n" + \
+                f"Today, {len(events)} events occurred in the Mars colony.\n\n" + \
+                f"The simulation has {len(agents)} active agents."
 
     def _create_interaction_prompt(
             self,
@@ -275,50 +285,6 @@ class LLMNarrator(Narrator):
 
         return prompt
 
-    def generate_daily_summary(self, day: int, events: List[NarrativeEvent], agents: List[Agent]) -> str:
-        """
-        Generate a daily summary of events for the simulation.
-
-        Args:
-            day: The current day of the simulation
-            events: List of narrative events for the day
-            agents: List of all agents in the simulation
-
-        Returns:
-            str: A daily summary in markdown format
-        """
-        try:
-            # Create a prompt for the daily summary
-            prompt = self._create_daily_summary_prompt(day, events, agents)
-
-            system_prompt = (
-                "You are a creative historian chronicling the emerging society on Mars in the year 2993. "
-                "Your daily summaries should not just list events, but trace how individual actions and economic decisions "
-                "are collectively shaping Mars' future. Identify patterns, tensions, and developments that would not be obvious "
-                "from isolated events. Balance factual reporting with evocative prose that captures the challenges and triumphs "
-                "of this frontier society."
-            )
-
-            # Generate the daily summary using structured output
-            summary_response = self.ollama_client.generate_structured(
-                prompt=prompt,
-                response_model=DailySummaryResponse,
-                system_prompt=system_prompt,
-                temperature=self.temperature
-            )
-
-            # Format the final summary with the headline as the main title
-            formatted_summary = f"# {summary_response.headline}\n\n{summary_response.summary}"
-
-            return formatted_summary
-
-        except Exception as e:
-            logger.error(f"Error generating daily summary: {e}")
-            # Fallback to a simple summary in case of error
-            return f"# Day {day} on Mars\n\n" + \
-                f"Today, {len(events)} events occurred in the Mars colony.\n\n" + \
-                f"The simulation has {len(agents)} active agents."
-
     def _create_daily_summary_prompt(self, day: int, events: List[NarrativeEvent], agents: List[Agent]) -> str:
         """Create a prompt for the daily summary generation"""
         # Basic information
@@ -398,25 +364,3 @@ class LLMNarrator(Narrator):
         prompt += f"\nGenerate a {detail_level} summary in Markdown format with headings, paragraphs, and sections."
 
         return prompt
-
-    def generate_narrative_from_interaction(self, interaction: EconomicInteraction) -> str:
-        """
-        Legacy method to generate a simple narrative from an interaction.
-        
-        Args:
-            interaction: The economic interaction to generate a narrative from
-            
-        Returns:
-            str: A narrative description of the interaction
-        """
-        # This method is kept for backward compatibility
-        try:
-            # Create a simplified prompt
-            prompt = f"Generate a narrative for an {interaction.interaction_type.value} interaction in a Mars colony."
-
-            # Generate narrative using OllamaClient
-            return self.ollama_client.generate_text(prompt=prompt)
-
-        except Exception as e:
-            logger.error(f"Error generating simplified narrative: {e}")
-            return f"An {interaction.interaction_type.value} interaction occurred."

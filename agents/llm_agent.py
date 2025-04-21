@@ -2,18 +2,17 @@
 LLM-based agent implementation for ProtoNomia.
 This module handles the integration with language models for agent decision making.
 """
-import json
 import logging
 import time
-from typing import Dict, Optional
 
-from models.base import Agent
+from llm_models import AgentActionResponse
+from llm_utils import OllamaClient
 from models.actions import (
-    ActionType, AgentAction, AgentDecisionContext, 
+    ActionType, AgentAction, AgentDecisionContext,
     OfferAction, NegotiateAction, AcceptRejectAction, WorkAction, BuyAction
 )
-from llm_utils import OllamaClient
-from llm_models import AgentActionResponse
+from models.base import Agent
+from settings import DEFAULT_LM
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -24,16 +23,16 @@ class LLMAgent:
     LLM-based agent implementation for ProtoNomia.
     Uses Ollama with structured outputs to generate agent decisions.
     """
-    
+
     def __init__(
-        self, 
-        model_name: str = "gemma3:1b",
-        temperature: float = 0.7,
-        top_p: float = 0.9,
-        top_k: int = 40,
-        max_tokens: int = 300,
-        max_retries: int = 3,
-        timeout: int = 20
+            self,
+            model_name: str = DEFAULT_LM,
+            temperature: float = 0.7,
+            top_p: float = 0.9,
+            top_k: int = 40,
+            max_tokens: int = 2048,
+            max_retries: int = 3,
+            timeout: int = 20
     ):
         """
         Initialize the LLM agent.
@@ -54,7 +53,7 @@ class LLMAgent:
         self.max_tokens = max_tokens
         self.max_retries = max_retries
         self.timeout = timeout
-        
+
         # Create the OllamaClient for structured output generation
         self.ollama_client = OllamaClient(
             base_url="http://localhost:11434",
@@ -67,7 +66,7 @@ class LLMAgent:
             timeout=timeout
         )
         logger.info(f"Successfully initialized LLMAgent with model {model_name}")
-    
+
     def generate_action(self, agent: Agent, context: AgentDecisionContext) -> AgentAction:
         """
         Generate an action for the agent using the LLM.
@@ -86,7 +85,7 @@ class LLMAgent:
             "Based on the agent's personality and context, choose the most appropriate action. "
             "Always respond with a valid action type and necessary details in JSON format."
         )
-        
+
         try:
             # Get structured response using Ollama
             action_response = self.ollama_client.generate_structured_output(
@@ -94,17 +93,17 @@ class LLMAgent:
                 response_model=AgentActionResponse,
                 system_prompt=system_prompt
             )
-            
+
             # Convert the structured response to an AgentAction
             action_type_str = action_response.type
-            
+
             # Validate the action type
             try:
                 action_type = ActionType(action_type_str)
             except ValueError:
                 logger.warning(f"Invalid action type '{action_type_str}', defaulting to REST")
                 action_type = ActionType.REST
-            
+
             # Create the agent action with the processed data
             action = AgentAction(
                 type=action_type,
@@ -113,16 +112,16 @@ class LLMAgent:
                 timestamp=time.time(),
                 extra=action_response.extra or {}
             )
-            
+
             # Fill in action-specific details based on type
             self._fill_action_details(action)
-            
+
             logger.debug(f"Generated action for agent {agent.id}: {action.type}")
             if action_response.reasoning:
                 logger.debug(f"Reasoning: {action_response.reasoning}")
-                
+
             return action
-            
+
         except Exception as e:
             logger.error(f"Error generating action: {e}")
             # Fall back to a REST action on failure
@@ -133,7 +132,7 @@ class LLMAgent:
                 timestamp=time.time(),
                 extra={"reason": "Error in LLM processing, defaulting to REST"}
             )
-    
+
     def _fill_action_details(self, action: AgentAction) -> None:
         """
         Fill in the action-specific details based on the action type.
@@ -143,7 +142,7 @@ class LLMAgent:
         """
         try:
             extra = action.extra or {}
-            
+
             if action.type == ActionType.OFFER:
                 action.offer_details = OfferAction(
                     what=extra.get("what", ""),
@@ -191,18 +190,18 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
         f"- Type: {agent.agent_type.value}\n"
         f"- Faction: {agent.faction.value if agent.faction else 'None'}\n"
     )
-    
+
     # Add personality traits if available
     if hasattr(agent, 'personality') and agent.personality:
         prompt += "- Personality traits:\n"
         for trait_name in [
-            'cooperativeness', 'risk_tolerance', 'fairness_preference', 
+            'cooperativeness', 'risk_tolerance', 'fairness_preference',
             'altruism', 'rationality', 'long_term_orientation'
         ]:
             trait_value = getattr(agent.personality, trait_name, None)
             if trait_value is not None:
                 prompt += f"  - {trait_name}: {trait_value:.2f}\n"
-    
+
     # Add resource information
     prompt += "\n### YOUR RESOURCES\n"
     if hasattr(agent, 'resources') and agent.resources:
@@ -210,10 +209,10 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
             prompt += f"- {resource_type}: {amount}\n"
     else:
         prompt += "- No resources\n"
-    
+
     # Add job information
     prompt += f"\n- Current job: {agent.job if hasattr(agent, 'job') and agent.job else 'None'}\n"
-    
+
     # Add needs information (rest, hunger, etc.)
     prompt += "\n### YOUR NEEDS\n"
     if hasattr(agent, 'needs'):
@@ -221,52 +220,52 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
             prompt += f"- {need_name}: {need_value}/100\n"
     else:
         prompt += "- Energy: 80/100\n- Hunger: 70/100\n"
-    
+
     # Add social context
     prompt += "\n### SOCIAL CONTEXT\n"
     if context.neighbors:
         prompt += f"- Your neighbors: {', '.join(neighbor for neighbor in context.neighbors)}\n"
     else:
         prompt += "- You have no neighbors nearby\n"
-    
+
     # Add pending offers
     if context.pending_offers:
         prompt += "\n### PENDING OFFERS\n"
         for i, offer in enumerate(context.pending_offers):
             prompt += (
-                f"- Offer {i+1} (ID: {offer['id']}):\n"
+                f"- Offer {i + 1} (ID: {offer['id']}):\n"
                 f"  - From: {offer['from_agent']}\n"
                 f"  - What: {offer['what']}\n"
                 f"  - Against what: {offer['against_what']}\n"
                 f"  - Status: {offer['status']}\n"
             )
-    
+
     # Add available jobs
     if context.jobs_available:
         prompt += "\n### AVAILABLE JOBS\n"
         for i, job in enumerate(context.jobs_available):
             prompt += (
-                f"- Job {i+1} (ID: {job['id']}):\n"
+                f"- Job {i + 1} (ID: {job['id']}):\n"
                 f"  - Title: {job['title']}\n"
                 f"  - Salary: {job['salary']}\n"
                 f"  - Duration: {job['duration']}\n"
             )
-    
+
     # Add items for sale
     if context.items_for_sale:
         prompt += "\n### ITEMS FOR SALE\n"
         for i, item in enumerate(context.items_for_sale):
             prompt += (
-                f"- Item {i+1} (ID: {item['id']}):\n"
+                f"- Item {i + 1} (ID: {item['id']}):\n"
                 f"  - Name: {item['name']}\n"
                 f"  - Price: {item['price']}\n"
                 f"  - Seller: {item['seller']}\n"
             )
-    
+
     # Add turn information
     prompt += f"\n### TURN INFORMATION\n"
     prompt += f"- Current turn: {context.turn}/{context.max_turns}\n"
-    
+
     # Add available actions
     prompt += (
         f"\n### AVAILABLE ACTIONS\n"
@@ -279,7 +278,7 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
         f"- WORK(job_id:str): work at a job\n"
         f"- BUY(desired_item:str): buy an item\n"
     )
-    
+
     # Add request for action
     prompt += (
         f"\n### TASK\n"
@@ -288,7 +287,7 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
         f"Return your choice in this format:\n\n"
         f"Reasoning: <briefly explain your reasoning>\nCHOICE: {{'type': '<ACTION_TYPE>', 'extra': {{<additional parameters needed for the action>}}}}\n"
     )
-    
+
     # Add examples
     prompt += (
         f"\n### EXAMPLES\n"
@@ -297,5 +296,5 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
         f"Example 3:\nReasoning: I need money so I'll look for a job.\nCHOICE: {{'type': 'SEARCH_JOB', 'extra': {{'reason': 'need income'}}}}\n\n"
         f"Example 4:\nReasoning: The offer from agent5 seems fair.\nCHOICE: {{'type': 'ACCEPT', 'extra': {{'offer_id': 'offer123'}}}}\n"
     )
-    
+
     return prompt

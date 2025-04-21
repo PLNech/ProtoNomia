@@ -1,17 +1,18 @@
-import logging
 import asyncio
+import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Depends
+import uvicorn
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-import uvicorn
 
 from core.simulation import Simulation
 from models.base import SimulationConfig
+from settings import DEFAULT_LM
 
 logger = logging.getLogger(__name__)
+
 
 # API Models
 class SimulationConfigRequest(BaseModel):
@@ -23,9 +24,10 @@ class SimulationConfigRequest(BaseModel):
     resource_scarcity: float = Field(0.5, ge=0.0, le=1.0, description="Resource scarcity level (0.0-1.0)")
     technological_level: float = Field(0.8, ge=0.0, le=1.0, description="Technological advancement level (0.0-1.0)")
     narrative_verbosity: int = Field(3, ge=1, le=5, description="Narrative detail level (1-5)")
-    agent_model: str = Field("gemma3:1b", description="LLM model for agent decisions")
-    narrator_model: str = Field("gemma3:1b", description="LLM model for narrative generation")
+    agent_model: str = Field(DEFAULT_LM, description="LLM model for agent decisions")
+    narrator_model: str = Field(DEFAULT_LM, description="LLM model for narrative generation")
     ollama_base_url: str = Field("http://localhost:11434/v1", description="Ollama API base URL")
+
 
 class SimulationResponse(BaseModel):
     """Response with simulation information"""
@@ -37,6 +39,7 @@ class SimulationResponse(BaseModel):
     deceased_agents: int
     active_interactions: int
     narrative_events: int
+
 
 class AgentResponse(BaseModel):
     """Response with agent information"""
@@ -52,6 +55,7 @@ class AgentResponse(BaseModel):
     resources: List[Dict[str, Any]]
     background: str
 
+
 class NarrativeEventResponse(BaseModel):
     """Response with narrative event information"""
     id: str
@@ -62,6 +66,7 @@ class NarrativeEventResponse(BaseModel):
     significance: float
     tags: List[str]
 
+
 class EconomicReportResponse(BaseModel):
     """Response with economic report information"""
     indicators: Dict[str, float]
@@ -69,10 +74,12 @@ class EconomicReportResponse(BaseModel):
     faction_wealth: Dict[str, float]
     active_interactions_by_type: Dict[str, int]
 
+
 class NarrativeSummaryResponse(BaseModel):
     """Response with narrative summary"""
     summary: str
     date: str
+
 
 class TickResponse(BaseModel):
     """Response for a simulation tick"""
@@ -81,6 +88,7 @@ class TickResponse(BaseModel):
     active_agents: int
     active_interactions: int
     economic_indicators: Dict[str, float]
+
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -107,6 +115,7 @@ class ConnectionManager:
             for connection in self.active_connections[simulation_id]:
                 await connection.send_json(message)
 
+
 # Initialize FastAPI app
 app = FastAPI(
     title="ProtoNomia API",
@@ -132,6 +141,7 @@ simulations: Dict[str, Simulation] = {}
 # Background tasks
 running_tasks: Dict[str, asyncio.Task] = {}
 
+
 # Event handlers
 def on_agent_created(agent):
     """Handler for agent_created event"""
@@ -153,6 +163,7 @@ def on_agent_created(agent):
             )
         )
 
+
 def on_interaction_completed(interaction):
     """Handler for interaction_completed event"""
     simulation_id = "current"  # This should be dynamic in a multi-simulation environment
@@ -172,6 +183,7 @@ def on_interaction_completed(interaction):
                 }
             )
         )
+
 
 def on_narrative_event(event):
     """Handler for narrative_event event"""
@@ -194,6 +206,7 @@ def on_narrative_event(event):
             )
         )
 
+
 def on_tick_completed(tick, date):
     """Handler for tick_completed event"""
     simulation_id = "current"  # This should be dynamic in a multi-simulation environment
@@ -214,6 +227,7 @@ def on_tick_completed(tick, date):
                 }
             )
         )
+
 
 # Background simulation runner
 async def run_simulation(simulation_id: str, speed: float = 1.0):
@@ -242,11 +256,13 @@ async def run_simulation(simulation_id: str, speed: float = 1.0):
     except Exception as e:
         logger.error(f"Error running simulation {simulation_id}: {str(e)}")
 
+
 # Routes
 @app.get("/")
 async def root():
     """Root endpoint"""
     return {"message": "ProtoNomia API is running"}
+
 
 @app.post("/simulations", response_model=SimulationResponse)
 async def create_new_simulation(config: SimulationConfigRequest):
@@ -304,6 +320,7 @@ async def create_new_simulation(config: SimulationConfigRequest):
         "narrative_events": state["narrative_events"]
     }
 
+
 @app.get("/simulations/{simulation_id}", response_model=SimulationResponse)
 async def get_simulation(simulation_id: str):
     """Get information about a simulation"""
@@ -323,6 +340,7 @@ async def get_simulation(simulation_id: str):
         "active_interactions": state["active_interactions"],
         "narrative_events": state["narrative_events"]
     }
+
 
 @app.post("/simulations/{simulation_id}/start")
 async def start_simulation(simulation_id: str, speed: float = Query(1.0, ge=0.1, le=10.0)):
@@ -344,6 +362,7 @@ async def start_simulation(simulation_id: str, speed: float = Query(1.0, ge=0.1,
 
     return {"message": f"Simulation {simulation_id} started with speed {speed}"}
 
+
 @app.post("/simulations/{simulation_id}/stop")
 async def stop_simulation(simulation_id: str):
     """Stop a running simulation"""
@@ -360,6 +379,7 @@ async def stop_simulation(simulation_id: str):
         return {"message": f"Simulation {simulation_id} stopped"}
 
     return {"message": f"Simulation {simulation_id} is not running"}
+
 
 @app.post("/simulations/{simulation_id}/tick", response_model=TickResponse)
 async def run_single_tick(simulation_id: str):
@@ -382,12 +402,13 @@ async def run_single_tick(simulation_id: str):
 
     return result
 
+
 @app.get("/simulations/{simulation_id}/agents", response_model=List[AgentResponse])
 async def get_agents(
-    simulation_id: str,
-    alive_only: bool = Query(True, description="Only return living agents"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of agents to return"),
-    faction: Optional[str] = Query(None, description="Filter by faction")
+        simulation_id: str,
+        alive_only: bool = Query(True, description="Only return living agents"),
+        limit: int = Query(100, ge=1, le=1000, description="Maximum number of agents to return"),
+        faction: Optional[str] = Query(None, description="Filter by faction")
 ):
     """Get agents in a simulation"""
     if simulation_id not in simulations:
@@ -411,6 +432,7 @@ async def get_agents(
 
     return filtered_agents
 
+
 @app.get("/simulations/{simulation_id}/agents/{agent_id}", response_model=AgentResponse)
 async def get_agent(simulation_id: str, agent_id: str):
     """Get information about a specific agent"""
@@ -425,10 +447,11 @@ async def get_agent(simulation_id: str, agent_id: str):
 
     return agent_details
 
+
 @app.get("/simulations/{simulation_id}/narrative/events", response_model=List[NarrativeEventResponse])
 async def get_narrative_events(
-    simulation_id: str,
-    limit: int = Query(20, ge=1, le=100, description="Maximum number of events to return")
+        simulation_id: str,
+        limit: int = Query(20, ge=1, le=100, description="Maximum number of events to return")
 ):
     """Get recent narrative events"""
     if simulation_id not in simulations:
@@ -439,10 +462,11 @@ async def get_narrative_events(
 
     return events
 
+
 @app.get("/simulations/{simulation_id}/narrative/summary", response_model=NarrativeSummaryResponse)
 async def get_narrative_summary(
-    simulation_id: str,
-    period: str = Query("day", description="Summary period (day, week, month)")
+        simulation_id: str,
+        period: str = Query("day", description="Summary period (day, week, month)")
 ):
     """Get a narrative summary of recent events"""
     if simulation_id not in simulations:
@@ -456,6 +480,7 @@ async def get_narrative_summary(
         "date": sim.current_date.isoformat()
     }
 
+
 @app.get("/simulations/{simulation_id}/economy", response_model=EconomicReportResponse)
 async def get_economic_report(simulation_id: str):
     """Get economic report for a simulation"""
@@ -466,6 +491,7 @@ async def get_economic_report(simulation_id: str):
     report = sim.get_economic_report()
 
     return report
+
 
 @app.websocket("/ws/{simulation_id}")
 async def websocket_endpoint(websocket: WebSocket, simulation_id: str):
@@ -492,6 +518,7 @@ async def websocket_endpoint(websocket: WebSocket, simulation_id: str):
             })
     except WebSocketDisconnect:
         manager.disconnect(websocket, simulation_id)
+
 
 # Run the FastAPI app when this file is executed directly
 if __name__ == "__main__":
