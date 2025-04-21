@@ -6,20 +6,22 @@ import logging
 import random
 import time
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List, Tuple
 
 # Import required modules
 from agents.llm_agent import LLMAgent
+from economics.economy_manager import EconomyManager
 from economics.interactions.public_goods import PublicGoodsGameHandler
 from economics.interactions.trust import TrustGameHandler
 from economics.interactions.ultimatum import UltimatumGameHandler
-from models.actions import AgentAction, ActionType
+from models.actions import AgentAction, ActionType, AgentDecisionContext
 from models.base import (
     Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance,
     ResourceType, EconomicInteraction, EconomicInteractionType,
     InteractionRole, SimulationConfig, SimulationState,
     NarrativeEvent, NarrativeArc, PopulationControlParams, AgentNeeds
 )
+from models.economy import GoodsListing, JobListing, ListingType
 from narrative.llm_narrator import LLMNarrator
 from narrative.narrator import Narrator
 from population.controller import PopulationController
@@ -114,6 +116,10 @@ class Simulation:
         }
         logger.info(f"Initialized interaction handlers: {list(self.interaction_handlers.keys())}")
 
+        # Initialize the economy manager
+        self.economy_manager = EconomyManager()
+        logger.info("Initialized EconomyManager")
+
         # Initialize the population controller
         self.population_controller = PopulationController(self.population_params)
         logger.info("Initialized PopulationController")
@@ -189,9 +195,8 @@ class Simulation:
         # Process agent actions and interactions
         self._process_agent_actions()
 
-        # Create a demo interaction if there are no completed interactions
-        if len(self.state.completed_interactions) == 0 and len(self.state.active_agents) >= 2:
-            self._create_demo_interaction()
+        # Process economic activities
+        self._process_economy()
 
         # Generate narrative events
         self._generate_narrative()
@@ -408,8 +413,30 @@ class Simulation:
             if action:
                 self._process_action(action)
 
-        # Process active interactions
+    def _process_economy(self):
+        """Process economic activities and update market listings."""
+        # Process active economic interactions
         self._process_active_interactions()
+        
+        # Update market listings based on current turn
+        self.economy_manager.update_listings(self.state.current_tick)
+        
+        # Generate a market report for economic indicators
+        market_report = self.economy_manager.generate_market_report()
+        
+        # Update economic indicators
+        self.state.economic_indicators.update({
+            "job_listings": market_report.get("active_job_offers", 0),
+            "goods_listings": market_report.get("active_goods_offers", 0) + market_report.get("active_goods_requests", 0)
+        })
+        
+        # If we have a LLM narrator, provide it with the market report
+        if hasattr(self.narrator, 'update_market_report'):
+            self.narrator.update_market_report(market_report)
+        
+        # Create random economic interactions
+        if random.random() < 0.3:  # 30% chance each turn
+            self._create_random_economic_interaction()
 
     def _generate_agent_action(self, agent: Agent) -> Optional[AgentAction]:
         """Generate an action for an agent"""
@@ -417,7 +444,6 @@ class Simulation:
             # If using LLM, use LLMAgent to generate actions
             if self.use_llm and self.llm_agent:
                 context = self._create_decision_context(agent)
-                logger.debug(f"Context: {context}")
                 action = self.llm_agent.generate_action(agent, context)
                 logger.info(f"Action from {agent.name}: {action}")
                 return action
@@ -428,11 +454,8 @@ class Simulation:
             logger.error(f"Error generating action for agent {agent.id}: {e}")
             return None
 
-    def _create_decision_context(self, agent: Agent):
+    def _create_decision_context(self, agent: Agent) -> AgentDecisionContext:
         """Create a decision context for an agent"""
-        # Import here to avoid circular imports
-        from models.actions import AgentDecisionContext
-
         # Get a list of neighbor agents
         neighbors = []
         for other_id in self.state.active_agents:
@@ -463,18 +486,18 @@ class Simulation:
                                 "status": "pending"
                             })
 
-        jobs_available = [
-            {"id": f"job_1", "title": "Software Engineer", "salary": 1000, "duration": 30},
-            {"id": f"job_2", "title": "Mining Technician", "salary": 800, "duration": 15},
-            {"id": f"job_3", "title": "Hydroponics Specialist", "salary": 900, "duration": 20}
-        ] if random.random() < 0.3 else []  # Only show jobs sometimes
-
-        # Get items for sale
-        items_for_sale = [
-            {"id": f"item_1", "name": "Food Pack", "price": 50, "seller": "market"},
-            {"id": f"item_2", "name": "Water Filter", "price": 200, "seller": "market"},
-            {"id": f"item_3", "name": "Entertainment Module", "price": 150, "seller": "market"}
-        ] if random.random() < 0.3 else []  # Only show items sometimes
+        # Get goods listings from the economy manager
+        goods_listings = self.economy_manager.get_goods_listings_for_agent(agent.id)
+        
+        # Get job listings from the economy manager
+        job_listings = self.economy_manager.get_job_listings_for_agent(agent.id)
+        
+        # Create market summary
+        market_summary = {
+            "avg_prices": self.state.economic_indicators.get("avg_resource_prices", {}),
+            "avg_salaries": self.state.economic_indicators.get("avg_job_salaries", {}),
+            "employment_ratio": self.state.economic_indicators.get("employment_ratio", 0)
+        }
 
         # Create the context
         return AgentDecisionContext(
@@ -482,33 +505,122 @@ class Simulation:
             max_turns=1000,  # Arbitrary large number
             neighbors=neighbors,
             pending_offers=pending_offers,
-            jobs_available=jobs_available,
-            items_for_sale=items_for_sale,
-            recent_interactions=[]  # Not implemented yet
+            jobs_available=job_listings,
+            items_for_sale=goods_listings,
+            recent_interactions=[],  # Not implemented yet
+            goods_listings=goods_listings,
+            job_listings=job_listings,
+            market_summary=market_summary
         )
 
     def _generate_rule_based_action(self, agent: Agent) -> AgentAction:
         """Generate a rule-based action for an agent"""
         # Simple rule-based decision making
-        action_type = random.choice(list(ActionType))
+        action_type = random.choice([
+            ActionType.REST, 
+            ActionType.LIST_GOODS, 
+            ActionType.HIRE, 
+            ActionType.APPLY
+        ])
 
-        # Create the action
-        action = AgentAction(
-            type=action_type,
-            agent_id=agent.id,
-            turn=self.state.current_tick,
-            timestamp=time.time(),
-            extra={}
-        )
+        # Create the action with appropriate details based on type
+        if action_type == ActionType.LIST_GOODS:
+            # Create a random goods listing
+            resource_types = [ResourceType.CREDITS, ResourceType.FOOD, ResourceType.WATER, 
+                             ResourceType.PHYSICAL_GOODS, ResourceType.DIGITAL_GOODS]
+            resource_type = random.choice(resource_types)
+            
+            action = AgentAction(
+                type=action_type,
+                agent_id=agent.id,
+                turn=self.state.current_tick,
+                timestamp=time.time(),
+                list_goods_details={
+                    "is_offer": True,
+                    "resource_type": resource_type.value,
+                    "amount": random.uniform(1, 10),
+                    "price_per_unit": random.uniform(10, 100),
+                    "description": f"Random {resource_type.value} listing"
+                }
+            )
+        
+        elif action_type == ActionType.HIRE:
+            # Create a random job listing
+            job_types = ["Engineer", "Miner", "Farmer", "Trader", "Scientist", "Security"]
+            
+            action = AgentAction(
+                type=action_type,
+                agent_id=agent.id,
+                turn=self.state.current_tick,
+                timestamp=time.time(),
+                hire_details={
+                    "job_type": random.choice(job_types),
+                    "salary_per_turn": random.uniform(50, 200),
+                    "requirements": "No special requirements",
+                    "max_employees": random.randint(1, 3),
+                    "description": "Random job listing"
+                }
+            )
+        
+        elif action_type == ActionType.APPLY:
+            # Find available job listings
+            job_listings = self.economy_manager.get_job_listings_for_agent(agent.id)
+            
+            if job_listings:
+                # Apply to a random job listing
+                job_listing = random.choice(job_listings)
+                
+                action = AgentAction(
+                    type=action_type,
+                    agent_id=agent.id,
+                    turn=self.state.current_tick,
+                    timestamp=time.time(),
+                    apply_details={
+                        "listing_id": job_listing["id"]
+                    }
+                )
+            else:
+                # No jobs available, default to REST
+                action = AgentAction(
+                    type=ActionType.REST,
+                    agent_id=agent.id,
+                    turn=self.state.current_tick,
+                    timestamp=time.time(),
+                    extra={"reason": "No jobs available to apply for"}
+                )
+        
+        else:
+            # Default REST action
+            action = AgentAction(
+                type=ActionType.REST,
+                agent_id=agent.id,
+                turn=self.state.current_tick,
+                timestamp=time.time(),
+                extra={"reason": "Random rest action"}
+            )
 
         return action
 
     def _process_action(self, action: AgentAction):
         """Process an agent action"""
-        # Sample implementation - just log the action
+        # Log the action
         logger.debug(f"Processing action: {action.type} by agent {action.agent_id}")
 
-        # Handle different action types
+        # Process market-related actions through the economy manager
+        if action.type in [
+            ActionType.HIRE, ActionType.FIRE, ActionType.APPLY, 
+            ActionType.LIST_GOODS, ActionType.RETRACT, ActionType.PURCHASE,
+            ActionType.WORK
+        ]:
+            success, message = self.economy_manager.process_action(action, self.agents)
+            if success:
+                logger.debug(f"Economic action succeeded: {message}")
+            else:
+                logger.warning(f"Economic action failed: {message}")
+            
+            return
+
+        # Handle different action types using the old system
         if action.type == ActionType.OFFER:
             # Create a new interaction
             if action.offer_details and action.offer_details.to_agent_id:
@@ -522,52 +634,42 @@ class Simulation:
                     }
                 )
 
-        # Other action types would be handled here
+        # Process active interactions
+        self._process_active_interactions()
 
     def _process_active_interactions(self):
         """Process all active interactions"""
         for interaction_id in list(self.state.active_interactions):
             interaction = self.interactions[interaction_id]
+            
+            # Process the interaction using the economy manager
+            updated_interaction = self.economy_manager.process_interaction(interaction, self.agents)
+            self.interactions[interaction_id] = updated_interaction
+            
+            # Check if the interaction is complete
+            if updated_interaction.is_complete:
+                # Move to completed interactions
+                self.state.active_interactions.remove(interaction_id)
+                self.state.completed_interactions.append(interaction_id)
+                logger.debug(f"Completed interaction: {interaction_id}")
 
-            # Process based on interaction type
-            if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
-                handler = self.interaction_handlers.get(EconomicInteractionType.ULTIMATUM)
-                if handler:
-                    updated_interaction = handler.process(interaction, self.agents)
-                    self.interactions[interaction_id] = updated_interaction
-
-                    # Check if the interaction is complete
-                    if updated_interaction.is_complete:
-                        # Move to completed interactions
-                        self.state.active_interactions.remove(interaction_id)
-                        self.state.completed_interactions.append(interaction_id)
-                        logger.debug(f"Completed interaction: {interaction_id}")
-
-            elif interaction.interaction_type == EconomicInteractionType.TRUST:
-                handler = self.interaction_handlers.get(EconomicInteractionType.TRUST)
-                if handler:
-                    updated_interaction = handler.process(interaction, self.agents)
-                    self.interactions[interaction_id] = updated_interaction
-
-                    # Check if the interaction is complete
-                    if updated_interaction.is_complete:
-                        # Move to completed interactions
-                        self.state.active_interactions.remove(interaction_id)
-                        self.state.completed_interactions.append(interaction_id)
-                        logger.debug(f"Completed interaction: {interaction_id}")
-
-            elif interaction.interaction_type == EconomicInteractionType.PUBLIC_GOODS:
-                handler = self.interaction_handlers.get(EconomicInteractionType.PUBLIC_GOODS)
-                if handler:
-                    updated_interaction = handler.process(interaction, self.agents)
-                    self.interactions[interaction_id] = updated_interaction
-
-                    # Check if the interaction is complete
-                    if updated_interaction.is_complete:
-                        # Move to completed interactions
-                        self.state.active_interactions.remove(interaction_id)
-                        self.state.completed_interactions.append(interaction_id)
-                        logger.debug(f"Completed interaction: {interaction_id}")
+    def _create_random_economic_interaction(self):
+        """Create a random economic interaction between agents"""
+        # Only create an interaction if we have enough active agents
+        if len(self.state.active_agents) < 2:
+            return
+        
+        # Create a random interaction using the economy manager
+        interaction = self.economy_manager.create_random_economic_interaction(
+            active_agents=self.state.active_agents,
+            agents=self.agents
+        )
+        
+        if interaction:
+            # Store the interaction
+            self.interactions[interaction.id] = interaction
+            self.state.active_interactions.append(interaction.id)
+            logger.debug(f"Created random interaction: {interaction.id} ({interaction.interaction_type.value})")
 
     def _generate_narrative(self):
         """Generate narrative events from interactions"""
@@ -647,14 +749,23 @@ class Simulation:
         # Calculate interaction rates
         interaction_rate = len(self.state.completed_interactions) / max(1, len(self.state.active_agents))
 
+        # Get market data from the economy manager
+        market_report = self.economy_manager.generate_market_report()
+
         # Store economic indicators
-        self.state.economic_indicators = {
+        self.state.economic_indicators.update({
             "total_resources": {k.value: v for k, v in total_resources.items()},
             "avg_resources": {k.value: v for k, v in avg_resources.items()},
             "inequality": inequality,
             "interaction_rate": interaction_rate,
-            "population": len(self.state.active_agents)
-        }
+            "population": len(self.state.active_agents),
+            "avg_resource_prices": market_report["avg_resource_prices"],
+            "avg_job_salaries": market_report["avg_job_salaries"],
+            "goods_offers": market_report["active_goods_offers"],
+            "goods_requests": market_report["active_goods_requests"],
+            "job_offers": market_report["active_job_offers"],
+            "employment_ratio": market_report["employment_ratio"]
+        })
 
     def _calculate_gini(self, values) -> float:
         """Calculate the Gini coefficient as a measure of inequality"""
@@ -680,27 +791,13 @@ class Simulation:
             parameters: Dict[str, Any]
     ) -> str:
         """Create a new interaction between agents"""
-        # Determine appropriate roles based on interaction type
-        if interaction_type == EconomicInteractionType.ULTIMATUM:
-            initiator_role = InteractionRole.PROPOSER
-            responder_role = InteractionRole.RESPONDER
-        elif interaction_type == EconomicInteractionType.TRUST:
-            initiator_role = InteractionRole.INVESTOR
-            responder_role = InteractionRole.TRUSTEE
-        elif interaction_type == EconomicInteractionType.PUBLIC_GOODS:
-            initiator_role = InteractionRole.CONTRIBUTOR
-            responder_role = InteractionRole.CONTRIBUTOR
-        else:
-            initiator_role = InteractionRole.PARTICIPANT
-            responder_role = InteractionRole.PARTICIPANT
-
-        # Create the interaction
+        # Create the interaction using the simplified roles
         interaction = EconomicInteraction(
             id=f"interaction_{len(self.interactions) + 1}",
             interaction_type=interaction_type,
             participants={
-                initiator_id: initiator_role,
-                responder_id: responder_role
+                initiator_id: InteractionRole.INITIATOR,
+                responder_id: InteractionRole.RESPONDER
             },
             parameters=parameters,
             start_time=datetime.now(),
@@ -715,63 +812,3 @@ class Simulation:
 
         logger.debug(f"Created interaction: {interaction.id} ({interaction.interaction_type.value})")
         return interaction.id
-
-    def _create_demo_interaction(self):
-        """Create a demo interaction to ensure there's at least one for testing"""
-        if len(self.state.active_agents) < 2:
-            return
-
-        # Choose two random agents
-        agents = random.sample(self.state.active_agents, 2)
-
-        # Choose a random interaction type
-        interaction_type = random.choice(list(self.interaction_handlers.keys()))
-
-        # Create parameters based on interaction type
-        if interaction_type == EconomicInteractionType.ULTIMATUM:
-            parameters = {
-                "offer_amount": 40,
-                "total_amount": 100,
-                "responder_accepts": random.choice([True, False])
-            }
-        elif interaction_type == EconomicInteractionType.TRUST:
-            parameters = {
-                "investment": 50,
-                "multiplier": 3,
-                "returned": random.randint(0, 150)
-            }
-        elif interaction_type == EconomicInteractionType.PUBLIC_GOODS:
-            participants = {agent_id: random.randint(10, 50) for agent_id in
-                            random.sample(self.state.active_agents, min(4, len(self.state.active_agents)))}
-            total = sum(participants.values())
-            multiplier = 2
-            total_return = total * multiplier
-            per_agent = total_return / len(participants)
-            parameters = {
-                "contributions": participants,
-                "total_contribution": total,
-                "multiplier": multiplier,
-                "total_return": total_return,
-                "individual_returns": {agent_id: per_agent for agent_id in participants}
-            }
-        else:
-            parameters = {}
-
-        # Create the interaction
-        interaction_id = self._create_interaction(
-            initiator_id=agents[0],
-            responder_id=agents[1],
-            interaction_type=interaction_type,
-            parameters=parameters
-        )
-
-        # Mark the interaction as complete for narrative generation
-        interaction = self.interactions[interaction_id]
-        interaction.is_complete = True
-        interaction.end_time = datetime.now()
-
-        # Move to completed interactions
-        self.state.active_interactions.remove(interaction_id)
-        self.state.completed_interactions.append(interaction_id)
-
-        logger.debug(f"Created and completed demo interaction: {interaction_id}")

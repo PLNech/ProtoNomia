@@ -15,18 +15,26 @@ class ActionType(str, Enum):
     SEARCH_JOB = "SEARCH_JOB"         # Look for employment
     WORK = "WORK"                     # Work at a job
     BUY = "BUY"                       # Purchase goods
-    SELL = "SELL"  # Sell goods or services
-    MOVE = "MOVE"  # Move to a new location
-    LEARN = "LEARN"  # Learn a new skill or improve existing ones
-    SOCIALIZE = "SOCIALIZE"  # Interact socially with other agents
-    RESEARCH = "RESEARCH"  # Research new technologies or information
-    INVEST = "INVEST"  # Invest in assets or projects
-    DONATE = "DONATE"  # Donate to others or public goods
-    PRODUCE = "PRODUCE"  # Produce goods or services
-    CONSUME = "CONSUME"  # Consume goods or services
-    STEAL = "STEAL"  # Attempt to steal resources (risky)
-    SABOTAGE = "SABOTAGE"  # Attempt to sabotage others (risky)
-    FORM_COALITION = "FORM_COALITION"  # Form a coalition with other agents
+    SELL = "SELL"                     # Sell goods or services
+    MOVE = "MOVE"                     # Move to a new location
+    LEARN = "LEARN"                   # Learn a new skill or improve existing ones
+    SOCIALIZE = "SOCIALIZE"           # Interact socially with other agents
+    RESEARCH = "RESEARCH"             # Research new technologies or information
+    INVEST = "INVEST"                 # Invest in assets or projects
+    DONATE = "DONATE"                 # Donate to others or public goods
+    PRODUCE = "PRODUCE"               # Produce goods or services
+    CONSUME = "CONSUME"               # Consume goods or services
+    STEAL = "STEAL"                   # Attempt to steal resources (risky)
+    SABOTAGE = "SABOTAGE"             # Attempt to sabotage others (risky)
+    FORM_COALITION = "FORM_COALITION" # Form a coalition with other agents
+    
+    # New market-related actions
+    HIRE = "HIRE"                     # Create a job listing
+    FIRE = "FIRE"                     # Fire an employee
+    APPLY = "APPLY"                   # Apply for a job listing
+    LIST_GOODS = "LIST_GOODS"         # Create a goods listing (offer or request)
+    RETRACT = "RETRACT"               # Retract a listing
+    PURCHASE = "PURCHASE"             # Purchase from a goods listing
 
 class OfferData(BaseModel):
     """Data for an offer action"""
@@ -131,16 +139,16 @@ class OfferAction(BaseModel):
     """Details for an OFFER action"""
     what: str                         # What is being offered
     against_what: str                 # What is expected in return
-    to_agent_id: Optional[str] = None # Target agent (if specific)
+    to_agent_id: Optional[str] = None # Who the offer is directed to
 
 class NegotiateAction(BaseModel):
     """Details for a NEGOTIATE action"""
-    offer_id: str                     # ID of the offer being negotiated
-    message: str                      # Negotiation message/counter-offer
+    offer_id: str                     # ID of the offer to negotiate
+    message: str                      # Negotiation message
 
 class AcceptRejectAction(BaseModel):
     """Details for ACCEPT or REJECT actions"""
-    offer_id: str                     # ID of the offer being accepted/rejected
+    offer_id: str                     # ID of the offer to accept/reject
 
 class WorkAction(BaseModel):
     """Details for a WORK action"""
@@ -166,75 +174,24 @@ class LLMAgentActionResponse(BaseModel):
     extra: Dict[str, Any] = Field(default_factory=dict)
 
 class AgentDecisionContext(BaseModel):
-    """Context provided to agent for decision making"""
-    turn: int
-    max_turns: int
-    neighbors: List[str]
-    pending_offers: List[Dict[str, Any]]
-    jobs_available: List[Dict[str, Any]]
-    items_for_sale: List[Dict[str, Any]]
-    recent_interactions: List[Dict[str, Any]] = []
+    """Context for agent decision making"""
+    turn: int                         # Current turn
+    max_turns: int                    # Maximum number of turns
+    neighbors: List[str]              # Neighbor agent IDs
+    pending_offers: List[Dict]        # Pending offers for the agent
+    jobs_available: List[Dict]        # Available jobs
+    items_for_sale: List[Dict]        # Items for sale
+    recent_interactions: List[Dict]   # Recent interactions with other agents
+    goods_listings: List[Dict] = Field(default_factory=list)  # Goods market listings
+    job_listings: List[Dict] = Field(default_factory=list)    # Job market listings
+    market_summary: Optional[Dict] = None                     # Summary of market trends
 
-class AgentAction(BaseModel):
-    """Represents an action taken by an agent"""
-    type: ActionType
-    agent_id: str
-    turn: int
-    timestamp: float = Field(default_factory=time.time)
-    extra: Optional[Dict[str, Any]] = None
-    
-    # Action-specific details based on type
-    offer_details: Optional[OfferAction] = None
-    negotiate_details: Optional[NegotiateAction] = None
-    accept_reject_details: Optional[AcceptRejectAction] = None
-    work_details: Optional[WorkAction] = None
-    buy_details: Optional[BuyAction] = None
-    
-    def __str__(self):
-        return f"{self.agent_id} action at turn {self.turn}: {self.type} - extra={self.extra}"
-        
-    def __repr__(self):
-        return f"ACTION({self.agent_id}, {self.type}, {self.extra})"
-    
-    @validator('offer_details')
-    def validate_offer_details(cls, v, values):
-        if values.get('type') == ActionType.OFFER and v is None:
-            raise ValueError("Offer details required for OFFER action")
-        return v
-    
-    @validator('negotiate_details')
-    def validate_negotiate_details(cls, v, values):
-        if values.get('type') == ActionType.NEGOTIATE and v is None:
-            raise ValueError("Negotiate details required for NEGOTIATE action")
-        return v
-    
-    @validator('accept_reject_details')
-    def validate_accept_reject_details(cls, v, values):
-        if values.get('type') in [ActionType.ACCEPT, ActionType.REJECT] and v is None:
-            raise ValueError("Accept/Reject details required for ACCEPT or REJECT action")
-        return v
-    
-    @validator('work_details')
-    def validate_work_details(cls, v, values):
-        if values.get('type') == ActionType.WORK and v is None:
-            raise ValueError("Work details required for WORK action")
-        return v
-    
-    @validator('buy_details')
-    def validate_buy_details(cls, v, values):
-        if values.get('type') == ActionType.BUY and v is None:
-            raise ValueError("Buy details required for BUY action")
-        return v
-
-# Simplified model for LLM response
 class AgentDecision(BaseModel):
     """Decision made by an agent via LLM"""
     type: ActionType = Field(..., description="Type of action to take")
     extra: Dict[str, Any] = Field(default_factory=dict, description="Additional data for the action")
     reasoning: Optional[str] = Field(None, description="Reasoning behind the decision")
 
-
-# Models for the agent state provided to the LLM
 class AgentNeighbor(BaseModel):
     """Information about a neighboring agent"""
     id: str = Field(..., description="ID of the neighbor")
@@ -312,3 +269,134 @@ class AgentState(BaseModel):
     current_turn: int = Field(..., description="Current turn in the simulation")
     max_turns: int = Field(..., description="Maximum number of turns")
     global_economic_indicators: Dict[str, float] = Field(default_factory=dict, description="Global economic indicators")
+
+# New market-related action details
+class HireAction(BaseModel):
+    """Details for a HIRE action"""
+    job_type: str                     # Type of job being offered
+    salary_per_turn: float            # Salary per turn
+    requirements: str                 # Requirements for the job
+    max_employees: int = 1            # Maximum number of employees for this job
+    description: Optional[str] = None # Description of the job
+
+class FireAction(BaseModel):
+    """Details for a FIRE action"""
+    employee_id: str                  # ID of the employee to fire
+    job_id: str                       # ID of the job listing
+
+class ApplyAction(BaseModel):
+    """Details for an APPLY action"""
+    listing_id: str                   # ID of the listing to apply to
+
+class ListGoodsAction(BaseModel):
+    """Details for a LIST_GOODS action"""
+    is_offer: bool                    # True for offer, False for request
+    resource_type: str                # Type of resource being traded
+    amount: float                     # Amount (positive for offer, negative for request)
+    price_per_unit: float             # Price per unit
+    description: Optional[str] = None # Description of the listing
+
+class RetractAction(BaseModel):
+    """Details for a RETRACT action"""
+    listing_id: str                   # ID of the listing to retract
+
+class PurchaseAction(BaseModel):
+    """Details for a PURCHASE action"""
+    listing_id: str                   # ID of the listing to purchase from
+    amount: float                     # Amount to purchase
+
+class AgentAction(BaseModel):
+    """Represents an action taken by an agent"""
+    type: ActionType
+    agent_id: str
+    turn: int
+    timestamp: float = Field(default_factory=time.time)
+    extra: Optional[Dict[str, Any]] = None
+    
+    # Action-specific details based on type
+    offer_details: Optional[OfferAction] = None
+    negotiate_details: Optional[NegotiateAction] = None
+    accept_reject_details: Optional[AcceptRejectAction] = None
+    work_details: Optional[WorkAction] = None
+    buy_details: Optional[BuyAction] = None
+    
+    # New market-related action details
+    hire_details: Optional[HireAction] = None
+    fire_details: Optional[FireAction] = None
+    apply_details: Optional[ApplyAction] = None
+    list_goods_details: Optional[ListGoodsAction] = None
+    retract_details: Optional[RetractAction] = None
+    purchase_details: Optional[PurchaseAction] = None
+    
+    def __str__(self):
+        return f"{self.agent_id} action at turn {self.turn}: {self.type} - extra={self.extra}"
+        
+    def __repr__(self):
+        return f"ACTION({self.agent_id}, {self.type}, {self.extra})"
+    
+    @validator('offer_details')
+    def validate_offer_details(cls, v, values):
+        if values.get('type') == ActionType.OFFER and v is None:
+            raise ValueError("Offer details required for OFFER action")
+        return v
+    
+    @validator('negotiate_details')
+    def validate_negotiate_details(cls, v, values):
+        if values.get('type') == ActionType.NEGOTIATE and v is None:
+            raise ValueError("Negotiate details required for NEGOTIATE action")
+        return v
+    
+    @validator('accept_reject_details')
+    def validate_accept_reject_details(cls, v, values):
+        if values.get('type') in [ActionType.ACCEPT, ActionType.REJECT] and v is None:
+            raise ValueError("Accept/Reject details required for ACCEPT or REJECT action")
+        return v
+    
+    @validator('work_details')
+    def validate_work_details(cls, v, values):
+        if values.get('type') == ActionType.WORK and v is None:
+            raise ValueError("Work details required for WORK action")
+        return v
+    
+    @validator('buy_details')
+    def validate_buy_details(cls, v, values):
+        if values.get('type') == ActionType.BUY and v is None:
+            raise ValueError("Buy details required for BUY action")
+        return v
+    
+    # Validators for new market-related action details
+    @validator('hire_details')
+    def validate_hire_details(cls, v, values):
+        if values.get('type') == ActionType.HIRE and v is None:
+            raise ValueError("Hire details required for HIRE action")
+        return v
+    
+    @validator('fire_details')
+    def validate_fire_details(cls, v, values):
+        if values.get('type') == ActionType.FIRE and v is None:
+            raise ValueError("Fire details required for FIRE action")
+        return v
+    
+    @validator('apply_details')
+    def validate_apply_details(cls, v, values):
+        if values.get('type') == ActionType.APPLY and v is None:
+            raise ValueError("Apply details required for APPLY action")
+        return v
+    
+    @validator('list_goods_details')
+    def validate_list_goods_details(cls, v, values):
+        if values.get('type') == ActionType.LIST_GOODS and v is None:
+            raise ValueError("List goods details required for LIST_GOODS action")
+        return v
+    
+    @validator('retract_details')
+    def validate_retract_details(cls, v, values):
+        if values.get('type') == ActionType.RETRACT and v is None:
+            raise ValueError("Retract details required for RETRACT action")
+        return v
+    
+    @validator('purchase_details')
+    def validate_purchase_details(cls, v, values):
+        if values.get('type') == ActionType.PURCHASE and v is None:
+            raise ValueError("Purchase details required for PURCHASE action")
+        return v

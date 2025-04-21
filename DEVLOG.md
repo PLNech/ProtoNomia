@@ -1,88 +1,60 @@
 # ProtoNomia Development Log
 
-## Improved LLM Response Models with Validation
-
-**Date:** 2025-04-20
-
-**Description:**
-Enhanced the LLM response models using Pydantic validators to ensure high-quality outputs:
-- Added field and model validators to `NarrativeResponse`, `DailySummaryResponse`, and `AgentActionResponse` models
-- Implemented content moderation for narrative outputs to filter inappropriate content
-- Added coherence validation between titles, descriptions, and tags
-- Updated the `OllamaClient` class to better support structured output generation
-- Improved error handling and fallback mechanisms
-- Made OllamaClient more robust with direct JSON parsing when instructor package is not available
-
-**Demand:**
-Continue but ensure you use response models: @https://python.useinstructor.com/blog/2023/10/23/good-llm-validation-is-just-good-validation/#define-the-response-model-with-validators simplify llm interactions across @llm_narrator.py and @llm_agent.py thanks to these run headless.py and tests to validate your work
-
-**Files:**
-- [M] llm_models.py - Added validators for response models
-- [M] llm_utils.py - Improved OllamaClient with better structured output handling
-- [A] test_llm_updates.py - Added test script for validating changes
-- [M] DEVLOG.md - Updated with latest changes
-
-**Bugs:**
-- Fixed variable reference issue in OllamaClient constructor (`model` to `model_name`)
-- Fixed compatibility issues with instructor package by adding manual JSON parsing fallback
-- Fixed missing dependencies by ensuring proper installation of required packages
-
-## Fixed Instructor Patching Implementation
+## Comprehensive Economic Interaction System Implementation
 
 ### Date
-2025-04-24
+2025-04-25
 
 ### Description
-Fixed critical issues with Instructor patching implementation that were causing runtime errors. Key fixes include:
+Implemented a robust and flexible economic interaction system for the ProtoNomia simulation, focusing on three core interaction types:
 
-1. Updated the OllamaClient to use the correct `instructor.patch()` approach instead of the deprecated `instructor.from_openai()` method
-2. Removed unsupported `proxies` and other problematic keyword arguments from OpenAI client initialization
-3. Modified how the patched client is accessed and used for structured outputs
-4. Simplified the fallback mechanism to ensure compatibility with all Instructor versions
-5. Added additional logging to help diagnose future integration issues
+1. **Ultimatum Game Handler** (`economics/interactions/ultimatum.py`):
+   - Simulates negotiation dynamics between agents
+   - Implements strategic decision-making based on personality traits
+   - Calculates utility changes and narrative significance
+   - Supports complex offer and rejection scenarios
 
-These changes ensure proper compatibility with the latest Instructor version and fix the runtime errors that were preventing the simulation from starting when using LLM features.
+2. **Trust Game Handler** (`economics/interactions/trust.py`):
+   - Models investment and reciprocity interactions
+   - Generates outcomes based on agent trust levels
+   - Tracks resource exchanges and strategic behaviors
+   - Provides nuanced narrative significance calculation
 
-### Demand
-Fix the AttributeError where "module 'instructor' has no attribute 'from_openai'" and the TypeError with unexpected "proxies" keyword argument.
+3. **Public Goods Game Handler** (`economics/interactions/public_goods.py`):
+   - Simulates collective action and cooperation
+   - Implements contribution and distribution mechanics
+   - Analyzes group dynamics through economic interactions
+   - Generates rich narrative contexts based on contribution patterns
 
-### Files
-- [M] `llm_utils.py` - Fixed Instructor patching implementation
-- [M] `agents/llm_agent.py` - Minor updates to use the correct patching approach
-- [M] `DEVLOG.md` - Added entry documenting the fixes
-
-### Bugs
-- Fixed AttributeError with missing "from_openai" method
-- Fixed TypeError with unexpected "proxies" keyword argument
-- Added proper error handling for compatibility with different Instructor versions
-
-## Improved Ollama Integration with OpenAI Compatibility Layer
-
-### Date
-2025-04-23
-
-### Description
-Enhanced the Ollama integration to use the official OpenAI compatibility layer (v1 API) for more reliable structured outputs. Key improvements include:
-
-1. Updated `OllamaClient` to primarily use Ollama's OpenAI compatibility API
-2. Added graceful fallback to direct API when compatibility layer is unavailable
-3. Improved connection testing to detect and verify compatibility API availability
-4. Switched from JSON_SCHEMA to JSON mode for better model compatibility
-5. Implemented proper validation of the compatibility API during initialization
-
-These changes further improve reliability and performance of LLM interactions by leveraging Ollama's built-in OpenAI compatibility, which provides better handling of structured outputs and follows the same interface as our standard OpenAI client, simplifying maintenance.
+Key Improvements:
+- Introduced sophisticated personality-driven interaction strategies
+- Implemented detailed utility and resource exchange calculations
+- Created narrative significance scoring for each interaction type
+- Enhanced economic interaction logging and traceability
+- Integrated with LLM-based narrative generation system
 
 ### Demand
-Reimplement with patch using Ollama's official OpenAI compatibility layer as documented in the Instructor documentation.
+Implement a comprehensive economic interaction system that supports multiple interaction types, generates rich narrative content, and provides insights into agent behaviors and colony dynamics.
 
 ### Files
-- [M] `llm_utils.py` - Updated to use Ollama's OpenAI compatibility layer with fallback to direct API
-- [M] `DEVLOG.md` - Added entry documenting the changes
+- [A] `economics/interactions/ultimatum.py` - Ultimatum Game interaction implementation
+- [A] `economics/interactions/trust.py` - Trust Game interaction implementation
+- [A] `economics/interactions/public_goods.py` - Public Goods Game interaction implementation
+- [M] `core/simulation.py` - Updated to support new interaction types and handlers
+- [M] `narrative/llm_narrator.py` - Enhanced prompt generation for economic interactions
+- [M] `economics/economy_manager.py` - Integrated new interaction handlers
 
 ### Bugs
-- Fixed potential issues with JSON schema parsing by switching to JSON mode
-- Added graceful degradation when OpenAI compatibility layer is unavailable
-- Improved error reporting and fallback mechanisms
+- Fixed potential division-by-zero errors in interaction outcome calculations
+- Addressed edge cases in resource exchange and utility change computations
+- Improved error handling for interaction generation and processing
+- Ensured consistent interaction state management across different game types
+
+### Future Work
+- Expand interaction types to include more complex economic scenarios
+- Develop more sophisticated personality-driven decision-making algorithms
+- Enhance narrative generation to provide deeper contextual insights
+- Implement more granular resource and utility tracking 
 
 ## Refactored LLM Interactions to Use Instructor for Improved Structured Output
 
@@ -119,6 +91,49 @@ Refactor all our llm interactions to use instructor and retries to simplify and 
 - Eliminated manual JSON string extraction and parsing
 - Added more detailed diagnostics through structured responses
 - Fixed simulation stopping on LLM timeouts by implementing proper retry policies
+
+## Test Refactoring and LLM Integration
+
+### Date
+2025-04-21
+
+### Description
+Refactored the test suite to separate unit tests from LLM integration tests, improving test organization and execution efficiency. Also fixed several implementation issues in the simulation code to ensure it runs correctly without depending on mock behavior.
+
+Key accomplishments:
+- Created tests/unit and tests/llm directories to separate test types
+- Removed tests that validated mock behavior
+- Created proper LLM integration tests with appropriate environment variable controls
+- Fixed compatibility issues in the Simulation class
+- Added comprehensive documentation in DOCS.md
+- Added pytest configuration to support test organization
+- Fixed resource handling in the simulation to work with the current data model
+- Successfully ran the simulation in headless mode
+
+### Demand
+Ok can you now remove any test that was validating mock behavior? and ensure we have tests validating llm calls, factorize them under tests/llm/ so that we know when we run tests/unit/ quick tests vs tests/llm/ longer-running ones.
+Then continue your dev, ensure @design.md design is complete, validate your dev with tests and running headless script.
+
+### Files
+- [A] DOCS.md
+- [A] pytest.ini
+- [A] tests/unit/__init__.py
+- [A] tests/llm/__init__.py
+- [A] tests/unit/test_headless.py
+- [A] tests/unit/test_simulation.py
+- [A] tests/llm/test_llm_agent_integration.py
+- [A] tests/llm/test_llm_narrator_integration.py
+- [A] tests/llm/test_simulation_llm_integration.py
+- [M] core/simulation.py
+
+### Bugs
+- Fixed type issues with AgentFaction.TERRA_ALIGNED (changed to AgentFaction.TERRA_CORP)
+- Fixed AgentFaction.CORPORATE (changed to AgentFaction.UNDERGROUND)
+- Fixed ResourceType.FOOD (changed to ResourceType.PHYSICAL_GOODS)
+- Fixed resources handling in _create_random_agent to use List[ResourceBalance]
+- Fixed _update_economic_indicators to work with List[ResourceBalance]
+- Fixed population_controller.process_lifecycle method call
+- Fixed InteractionRole issues in _create_interaction 
 
 ## Enhanced Ollama Connection Handling and Error Recovery
 
@@ -242,45 +257,87 @@ Implement an Ollama-based Narrator for the ProtoNomia simulation that generates 
 - [A] `tests/test_llm_narrator.py` - Tests for the LLMNarrator
 - [A] `DEVLOG.md` - Development log documenting the changes
 
-## Test Refactoring and LLM Integration
+## Improved LLM Response Models with Validation
+
+**Date:** 2025-04-20
+
+**Description:**
+Enhanced the LLM response models using Pydantic validators to ensure high-quality outputs:
+- Added field and model validators to `NarrativeResponse`, `DailySummaryResponse`, and `AgentActionResponse` models
+- Implemented content moderation for narrative outputs to filter inappropriate content
+- Added coherence validation between titles, descriptions, and tags
+- Updated the `OllamaClient` class to better support structured output generation
+- Improved error handling and fallback mechanisms
+- Made OllamaClient more robust with direct JSON parsing when instructor package is not available
+
+**Demand:**
+Continue but ensure you use response models: @https://python.useinstructor.com/blog/2023/10/23/good-llm-validation-is-just-good-validation/#define-the-response-model-with-validators simplify llm interactions across @llm_narrator.py and @llm_agent.py thanks to these run headless.py and tests to validate your work
+
+**Files:**
+- [M] llm_models.py - Added validators for response models
+- [M] llm_utils.py - Improved OllamaClient with better structured output handling
+- [A] test_llm_updates.py - Added test script for validating changes
+- [M] DEVLOG.md - Updated with latest changes
+
+**Bugs:**
+- Fixed variable reference issue in OllamaClient constructor (`model` to `model_name`)
+- Fixed compatibility issues with instructor package by adding manual JSON parsing fallback
+- Fixed missing dependencies by ensuring proper installation of required packages
+
+## Fixed Instructor Patching Implementation
 
 ### Date
-2025-04-21
+2025-04-24
 
 ### Description
-Refactored the test suite to separate unit tests from LLM integration tests, improving test organization and execution efficiency. Also fixed several implementation issues in the simulation code to ensure it runs correctly without depending on mock behavior.
+Fixed critical issues with Instructor patching implementation that were causing runtime errors. Key fixes include:
 
-Key accomplishments:
-- Created tests/unit and tests/llm directories to separate test types
-- Removed tests that validated mock behavior
-- Created proper LLM integration tests with appropriate environment variable controls
-- Fixed compatibility issues in the Simulation class
-- Added comprehensive documentation in DOCS.md
-- Added pytest configuration to support test organization
-- Fixed resource handling in the simulation to work with the current data model
-- Successfully ran the simulation in headless mode
+1. Updated the OllamaClient to use the correct `instructor.patch()` approach instead of the deprecated `instructor.from_openai()` method
+2. Removed unsupported `proxies` and other problematic keyword arguments from OpenAI client initialization
+3. Modified how the patched client is accessed and used for structured outputs
+4. Simplified the fallback mechanism to ensure compatibility with all Instructor versions
+5. Added additional logging to help diagnose future integration issues
+
+These changes ensure proper compatibility with the latest Instructor version and fix the runtime errors that were preventing the simulation from starting when using LLM features.
 
 ### Demand
-Ok can you now remove any test that was validating mock behavior? and ensure we have tests validating llm calls, factorize them under tests/llm/ so that we know when we run tests/unit/ quick tests vs tests/llm/ longer-running ones.
-Then continue your dev, ensure @design.md design is complete, validate your dev with tests and running headless script.
+Fix the AttributeError where "module 'instructor' has no attribute 'from_openai'" and the TypeError with unexpected "proxies" keyword argument.
 
 ### Files
-- [A] DOCS.md
-- [A] pytest.ini
-- [A] tests/unit/__init__.py
-- [A] tests/llm/__init__.py
-- [A] tests/unit/test_headless.py
-- [A] tests/unit/test_simulation.py
-- [A] tests/llm/test_llm_agent_integration.py
-- [A] tests/llm/test_llm_narrator_integration.py
-- [A] tests/llm/test_simulation_llm_integration.py
-- [M] core/simulation.py
+- [M] `llm_utils.py` - Fixed Instructor patching implementation
+- [M] `agents/llm_agent.py` - Minor updates to use the correct patching approach
+- [M] `DEVLOG.md` - Added entry documenting the fixes
 
 ### Bugs
-- Fixed type issues with AgentFaction.TERRA_ALIGNED (changed to AgentFaction.TERRA_CORP)
-- Fixed AgentFaction.CORPORATE (changed to AgentFaction.UNDERGROUND)
-- Fixed ResourceType.FOOD (changed to ResourceType.PHYSICAL_GOODS)
-- Fixed resources handling in _create_random_agent to use List[ResourceBalance]
-- Fixed _update_economic_indicators to work with List[ResourceBalance]
-- Fixed population_controller.process_lifecycle method call
-- Fixed InteractionRole issues in _create_interaction 
+- Fixed AttributeError with missing "from_openai" method
+- Fixed TypeError with unexpected "proxies" keyword argument
+- Added proper error handling for compatibility with different Instructor versions
+
+## Improved Ollama Integration with OpenAI Compatibility Layer
+
+### Date
+2025-04-23
+
+### Description
+Enhanced the Ollama integration to use the official OpenAI compatibility layer (v1 API) for more reliable structured outputs. Key improvements include:
+
+1. Updated `OllamaClient` to primarily use Ollama's OpenAI compatibility API
+2. Added graceful fallback to direct API when compatibility layer is unavailable
+3. Improved connection testing to detect and verify compatibility API availability
+4. Switched from JSON_SCHEMA to JSON mode for better model compatibility
+5. Implemented proper validation of the compatibility API during initialization
+
+These changes further improve reliability and performance of LLM interactions by leveraging Ollama's built-in OpenAI compatibility, which provides better handling of structured outputs and follows the same interface as our standard OpenAI client, simplifying maintenance.
+
+### Demand
+Reimplement with patch using Ollama's official OpenAI compatibility layer as documented in the Instructor documentation.
+
+### Files
+- [M] `llm_utils.py` - Updated to use Ollama's OpenAI compatibility layer with fallback to direct API
+- [M] `DEVLOG.md` - Added entry documenting the changes
+
+### Bugs
+- Fixed potential issues with JSON schema parsing by switching to JSON mode
+- Added graceful degradation when OpenAI compatibility layer is unavailable
+- Improved error reporting and fallback mechanisms
+

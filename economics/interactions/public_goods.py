@@ -8,7 +8,7 @@ from models.base import (
     Agent, EconomicInteraction, EconomicInteractionType, InteractionRole,
     InteractionOutcome, InteractionStrategy, ResourceBalance, ResourceType
 )
-from .base import InteractionHandler
+from economics.interactions.base import InteractionHandler
 
 logger = logging.getLogger(__name__)
 
@@ -26,50 +26,49 @@ class PublicGoodsGameHandler(InteractionHandler):
     """
 
     interaction_type = EconomicInteractionType.PUBLIC_GOODS
-
-    def create_interaction(self, participants: List[Agent],
-                           endowment: float, multiplier: float = 1.6,
-                           resource_type: ResourceType = ResourceType.CREDITS) -> EconomicInteraction:
-        """Create a new public goods game interaction
+    
+    def create_interaction(
+        self, 
+        participants: List[Agent],
+        endowment: float = 100.0,
+        multiplier: float = 2.0,
+        resource_type: ResourceType = ResourceType.CREDITS,
+        **kwargs
+    ) -> EconomicInteraction:
+        """Create a public goods game interaction
         
         Args:
             participants: List of participating agents
-            endowment: Amount each participant receives at start
-            multiplier: Multiplier for the common pool (should be > 1 and < n)
-            resource_type: Type of resource being used
+            endowment: The initial amount each participant receives
+            multiplier: The factor by which the pool is multiplied
+            resource_type: The type of resource being used
             
         Returns:
-            A new public goods game interaction
+            A new economic interaction
         """
-        # Ensure we have at least 2 participants
-        if len(participants) < 2:
-            raise ValueError("Public Goods Game requires at least 2 participants")
-
-        # Check if all participants have enough resources
+        logger.info(f"Creating Public Goods Game with {len(participants)} participants, endowment={endowment}, multiplier={multiplier}")
+        
+        # Create participant dictionary
+        participant_dict = {}
         for agent in participants:
-            agent_balance = self.get_resource_balance(agent, resource_type)
-            if agent_balance < endowment:
-                raise ValueError(
-                    f"Agent {agent.name} doesn't have enough {resource_type} ({agent_balance}) for this interaction ({endowment})")
-
+            participant_dict[agent.id] = InteractionRole.CONTRIBUTOR
+        
         # Create the interaction
-        participant_dict = {
-            agent.id: InteractionRole.CONTRIBUTOR for agent in participants
-        }
-
-        return EconomicInteraction(
-            interaction_type=self.interaction_type,
+        interaction = EconomicInteraction(
+            interaction_type=EconomicInteractionType.PUBLIC_GOODS,
             participants=participant_dict,
             parameters={
-                "resource_type": resource_type,
                 "endowment": endowment,
                 "multiplier": multiplier,
-                "contributions": {},  # Will be filled with agent_id -> contribution
-                "stage": "contribution"  # Current stage: contribution, completed
+                "resource_type": resource_type,
+                "contributions": {},  # Will be filled in during progression
+                "stage": "contribution"  # Stages: contribution, completed
             },
             start_time=datetime.now(),
             is_complete=False
         )
+        
+        return interaction
 
     def progress_interaction(self, interaction: EconomicInteraction) -> EconomicInteraction:
         """Progress the public goods game to its next stage
@@ -118,24 +117,44 @@ class PublicGoodsGameHandler(InteractionHandler):
         interaction = self.complete_interaction(interaction)
 
         return interaction
-
+    
     def _calculate_contribution(self, agent_id: str, endowment: float) -> float:
-        """Calculate how much an agent contributes based on personality
+        """Calculate how much an agent contributes
+        
+        In a full implementation, this would use agent personality and past behavior
+        For MVP, we use a simple random distribution
         
         Args:
-            agent_id: ID of the contributing agent
-            endowment: Amount the agent can contribute
+            agent_id: The ID of the agent
+            endowment: The maximum amount the agent can contribute
             
         Returns:
-            Amount the agent contributes
+            The contribution amount
         """
-        # This would use the agent's personality and strategy in a full implementation
-        # For MVP, use a random value weighted by cooperativeness
-        cooperativeness = random.uniform(0.2, 0.8)  # Simulated cooperativeness level
-
-        # More sophisticated calculation would consider past interactions, group composition, etc.
-        proportion = max(0.0, min(1.0, random.normalvariate(cooperativeness, 0.2)))
-        return round(endowment * proportion, 2)
+        # Generate a contribution with bias toward extremes (all or nothing)
+        # or toward fairness (50%)
+        mode = random.choice(["fair", "extreme"])
+        
+        if mode == "fair":
+            # Contribute around 40-60% of endowment
+            mean = 0.5
+            std_dev = 0.1
+        else:
+            # Bimodal - either low or high contribution
+            if random.random() < 0.5:
+                # Free-rider tendency
+                mean = 0.1
+                std_dev = 0.1
+            else:
+                # Cooperator tendency
+                mean = 0.9
+                std_dev = 0.1
+        
+        # Generate and clamp contribution
+        proportion = random.normalvariate(mean, std_dev)
+        proportion = max(0.0, min(1.0, proportion))
+        
+        return round(proportion * endowment, 2)
 
     def complete_interaction(self, interaction: EconomicInteraction) -> EconomicInteraction:
         """Complete the interaction and calculate outcomes
@@ -146,105 +165,124 @@ class PublicGoodsGameHandler(InteractionHandler):
         Returns:
             The completed interaction with outcomes
         """
-        # Extract relevant parameters
-        endowment = interaction.parameters.get("endowment")
-        multiplier = interaction.parameters.get("multiplier")
-        contributions = interaction.parameters.get("contributions", {})
-        resource_type = interaction.parameters.get("resource_type", ResourceType.CREDITS)
-
-        # Calculate the total contribution and return
-        total_contribution = sum(contributions.values())
-        total_return = total_contribution * multiplier
-        per_agent_return = total_return / len(interaction.participants) if interaction.participants else 0
-
-        # Calculate average contribution for reference
-        avg_contribution = total_contribution / len(contributions) if contributions else 0
-
-        # Create outcome objects
+        # Extract parameters
+        params = interaction.parameters
+        endowment = params.get("endowment")
+        multiplier = params.get("multiplier")
+        resource_type = params.get("resource_type")
+        contributions = params.get("contributions", {})
+        
+        # Calculate the pool and individual returns
+        total_pool = sum(contributions.values())
+        multiplied_pool = total_pool * multiplier
+        
+        # Every participant gets an equal share of the multiplied pool
+        num_participants = len(interaction.participants)
+        individual_return = multiplied_pool / num_participants if num_participants > 0 else 0
+        
+        # Calculate outcomes for each participant
         outcomes = []
+        
         for agent_id, role in interaction.participants.items():
+            # Calculate net gain/loss
             contribution = contributions.get(agent_id, 0)
-            final_balance = endowment - contribution + per_agent_return
-            utility_change = final_balance - endowment
-
-            # Determine strategy type based on contribution relative to average
-            if contribution <= 0.2 * endowment:
+            net_change = individual_return - contribution
+            
+            # Determine strategy type based on contribution
+            if contribution <= 0.1 * endowment:
                 strategy_type = "free_rider"
-            elif contribution >= 0.8 * endowment:
+            elif contribution >= 0.9 * endowment:
                 strategy_type = "cooperator"
-            elif contribution < avg_contribution * 0.8:
-                strategy_type = "under_contributor"
-            elif contribution > avg_contribution * 1.2:
-                strategy_type = "over_contributor"
             else:
-                strategy_type = "moderate_contributor"
-
-            outcomes.append(
-                InteractionOutcome(
-                    interaction_id=interaction.id,
-                    agent_id=agent_id,
-                    role=role,
-                    resources_before=[ResourceBalance(
+                strategy_type = "moderate"
+            
+            # Create the outcome
+            outcome = InteractionOutcome(
+                interaction_id=interaction.id,
+                agent_id=agent_id,
+                role=role,
+                resources_before=[
+                    ResourceBalance(
                         resource_type=resource_type,
                         amount=endowment
-                    )],
-                    resources_after=[ResourceBalance(
-                        resource_type=resource_type,
-                        amount=final_balance
-                    )],
-                    utility_change=utility_change,
-                    strategy_used=InteractionStrategy(
-                        strategy_type=strategy_type,
-                        parameters={
-                            "contribution_ratio": contribution / endowment if endowment > 0 else 0,
-                            "relative_to_avg": contribution / avg_contribution if avg_contribution > 0 else 0
-                        }
                     )
+                ],
+                resources_after=[
+                    ResourceBalance(
+                        resource_type=resource_type,
+                        amount=endowment - contribution + individual_return
+                    )
+                ],
+                utility_change=net_change,
+                strategy_used=InteractionStrategy(
+                    strategy_type=strategy_type,
+                    parameters={
+                        "contribution_ratio": contribution / endowment if endowment > 0 else 0,
+                        "return_ratio": individual_return / contribution if contribution > 0 else float('inf')
+                    }
                 )
             )
-
+            
+            outcomes.append(outcome)
+        
         # Update the interaction
         interaction.outcomes = outcomes
         interaction.is_complete = True
         interaction.end_time = datetime.now()
-
+        
         # Calculate narrative significance
-        # Base significance calculation from parent class
-        base_significance = self.calculate_narrative_significance(interaction, outcomes)
-
-        # Add public goods specific significance factors:
-
-        # 1. Measure heterogeneity in contributions (standard deviation)
-        contribution_values = list(contributions.values())
-        if contribution_values:
-            mean = sum(contribution_values) / len(contribution_values)
-            variance = sum((x - mean) ** 2 for x in contribution_values) / len(contribution_values)
-            std_dev = math.sqrt(variance)
-            normalized_std_dev = std_dev / endowment if endowment > 0 else 0
-
-            # High standard deviation means interesting heterogeneity
-            heterogeneity_factor = min(0.3, normalized_std_dev)
+        interaction.narrative_significance = self._calculate_narrative_significance(interaction)
+        
+        return interaction
+    
+    def _calculate_narrative_significance(self, interaction: EconomicInteraction) -> float:
+        """Calculate narrative significance for this public goods game
+        
+        Args:
+            interaction: The completed interaction
+            
+        Returns:
+            A narrative significance score (0.0-1.0)
+        """
+        params = interaction.parameters
+        contributions = params.get("contributions", {})
+        endowment = params.get("endowment", 0)
+        
+        # Base significance for public goods games
+        base_significance = 0.5
+        
+        # Factors that make the interaction more interesting
+        contribution_ratios = [
+            contrib / endowment for contrib in contributions.values()
+        ] if endowment > 0 else []
+        
+        if not contribution_ratios:
+            return base_significance
+        
+        # Calculate heterogeneity of contributions - more varied is more interesting
+        if len(contribution_ratios) > 1:
+            mean_contribution = sum(contribution_ratios) / len(contribution_ratios)
+            variance = sum((r - mean_contribution) ** 2 for r in contribution_ratios) / len(contribution_ratios)
+            heterogeneity = min(0.5, math.sqrt(variance) * 2)  # Scale up, cap at 0.5
         else:
-            heterogeneity_factor = 0
-
-        # 2. Check if there are extreme contributors or free-riders
-        strategy_types = [outcome.strategy_used.strategy_type for outcome in outcomes]
-        has_free_riders = "free_rider" in strategy_types
-        has_cooperators = "cooperator" in strategy_types
-
-        extreme_behavior_factor = 0
-        if has_free_riders and has_cooperators:
-            # Most interesting when both extremes exist
-            extreme_behavior_factor = 0.25
-        elif has_free_riders or has_cooperators:
-            # Somewhat interesting with one extreme
-            extreme_behavior_factor = 0.15
-
-        # 3. Check efficiency (how close to optimal outcome)
-        # In public goods, full contribution is most efficient
-        efficiency = total_contribution / (endowment * len(contributions)) if endowment > 0 and contributions else 0
-        efficiency_factor = 0
-
+            heterogeneity = 0
+        
+        heterogeneity_factor = heterogeneity
+        
+        # Extreme behavior (all free riders or all cooperators) is interesting
+        extreme_behavior = False
+        free_riders = sum(1 for r in contribution_ratios if r < 0.2)
+        cooperators = sum(1 for r in contribution_ratios if r > 0.8)
+        
+        if free_riders == len(contribution_ratios) or cooperators == len(contribution_ratios):
+            extreme_behavior = True
+            
+        extreme_behavior_factor = 0.2 if extreme_behavior else 0.0
+        
+        # Efficiency (how close to optimal outcome)
+        efficiency = sum(contribution_ratios) / len(contribution_ratios)
+        
+        efficiency_factor = 0.0
         if efficiency < 0.2:
             # Very inefficient outcomes are interesting
             efficiency_factor = 0.2
@@ -257,6 +295,4 @@ class PublicGoodsGameHandler(InteractionHandler):
         remaining_room = 1.0 - base_significance
         final_significance = base_significance + (additional_significance * remaining_room)
 
-        interaction.narrative_significance = min(1.0, final_significance)
-
-        return interaction
+        return min(1.0, final_significance)

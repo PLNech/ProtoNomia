@@ -178,22 +178,19 @@ class EconomicInteractionType(str, Enum):
     SABOTAGE = "sabotage_espionage"              # Competitive disruption
 
 class InteractionRole(str, Enum):
-    """Roles agents can play in economic interactions"""
+    """Roles agents can play in economic interactions
+    
+    Simplified to a few generic roles that can be used across different interaction types
+    """
+    INITIATOR = "initiator"     # Agent who started the interaction
+    RESPONDER = "responder"     # Agent who responds to an initiated interaction
+    PARTICIPANT = "participant" # Generic participant in multi-agent interactions
+    
+    # Legacy roles maintained for backward compatibility
     PROPOSER = "proposer"
-    RESPONDER = "responder"
     INVESTOR = "investor"
     TRUSTEE = "trustee"
     CONTRIBUTOR = "contributor"
-    PRODUCER = "producer"
-    BIDDER = "bidder"
-    ASKER = "asker"
-    PRINCIPAL = "principal"
-    AGENT_ROLE = "agent_role"
-    SENDER = "sender"
-    RECEIVER = "receiver"
-    CONTESTANT = "contestant"
-    HARVESTER = "harvester"
-    PARTICIPANT = "participant"
 
 class InteractionStrategy(BaseModel):
     """Strategy used by an agent in an interaction"""

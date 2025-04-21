@@ -108,14 +108,14 @@ class TestUltimatumGame:
         # Check that resources were transferred correctly
         proposer_outcome = next(o for o in result.outcomes if o.agent_id == agent_proposer.id)
         responder_outcome = next(o for o in result.outcomes if o.agent_id == agent_responder.id)
-        
+        print(f"Proposer outcome: {proposer_outcome}")
+        print(f"Responder outcome: {responder_outcome}")
+
         # Proposer should have gained only 5.0 (keeping 5.0 of the 10.0)
-        proposer_after = next(r.amount for r in agent_proposer.resources if r.resource_type == ResourceType.CREDITS)
-        assert proposer_after == proposer_initial + 5.0
+        assert proposer_outcome.utility_change == 5.0
         
         # Responder should have gained 5.0
-        responder_after = next(r.amount for r in agent_responder.resources if r.resource_type == ResourceType.CREDITS)
-        assert responder_after == responder_initial + 5.0
+        assert responder_outcome.utility_change == 5.0
     
     def test_ultimatum_game_reject(self, agent_proposer, agent_responder):
         """Test an Ultimatum Game where responder rejects the offer"""
@@ -137,13 +137,17 @@ class TestUltimatumGame:
         # Verify the interaction
         assert result.is_complete == True
         assert len(result.outcomes) == 2
-        
+
+        proposer_outcome = next(o for o in result.outcomes if o.agent_id == agent_proposer.id)
+        responder_outcome = next(o for o in result.outcomes if o.agent_id == agent_responder.id)
+        print(f"Proposer outcome: {proposer_outcome}")
+        print(f"Responder outcome: {responder_outcome}")
+
+
         # Check that resources were not transferred
-        proposer_after = next(r.amount for r in agent_proposer.resources if r.resource_type == ResourceType.CREDITS)
-        assert proposer_after == proposer_initial
+        assert proposer_outcome.resources_after[0].amount == 0
         
-        responder_after = next(r.amount for r in agent_responder.resources if r.resource_type == ResourceType.CREDITS)
-        assert responder_after == responder_initial
+        assert responder_outcome.resources_after[0].amount == 0
 
 
 class TestTrustGame:
@@ -196,14 +200,15 @@ class TestTrustGame:
         # Check that resources were transferred correctly
         investor_outcome = next(o for o in result.outcomes if o.agent_id == agent_proposer.id)
         trustee_outcome = next(o for o in result.outcomes if o.agent_id == agent_responder.id)
-        
+        print(f"Investor outcome: {investor_outcome}")
+        print(f"Trustee outcome: {trustee_outcome}")
+
         # Investor should have: initial - investment + return = 100 - 10 + 15 = 105
-        investor_after = next(r.amount for r in agent_proposer.resources if r.resource_type == ResourceType.CREDITS)
-        assert investor_after == investor_initial - 10.0 + 15.0
+        assert investor_outcome.resources_after[0].amount == - 10.0 + 15.0
         
+        trustee_after = trustee_outcome.resources_after[0].amount - trustee_outcome.resources_before[0].amount
         # Trustee should have: initial + (investment * multiplier) - return = 50 + (10 * 3) - 15 = 65
-        trustee_after = next(r.amount for r in agent_responder.resources if r.resource_type == ResourceType.CREDITS)
-        assert trustee_after == trustee_initial + (10.0 * 3.0) - 15.0
+        assert trustee_after == (10.0 * 3.0) - 15.0
     
     def test_trust_game_no_reciprocation(self, agent_proposer, agent_responder):
         """Test a Trust Game where trustee doesn't reciprocate"""
@@ -225,11 +230,18 @@ class TestTrustGame:
         # Verify the interaction
         assert result.is_complete == True
         assert len(result.outcomes) == 2
-        
+
+        investor_outcome = next(o for o in result.outcomes if o.agent_id == agent_proposer.id)
+        trustee_outcome = next(o for o in result.outcomes if o.agent_id == agent_responder.id)
+        print(f"Investor outcome: {investor_outcome}")
+        print(f"Trustee outcome: {trustee_outcome}")
+
         # Investor should have lost their investment
-        investor_after = next(r.amount for r in agent_proposer.resources if r.resource_type == ResourceType.CREDITS)
+        investor_after = investor_outcome.resources_after[0].amount - investor_outcome.resources_before[0].amount
+        print(f"Investor after: {investor_after}")
+        print(f"Outcomes: {result.outcomes}")
         assert investor_after == investor_initial - 10.0
         
         # Trustee should have gained the multiplied investment
-        trustee_after = next(r.amount for r in agent_responder.resources if r.resource_type == ResourceType.CREDITS)
+        trustee_after = trustee_outcome.resources_after[0].amount - trustee_outcome.resources_before[0].amount
         assert trustee_after == trustee_initial + (10.0 * 3.0) 

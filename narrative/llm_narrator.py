@@ -3,12 +3,12 @@ LLM-based Narrator module for ProtoNomia.
 This module uses Ollama to generate narrative events from economic interactions.
 """
 import logging
-from typing import List, Dict
+from typing import List, Dict, Any, Tuple
 from datetime import datetime
 
 from models.base import (
     Agent, EconomicInteraction, EconomicInteractionType, InteractionRole,
-    NarrativeEvent
+    NarrativeEvent, InteractionOutcome, ResourceType
 )
 from narrative.narrator import Narrator
 from llm_utils import OllamaClient
@@ -46,6 +46,7 @@ class LLMNarrator(Narrator):
         self.top_k = top_k
         self.timeout = timeout
         self.max_retries = max_retries
+        self.market_report: Dict[str, Any] = {}  # Store the latest market report
 
         logger.info(f"Initializing LLM Narrator with model {model_name}")
 
@@ -155,10 +156,64 @@ class LLMNarrator(Narrator):
         except Exception as e:
             logger.error(f"Error generating daily summary: {e}")
             raise
-            # FIXME: Consider fallback to a simple summary in case of error
-            return f"# Day {day} on Mars\n\n" + \
-                f"Today, {len(events)} events occurred in the Mars colony.\n\n" + \
-                f"The simulation has {len(agents)} active agents."
+
+    def update_market_report(self, market_report: Dict[str, Any]) -> None:
+        """
+        Update the stored market report data.
+        
+        Args:
+            market_report: The latest market report from the economy manager
+        """
+        self.market_report = market_report
+
+    def _extract_economic_outcomes(self, interaction: EconomicInteraction) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Extract economic outcomes from an interaction for narrative purposes.
+        
+        Args:
+            interaction: The economic interaction
+            
+        Returns:
+            A tuple of (resources_exchanged, strategies_used)
+        """
+        resources_exchanged = {}
+        strategies_used = {}
+        
+        # Process the outcomes if they exist
+        if interaction.outcomes:
+            for outcome in interaction.outcomes:
+                # Extract resource changes
+                resource_change = 0.0
+                resource_type = None
+                
+                # Calculate the net change in resources
+                if outcome.resources_before and outcome.resources_after:
+                    for before in outcome.resources_before:
+                        for after in outcome.resources_after:
+                            if before.resource_type == after.resource_type:
+                                change = after.amount - before.amount
+                                if abs(change) > abs(resource_change):
+                                    resource_change = change
+                                    resource_type = before.resource_type.value
+                
+                if resource_type:
+                    # Format: agent_role -> {resource_type: change}
+                    role_name = outcome.role.value
+                    resources_exchanged[role_name] = {
+                        "resource_type": resource_type,
+                        "change": resource_change,
+                        "utility_change": outcome.utility_change
+                    }
+                
+                # Extract strategy information
+                if outcome.strategy_used:
+                    role_name = outcome.role.value
+                    strategies_used[role_name] = {
+                        "type": outcome.strategy_used.strategy_type,
+                        "parameters": outcome.strategy_used.parameters
+                    }
+        
+        return resources_exchanged, strategies_used
 
     def _create_interaction_prompt(
             self,
@@ -170,66 +225,163 @@ class LLMNarrator(Narrator):
         # Get interaction type and parameters
         interaction_type = interaction.interaction_type.value
         parameters = interaction.parameters
+        
+        # Extract economic outcomes for narrative hooks
+        resources_exchanged, strategies_used = self._extract_economic_outcomes(interaction)
 
-        # Get participant names
-        proposer_name = participant_names.get(InteractionRole.PROPOSER, "Agent1")
-        responder_name = participant_names.get(InteractionRole.RESPONDER, "Agent2")
+        # Get participant names and IDs
+        participant_ids = {}
+        for agent_id, role in interaction.participants.items():
+            role_name = role.value
+            participant_ids[role_name] = agent_id
 
         # Create the prompt based on the interaction type
         prompt = (
             f"As the narrator for the Mars colony in the year 2993, describe a meaningful economic interaction "
             f"that reveals character traits and advances relationships through authentic dialogue and vivid details.\n\n"
             f"Interaction Type: {interaction_type}\n"
-            f"Participants: {proposer_name} (Proposer) and {responder_name} (Responder)\n"
+            f"Participants: "
         )
-
+        
+        # Add participants with their roles
+        participants_list = []
+        for role, name in participant_names.items():
+            participants_list.append(f"{name} ({role.value})")
+        
+        prompt += ", ".join(participants_list) + "\n\n"
+        
         # Add specific details based on interaction type
         if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
-            offer = parameters.get('offer_amount', 0)
-            total = parameters.get('total_amount', 100)
-            accepted = parameters.get('responder_accepts', False)
+            # Get values from parameters or outcomes (if available)
+            total_amount = parameters.get('total_amount', 100)
+            proposed_amount = parameters.get('proposed_amount')
+            acceptance = parameters.get('response')
+            resource_type = parameters.get('resource_type', ResourceType.CREDITS).value
+            
+            proposer_name = participant_names.get(InteractionRole.PROPOSER, "Proposer")
+            responder_name = participant_names.get(InteractionRole.RESPONDER, "Responder")
+            
+            # Add economic outcomes if available
+            proposer_outcome = resources_exchanged.get('proposer', {})
+            responder_outcome = resources_exchanged.get('responder', {})
+            
+            proposer_strategy = strategies_used.get('proposer', {}).get('type', 'unknown')
+            responder_strategy = strategies_used.get('responder', {}).get('type', 'unknown')
+            
             prompt += (
-                f"Core Event: {proposer_name} offered {responder_name} {offer} credits out of a total of {total} credits. "
-                f"The offer was {'accepted' if accepted else 'rejected'} by {responder_name}.\n\n"
+                f"Core Event: {proposer_name} offered {responder_name} {proposed_amount} {resource_type} "
+                f"out of a total of {total_amount} {resource_type}. "
+                f"The offer was {'accepted' if acceptance else 'rejected'} by {responder_name}.\n\n"
+            )
+            
+            # Add economic outcomes
+            if proposer_outcome and responder_outcome:
+                prompt += (
+                    f"Economic Outcome: {proposer_name} {'gained' if proposer_outcome.get('utility_change', 0) > 0 else 'lost'} "
+                    f"{abs(proposer_outcome.get('utility_change', 0))} utility "
+                    f"while {responder_name} {'gained' if responder_outcome.get('utility_change', 0) > 0 else 'lost'} "
+                    f"{abs(responder_outcome.get('utility_change', 0))} utility.\n\n"
+                )
+                
+                prompt += (
+                    f"Strategies: {proposer_name} employed a '{proposer_strategy}' approach, "
+                    f"while {responder_name} responded with a '{responder_strategy}' strategy.\n\n"
+                )
+            
+            prompt += (
                 f"Consider what this reveals about power dynamics, negotiation styles, and the personal history between them. "
                 f"What motivated this particular offer? What consequences might this have for their future interactions?\n"
             )
         elif interaction.interaction_type == EconomicInteractionType.TRUST:
-            investment = parameters.get('investment', 0)
+            # Get values from parameters or outcomes
+            initial_amount = parameters.get('initial_amount', 100)
+            invested_amount = parameters.get('invested_amount', 0)
             multiplier = parameters.get('multiplier', 3)
-            returned = parameters.get('returned', 0)
+            returned_amount = parameters.get('returned_amount', 0)
+            resource_type = parameters.get('resource_type', ResourceType.CREDITS).value
+            
+            investor_name = participant_names.get(InteractionRole.INVESTOR, "Investor")
+            trustee_name = participant_names.get(InteractionRole.TRUSTEE, "Trustee")
+            
+            multiplied_amount = invested_amount * multiplier if invested_amount is not None else 0
+            
+            # Add economic outcomes if available
+            investor_outcome = resources_exchanged.get('investor', {})
+            trustee_outcome = resources_exchanged.get('trustee', {})
+            
+            investor_strategy = strategies_used.get('investor', {}).get('type', 'unknown')
+            trustee_strategy = strategies_used.get('trustee', {}).get('type', 'unknown')
+            
             prompt += (
-                f"Core Event: {proposer_name} invested {investment} credits with {responder_name}. "
-                f"The investment grew by a factor of {multiplier} to {investment * multiplier} credits. "
-                f"{responder_name} returned {returned} credits to {proposer_name}.\n\n"
+                f"Core Event: {investor_name} invested {invested_amount} {resource_type} with {trustee_name}. "
+                f"The investment grew by a factor of {multiplier} to {multiplied_amount} {resource_type}. "
+                f"{trustee_name} returned {returned_amount} {resource_type} to {investor_name}.\n\n"
+            )
+            
+            # Add economic outcomes
+            if investor_outcome and trustee_outcome:
+                prompt += (
+                    f"Economic Outcome: {investor_name} {'gained' if investor_outcome.get('utility_change', 0) > 0 else 'lost'} "
+                    f"{abs(investor_outcome.get('utility_change', 0))} utility "
+                    f"while {trustee_name} {'gained' if trustee_outcome.get('utility_change', 0) > 0 else 'lost'} "
+                    f"{abs(trustee_outcome.get('utility_change', 0))} utility.\n\n"
+                )
+                
+                prompt += (
+                    f"Strategies: {investor_name} exhibited a '{investor_strategy}' approach to investing, "
+                    f"while {trustee_name} demonstrated a '{trustee_strategy}' approach to trustworthiness.\n\n"
+                )
+            
+            prompt += (
                 f"Consider the emotional stakes, prior experiences that built or eroded trust, and how this "
                 f"exchange affects the community's perception of both parties. Is this part of a pattern or an unusual event?\n"
             )
         elif interaction.interaction_type == EconomicInteractionType.PUBLIC_GOODS:
+            # Get values from parameters or outcomes
+            endowment = parameters.get('endowment', 100)
+            multiplier = parameters.get('multiplier', 2.0)
             contributions = parameters.get('contributions', {})
-            total_contribution = parameters.get('total_contribution', 0)
-            multiplier = parameters.get('multiplier', 2)
-            total_return = parameters.get('total_return', 0)
-            individual_returns = parameters.get('individual_returns', {})
-
-            # Format the contributions string
-            contributions_str = ", ".join([f"{agent_map.get(agent_id, agent_id)}: {amount}"
-                                           for agent_id, amount in contributions.items()])
-            returns_str = ", ".join([f"{agent_map.get(agent_id, agent_id)}: {amount}"
-                                     for agent_id, amount in individual_returns.items()])
-
+            resource_type = parameters.get('resource_type', ResourceType.CREDITS).value
+            
+            # Format the contributions for the prompt
+            contribution_text = []
+            for agent_id, amount in contributions.items():
+                if agent_id in agent_map:
+                    contribution_text.append(f"{agent_map[agent_id].name}: {amount} {resource_type}")
+            
+            contributions_str = ", ".join(contribution_text) if contribution_text else "No contributions"
+            
+            total_contribution = sum(contributions.values()) if contributions else 0
+            multiplied_pool = total_contribution * multiplier
+            num_participants = len(interaction.participants)
+            individual_return = multiplied_pool / num_participants if num_participants > 0 else 0
+            
             prompt += (
-                f"Core Event: Several colonists participated in a public goods game with these contributions: {contributions_str}\n"
-                f"The total contribution was {total_contribution} credits, which was multiplied by {multiplier}.\n"
-                f"The final pot of {total_return} credits was distributed as follows: {returns_str}\n\n"
-                f"Consider how this community effort reflects faction tensions, resource disparities, or shifting alliances. "
-                f"How do different contribution levels reveal each character's priorities and values? "
-                f"Are there free-riders or exceptionally generous contributors?\n"
+                f"Core Event: A public goods game where each participant received an endowment of {endowment} {resource_type}.\n"
+                f"Contributions: {contributions_str}\n"
+                f"The combined pool of {total_contribution} {resource_type} was multiplied by {multiplier} to {multiplied_pool} {resource_type}.\n"
+                f"Each participant received {individual_return} {resource_type} from the common pool.\n\n"
+            )
+            
+            # Add strategies for each participant
+            strategies_text = []
+            for agent_id, role in interaction.participants.items():
+                role_name = role.value
+                if role_name in strategies_used and agent_id in agent_map:
+                    strategy = strategies_used[role_name].get('type', 'unknown')
+                    strategies_text.append(f"{agent_map[agent_id].name}: {strategy}")
+            
+            if strategies_text:
+                prompt += f"Strategies: {', '.join(strategies_text)}\n\n"
+            
+            prompt += (
+                f"Consider how this reveals group dynamics, cooperation vs. self-interest, and the emerging social norms "
+                f"in the Mars colony. How does the shared environment of Mars influence collective decision-making?\n"
             )
         else:
             # Generic prompt for other interaction types
             prompt += (
-                f"Core Event: An economic exchange between {proposer_name} and {responder_name} with these details: "
+                f"Core Event: An economic exchange with these details: "
                 f"{', '.join([f'{k}: {v}' for k, v in parameters.items()])}\n\n"
                 f"Consider the broader context - is this transaction routine or unusual? "
                 f"What environmental or sociopolitical factors on Mars influenced this exchange?\n"
@@ -263,28 +415,20 @@ class LLMNarrator(Narrator):
                         prompt += f"  {name} embraces uncertainty and bold ventures in this harsh Martian frontier.\n"
                     elif hasattr(personality, 'risk_tolerance') and getattr(personality, 'risk_tolerance', 0) < 0.3:
                         prompt += f"  {name} carefully calculates each move in the precarious Martian environment.\n"
+                    
+                    # Add resource information
+                    if hasattr(agent, 'resources') and agent.resources:
+                        resources_str = ', '.join([f"{r.resource_type.value}: {r.amount}" for r in agent.resources])
+                        prompt += f"  {name}'s current resources: {resources_str}\n"
 
         # Add setting elements for immersive world-building
         prompt += "\n**Martian Setting Elements (include at least one):**\n"
         prompt += "- The thin Martian atmosphere requiring life support systems for outdoor activities\n"
-        prompt += "- Limited resources creating tension between survival needs and luxury goods\n"
-        prompt += "- Faction dynamics between Earth corporations, Mars natives, and independent groups\n"
-        prompt += "- Technological adaptations unique to Mars' gravity, dust, and radiation challenges\n"
-        prompt += "- Cultural traditions that have evolved specifically on Mars over generations\n"
-
-        # Add instructions for the desired output format with improved narrative guidance
-        prompt += "\n**Narrative Guidance:**\n"
-        prompt += "1. Create a catchy, thematic title that captures the core economic tension or relationship\n"
-        prompt += ("2. Write a detailed scene with dialogue showing this interaction "
-                   "through character actions and reactions\n")
-        prompt += "3. Include specific environmental details that ground this exchange in the Martian setting\n"
-        prompt += "4. Connect this event to broader themes of survival, community, or adaptation on Mars\n"
-        prompt += "5. Add relevant tags (keywords) categorizing this event (economics, conflict, collaboration, etc.)\n"
-
-        # Adjust level of detail based on verbosity
-        detail_level = "vivid and emotionally nuanced" if self.verbosity >= 4 \
-            else "concise but character-driven" if self.verbosity <= 2 else "balanced and meaningful"
-        prompt += f"\nGenerate a {detail_level} narrative in JSON format with title, description, and tags fields."
+        prompt += "- The challenges of resource scarcity in the isolated Mars colony\n"
+        prompt += "- The different cultural perspectives between Earth-born (Terra Corp) and Mars-born colonists\n"
+        prompt += "- The advanced technology that enables survival in the harsh Martian environment\n"
+        prompt += "- The psychological effects of living in close quarters far from Earth\n"
+        prompt += "- The unique Martian landscape: rust-colored dust, harsh winds, distant mountains\n"
 
         return prompt
 
@@ -298,6 +442,35 @@ class LLMNarrator(Narrator):
             f"Colony Population: {len(agents)} active colonists\n"
             f"Significant Events: {len(events)} notable interactions occurred today\n\n"
         )
+
+        # Add economic market report if available
+        if self.market_report:
+            prompt += "**Economic Market Status:**\n"
+            # Add key market metrics
+            if 'active_goods_offers' in self.market_report:
+                prompt += f"- Active goods offerings: {self.market_report['active_goods_offers']}\n"
+            if 'active_goods_requests' in self.market_report:
+                prompt += f"- Active goods requests: {self.market_report['active_goods_requests']}\n"
+            if 'active_job_offers' in self.market_report:
+                prompt += f"- Active job listings: {self.market_report['active_job_offers']}\n"
+            if 'total_employees' in self.market_report:
+                prompt += f"- Employed colonists: {self.market_report['total_employees']}\n"
+            
+            # Add resource prices if available
+            if 'avg_resource_prices' in self.market_report and self.market_report['avg_resource_prices']:
+                prompt += "\nAverage Resource Prices:\n"
+                for resource, price in self.market_report['avg_resource_prices'].items():
+                    if price > 0:
+                        prompt += f"- {resource}: {price:.1f} credits\n"
+            
+            # Add job salaries if available
+            if 'avg_job_salaries' in self.market_report and self.market_report['avg_job_salaries']:
+                prompt += "\nAverage Job Salaries:\n"
+                for job_type, salary in self.market_report['avg_job_salaries'].items():
+                    if salary > 0:
+                        prompt += f"- {job_type}: {salary:.1f} credits per turn\n"
+            
+            prompt += "\n"
 
         # Add event information
         if events:
@@ -323,48 +496,35 @@ class LLMNarrator(Narrator):
         agent_types = {}
         factions = {}
         for agent in agents:
-            agent_type = agent.agent_type.value
-            if agent_type in agent_types:
-                agent_types[agent_type] += 1
+            if agent.agent_type.value in agent_types:
+                agent_types[agent.agent_type.value] += 1
             else:
-                agent_types[agent_type] = 1
+                agent_types[agent.agent_type.value] = 1
 
-            faction = agent.faction.value if hasattr(agent, 'faction') else "Unknown"
-            if faction in factions:
-                factions[faction] += 1
+            if agent.faction.value in factions:
+                factions[agent.faction.value] += 1
             else:
-                factions[faction] = 1
+                factions[agent.faction.value] = 1
 
-        prompt += "**Colony Demographics:**\n"
-        prompt += "Population by type:\n"
+        prompt += "**Population Demographics:**\n"
         for agent_type, count in agent_types.items():
-            prompt += f"- {agent_type}: {count}\n"
+            prompt += f"- {agent_type.capitalize()}: {count} ({count / len(agents) * 100:.1f}%)\n"
+        prompt += "\n"
 
-        prompt += "\nPopulation by faction:\n"
+        prompt += "**Political Factions:**\n"
         for faction, count in factions.items():
-            prompt += f"- {faction}: {count}\n"
+            prompt += f"- {faction.replace('_', ' ').title()}: {count} ({count / len(agents) * 100:.1f}%)\n"
+        prompt += "\n"
 
-        # Add potential narrative themes
-        prompt += "\n**Potential Narrative Themes (incorporate at least one):**\n"
-        prompt += "- Adaptation and survival in the harsh Martian environment\n"
-        prompt += "- Economic tensions between different factions or social classes\n"
-        prompt += "- Technological innovation and scientific discovery\n"
-        prompt += "- Community building and cultural development on Mars\n"
-        prompt += "- Individual ambitions versus collective needs\n"
-        prompt += "- The impact of resource scarcity on social structures\n"
-
-        # Add instructions for the desired output format with improved narrative guidance
-        prompt += "\n**Summary Structure:**\n"
-        prompt += "1. Create an engaging headline that captures the day's most important theme or development\n"
-        prompt += "2. Write an opening paragraph establishing the general mood and atmosphere in the colony\n"
-        prompt += "3. Weave the key events together into a cohesive narrative (not just a list of separate events)\n"
-        prompt += "4. Include at least one specific character moment that humanizes the economic data\n"
-        prompt += "5. Conclude with emerging trends, patterns, or tensions building in the colony\n"
-
-        # Adjust level of detail based on verbosity
-        detail_level = "richly detailed and character-focused" if self.verbosity >= 4 \
-            else "concise but thematically unified" if self.verbosity <= 2 \
-            else "balanced with both overview and specific moments"
-        prompt += f"\nGenerate a {detail_level} summary."
+        # Add narrative guidance
+        prompt += (
+            "**Narrative Guidance:**\n"
+            "- Connect individual events to show how they contribute to larger patterns and emerging dynamics\n"
+            "- Reflect on how economic conditions affect social relations among different factions\n"
+            "- Consider if political alliances or tensions are forming based on faction demographics\n"
+            "- Notice how resource distributions are affecting different agent types and social classes\n"
+            "- Include atmospheric details that give a sense of what daily life feels like on Mars\n"
+            "- Identify 2-3 emerging trends that may shape future colony developments\n"
+        )
 
         return prompt
