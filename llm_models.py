@@ -7,111 +7,101 @@ from typing import List, Optional, Dict, Any, ClassVar
 from pydantic import BaseModel, Field, field_validator, model_validator
 import re
 
+from pydantic import BaseModel, Field, field_validator
+from typing import List, Optional
+import re
+
 
 class NarrativeResponse(BaseModel):
-    """Structured response for narrative generation"""
-    
+    """Structured response for narrative event generation"""
+
     title: str = Field(
-        description="A catchy title for the narrative event",
+        description="A catchy, thematic title that captures the core economic tension or relationship",
         max_length=100
     )
-    
+
     description: str = Field(
-        description="A detailed description of what happened during the interaction",
+        description="A detailed scene with dialogue showing this interaction through character actions and reactions, including environmental details that ground this exchange in the Martian setting",
         max_length=2000
     )
-    
+
     tags: List[str] = Field(
-        description="Relevant tags or keywords that categorize this event",
-        max_items=10
+        description="Keywords that categorize this event (economics, conflict, collaboration, etc.)",
+        min_items=2,
+        max_items=7
     )
-    
-    # Prohibited terms that should not appear in narrative content
-    PROHIBITED_TERMS: ClassVar[List[str]] = [
-        "offensive", "inappropriate", "harmful", "violent"
-    ]
-    
-    @field_validator('title')
-    @classmethod
-    def validate_title(cls, v: str) -> str:
-        """Validate the title to ensure it doesn't contain prohibited terms and has proper formatting"""
-        # Check for prohibited terms
-        for term in cls.PROHIBITED_TERMS:
-            if term.lower() in v.lower():
-                raise ValueError(f"Title contains prohibited term: '{term}'")
-        
-        # Ensure title uses proper capitalization
-        if not v[0].isupper() and len(v) > 0:
-            v = v[0].upper() + v[1:]
-            
-        return v
-    
+
+    theme: Optional[str] = Field(
+        description="The broader theme this event connects to (survival, community, adaptation, etc.)",
+        default=None
+    )
+
+    setting_details: Optional[List[str]] = Field(
+        description="Specific environmental or cultural details of Mars that were incorporated",
+        default=None
+    )
+
     @field_validator('description')
     @classmethod
     def validate_description(cls, v: str) -> str:
-        """Validate the description to ensure content quality"""
-        # Check for prohibited terms
-        for term in cls.PROHIBITED_TERMS:
-            if term.lower() in v.lower():
-                raise ValueError(f"Description contains prohibited term: '{term}'")
-        
-        # Ensure description is not too short
-        if len(v.split()) < 10:
-            raise ValueError("Description is too short, please provide more details")
-            
+        """Validate that the description includes dialogue and setting details"""
+        # Check for dialogue (quotes)
+        if not re.search(r'["\'](.*?)["\']', v):
+            raise ValueError("Description should include character dialogue in quotes")
+
+        # Check for Mars-specific setting details
+        mars_terms = ['Mars', 'Martian', 'colony', 'dome', 'habitat', 'oxygen', 'gravity', 'dust']
+        if not any(term.lower() in v.lower() for term in mars_terms):
+            raise ValueError("Description should include Mars-specific setting details")
+
         return v
-    
+
     @field_validator('tags')
     @classmethod
     def validate_tags(cls, v: List[str]) -> List[str]:
-        """Validate the tags to ensure they are properly formatted"""
-        # Ensure tags are not empty
-        if not v:
-            raise ValueError("At least one tag must be provided")
-        
-        # Convert tags to lowercase and remove duplicates
-        clean_tags = list(set([tag.lower() for tag in v]))
-        
-        # Remove empty tags
-        clean_tags = [tag for tag in clean_tags if tag.strip()]
-        
-        # Ensure at least one tag remains after cleaning
-        if not clean_tags:
-            raise ValueError("All tags were empty or duplicates")
-            
-        return clean_tags
-    
-    @model_validator(mode='after')
-    def validate_narrative_coherence(self) -> 'NarrativeResponse':
-        """Validate that the title, description, and tags form a coherent narrative"""
-        # Check if title is mentioned in description
-        title_words = set(re.findall(r'\b\w+\b', self.title.lower()))
-        desc_words = set(re.findall(r'\b\w+\b', self.description.lower()))
-        
-        # At least some words from title should appear in description
-        common_words = title_words.intersection(desc_words)
-        if len(common_words) < 1 and len(title_words) > 2:
-            # Only check if title has more than 2 significant words
-            significant_words = [w for w in title_words if len(w) > 3]
-            if significant_words and not any(w in desc_words for w in significant_words):
-                raise ValueError("Title and description appear to be unrelated")
-        
-        # Check if tags are relevant to the description
-        tag_relevance = sum(1 for tag in self.tags if tag.lower() in self.description.lower())
-        if tag_relevance == 0 and len(self.tags) > 1:
-            raise ValueError("Tags should be relevant to the description content")
-            
-        return self
+        """Validate that tags are relevant to the Mars economy simulation"""
+        valid_categories = [
+            'economics', 'trade', 'conflict', 'collaboration', 'resources',
+            'technology', 'politics', 'survival', 'trust', 'negotiation',
+            'fairness', 'risk', 'innovation', 'community', 'faction'
+        ]
+
+        # At least one tag should be from valid categories
+        if not any(tag.lower() in valid_categories for tag in v):
+            raise ValueError(f"Tags should include at least one category from: {', '.join(valid_categories)}")
+
+        return v
 
 
 class DailySummaryResponse(BaseModel):
     """Structured response for daily summary generation"""
-    
+
+    headline: str = Field(
+        description="An engaging headline that captures the day's most important theme or development",
+        max_length=100
+    )
+
     summary: str = Field(
-        description="A detailed daily summary in Markdown format",
+        description="A detailed daily summary in Markdown format that weaves individual events into a cohesive narrative",
         max_length=5000
     )
-    
+
+    key_themes: List[str] = Field(
+        description="The main themes explored in this daily summary",
+        min_items=1,
+        max_items=5
+    )
+
+    notable_characters: Optional[List[str]] = Field(
+        description="Characters who played significant roles in today's events",
+        default=None
+    )
+
+    emerging_trends: Optional[List[str]] = Field(
+        description="Emerging social, economic, or technological trends in the colony",
+        default=None
+    )
+
     @field_validator('summary')
     @classmethod
     def validate_summary(cls, v: str) -> str:
@@ -119,18 +109,23 @@ class DailySummaryResponse(BaseModel):
         # Check if the summary has markdown headings
         if not re.search(r'#+ ', v):
             raise ValueError("Summary should contain Markdown headings")
-        
-        # Check if the summary has at least one paragraph
+
+        # Check if the summary has at least two paragraphs
         paragraphs = [p for p in v.split('\n\n') if p.strip()]
         if len(paragraphs) < 2:
             raise ValueError("Summary should contain multiple paragraphs")
-        
-        # Check if summary has reasonable length
-        if len(v.split()) < 50:
-            raise ValueError("Summary is too short, please provide more details")
-            
-        return v
 
+        # Check if summary has reasonable length
+        if len(v.split()) < 100:
+            raise ValueError("Summary is too short, please provide more details")
+
+        # Check for thematic elements
+        thematic_terms = ['community', 'survival', 'economy', 'resources', 'adaptation',
+                          'technology', 'culture', 'faction', 'politics', 'environment']
+        if not any(term in v.lower() for term in thematic_terms):
+            raise ValueError("Summary should incorporate thematic elements about Martian society")
+
+        return v
 
 class AgentActionResponse(BaseModel):
     """Structured response for agent action generation"""
