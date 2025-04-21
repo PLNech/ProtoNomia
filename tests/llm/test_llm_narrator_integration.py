@@ -1,24 +1,20 @@
 """
 Integration tests for the LLM-based narrator with actual LLM service.
 """
-from unittest import TestCase
+
+import os
+import sys
+from datetime import datetime
 
 import pytest
-import sys
-import os
-from datetime import datetime
-import json
-
 from pydantic import ValidationError
-
-from settings import DEFAULT_LM
 
 # Add project root to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from narrative.llm_narrator import LLMNarrator
 from models.base import (
-    Agent, AgentType, AgentFaction, AgentPersonality, 
+    Agent, AgentType, AgentFaction, AgentPersonality,
     EconomicInteraction, EconomicInteractionType, InteractionRole,
     NarrativeEvent
 )
@@ -40,7 +36,7 @@ def test_agents():
             long_term_orientation=0.5
         )
     )
-    
+
     agent2 = Agent(
         name="Bob Rodriguez",
         agent_type=AgentType.INDIVIDUAL,
@@ -54,7 +50,7 @@ def test_agents():
             long_term_orientation=0.3
         )
     )
-    
+
     return [agent1, agent2]
 
 
@@ -79,14 +75,15 @@ def test_interaction(test_agents):
 
 
 @pytest.mark.llm
-@pytest.mark.skipif(not os.environ.get("RUN_LLM_TESTS"), reason="LLM tests are disabled. Set RUN_LLM_TESTS=1 to enable.")
+@pytest.mark.skipif(not os.environ.get("RUN_LLM_TESTS"),
+                    reason="LLM tests are disabled. Set RUN_LLM_TESTS=1 to enable.")
 class TestLLMNarratorIntegration():
     """
     Integration tests for LLMNarrator with actual LLM service.
     
     These tests require an actual LLM service running.
     """
-    
+
     def test_llm_narrator_connection(self):
         """Test that we can connect to the LLM service"""
         try:
@@ -95,14 +92,14 @@ class TestLLMNarratorIntegration():
             assert True
         except Exception as e:
             pytest.fail(f"Failed to connect to LLM service: {e}")
-    
+
     def test_generate_event_from_interaction(self, test_agents, test_interaction):
         """Test generating a narrative event from an interaction using LLM"""
         narrator = LLMNarrator()
-        
+
         # Generate a narrative event
         event = narrator.generate_event_from_interaction(test_interaction, test_agents)
-        
+
         # Verify basic properties of the event
         assert event is not None
         assert isinstance(event, NarrativeEvent)
@@ -110,15 +107,15 @@ class TestLLMNarratorIntegration():
         assert event.description is not None and len(event.description) > 0
         assert len(event.agents_involved) == 2
         assert len(event.tags) > 0
-        
+
         # Check for reasonable content
         assert "Alice" in event.description or "Bob" in event.description
         assert "credit" in event.description.lower() or "offer" in event.description.lower()
-    
+
     def test_daily_summary_generation(self, test_agents):
         """Test generating a daily summary using LLM"""
         narrator = LLMNarrator(max_retries=1)
-        
+
         # Create some narrative events
         events = [
             NarrativeEvent(
@@ -140,7 +137,7 @@ class TestLLMNarratorIntegration():
                 tags=["crisis", "resources", "economy"]
             )
         ]
-        
+
         # Generate a daily summary
         retries = 5
         any_success = False

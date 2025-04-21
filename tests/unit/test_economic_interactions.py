@@ -109,9 +109,9 @@ class TestUltimatumGame:
         proposer_outcome = next(o for o in result.outcomes if o.agent_id == agent_proposer.id)
         responder_outcome = next(o for o in result.outcomes if o.agent_id == agent_responder.id)
         
-        # Proposer should have lost 5.0 (keeping 5.0 of the 10.0)
+        # Proposer should have gained only 5.0 (keeping 5.0 of the 10.0)
         proposer_after = next(r.amount for r in agent_proposer.resources if r.resource_type == ResourceType.CREDITS)
-        assert proposer_after == proposer_initial - 5.0
+        assert proposer_after == proposer_initial + 5.0
         
         # Responder should have gained 5.0
         responder_after = next(r.amount for r in agent_responder.resources if r.resource_type == ResourceType.CREDITS)

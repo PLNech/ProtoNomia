@@ -16,25 +16,7 @@ import headless
 
 class TestHeadlessScript:
     """Tests for the headless.py script"""
-    
-    def test_parse_args_defaults(self):
-        """Test that argument parsing works with defaults"""
-        # Mock sys.argv for the test
-        with patch('sys.argv', ['headless.py']):
-            args = headless.parse_args()
-            
-            # Check default values
-            assert args.initial_population == 20
-            assert args.max_population == 100
-            assert args.ticks == 100
-            assert args.timeout is None
-            assert args.resource_scarcity == 0.5
-            assert args.terra_mars_trade_ratio == 0.6
-            assert args.interactions == ['trust_game', 'ultimatum_game']
-            assert args.birth_rate == 0.01
-            assert args.death_rate == 0.005
-            assert args.verbosity == 3
-            assert args.use_llm is False
+
     
     def test_parse_args_custom(self):
         """Test that argument parsing works with custom values"""

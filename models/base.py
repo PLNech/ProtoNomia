@@ -17,6 +17,7 @@ class ResourceType(str, Enum):
     HEALTH = "health"                        # Physical wellbeing (for individuals)
     OXYGEN = "oxygen"                        # Life support resource
     WATER = "water"                          # Essential Mars resource
+    FOOD = "food"                            # Essential Mars resource
     MINERALS = "minerals"                    # Raw materials
     ENERGY = "energy"                        # Power resource
 
@@ -148,6 +149,9 @@ class Agent(BaseModel):
     def __repr__(self) -> str:
         """A shorter unique identifier for an agent."""
         return f"Agent(id={self.id}, name={self.name})"
+
+    def __hash__(self):
+        return hash(self.id)
 # ========== Economic Interaction Models ==========
 
 class EconomicInteractionType(str, Enum):
@@ -273,7 +277,6 @@ class SimulationState(BaseModel):
     economic_indicators: Dict[str, float] = Field(default_factory=dict)
 
 # ========== Population Control Models ==========
-
 class PopulationEvent(BaseModel):
     """Event related to population changes"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

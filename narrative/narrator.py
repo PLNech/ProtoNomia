@@ -339,7 +339,7 @@ class Narrator:
             title=title,
             description=description,
             events=[event.id for event in events],
-            agents_involved=[agent for event in events for agent in event.agents_involved],
+            agents_involved=list(set(agent for event in events for agent in event.agents_involved)),
             start_time=min(event.timestamp for event in events),
             is_complete=False
         )

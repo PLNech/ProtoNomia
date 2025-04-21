@@ -173,7 +173,7 @@ class AgentDecisionContext(BaseModel):
     pending_offers: List[Dict[str, Any]]
     jobs_available: List[Dict[str, Any]]
     items_for_sale: List[Dict[str, Any]]
-    recent_interactions: List[Dict[str, Any]]
+    recent_interactions: List[Dict[str, Any]] = []
 
 class AgentAction(BaseModel):
     """Represents an action taken by an agent"""

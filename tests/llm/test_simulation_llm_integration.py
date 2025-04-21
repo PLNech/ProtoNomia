@@ -1,11 +1,11 @@
 """
 Integration tests for the Simulation class with LLM components.
 """
-import pytest
-import sys
 import os
+import sys
 from datetime import datetime
-from typing import List
+
+import pytest
 
 from settings import DEFAULT_LM
 
