@@ -190,6 +190,12 @@ class AgentAction(BaseModel):
     work_details: Optional[WorkAction] = None
     buy_details: Optional[BuyAction] = None
     
+    def __str__(self):
+        return f"{self.agent_id} action at turn {self.turn}: {self.type} - extra={self.extra}"
+        
+    def __repr__(self):
+        return f"ACTION({self.agent_id}, {self.type}, {self.extra})"
+    
     @validator('offer_details')
     def validate_offer_details(cls, v, values):
         if values.get('type') == ActionType.OFFER and v is None:

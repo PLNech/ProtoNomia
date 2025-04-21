@@ -249,7 +249,7 @@ class Simulation:
         resources = [
             ResourceBalance(
                 resource_type=ResourceType.CREDITS,
-                amount=random.randint(100, 1000)
+                amount=random.randint(100, 1000000)
             ),
             ResourceBalance(
                 resource_type=ResourceType.PHYSICAL_GOODS,
@@ -418,7 +418,9 @@ class Simulation:
             if self.use_llm and self.llm_agent:
                 context = self._create_decision_context(agent)
                 logger.debug(f"Context: {context}")
-                return self.llm_agent.generate_action(agent, context)
+                action = self.llm_agent.generate_action(agent, context)
+                logger.info(f"Action from {agent.name}: {action}")
+                return action
             else:
                 # Use rule-based action generation
                 return self._generate_rule_based_action(agent)
@@ -588,7 +590,7 @@ class Simulation:
                 # Store the event
                 self.narrative_events[event.id] = event
                 self.state.narrative_events.append(event.id)
-                logger.debug(f"Generated narrative event: {event.title}")
+                logger.info(f"Narrative event: {event.title} - protagonists: {event.agents_involved} - {event.description}")
 
         # Generate a daily summary if it's a new day
         if self.state.current_tick % 1 == 0 and self.narrator:
@@ -617,7 +619,7 @@ class Simulation:
             # Store the arc
             self.narrative_arcs[arc.id] = arc
             self.state.narrative_arcs.append(arc.id)
-            logger.debug(f"Generated daily summary: {arc.title}")
+            logger.info(f"Daily summary: {arc.title} - {arc.description}")
 
     def _update_economic_indicators(self):
         """Update economic indicators based on current state"""

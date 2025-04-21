@@ -92,29 +92,6 @@ class DailySummaryResponse(BaseModel):
         default=None
     )
 
-    @field_validator('summary')
-    @classmethod
-    def validate_summary(cls, v: str) -> str:
-        """Validate the summary to ensure it has proper content"""
-        # Check if the summary has at least two paragraphs
-        paragraphs = [p for p in v.split('\n\n') if p.strip()]
-        if len(paragraphs) < 2:
-            pass # print(f"SilentError: Summary should contain multiple paragraphs ({v})")
-            # raise ValueError("Summary should contain multiple paragraphs")
-
-        # Check if summary has reasonable length
-        if len(v.split()) < 100:
-            pass # print(f"SilentError: Summary is too short, please provide more details ({v})")
-            # raise ValueError("Summary is too short, please provide more details")
-
-        # Check for thematic elements
-        thematic_terms = ['community', 'survival', 'economy', 'resources', 'adaptation',
-                          'technology', 'culture', 'faction', 'politics', 'environment']
-        if not any(term in v.lower() for term in thematic_terms):
-            print(f"SilentError: Summary should incorporate thematic elements about Martian society ({v})")
-            # raise ValueError("Summary should incorporate thematic elements about Martian society")
-
-        return v
     
 example_daily_summary_1: DailySummaryResponse = DailySummaryResponse(
     headline="Synthetic Oxygen Scarcity Triggers Paranoid Negotiation Protocol",

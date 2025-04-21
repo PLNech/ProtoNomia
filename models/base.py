@@ -72,7 +72,7 @@ class AgentNeeds(BaseModel):
         if not 0 <= v <= 1:
             raise ValueError("Need values must be between 0 and 1")
         return v
-# TODO: Use simpler ID generation (agent_1, agent_2, etc.)
+
 agent_counter: int = 0
 def agent_id_factory() -> str:
     """Generate a simple ID for an agent"""
