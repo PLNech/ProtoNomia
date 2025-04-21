@@ -62,6 +62,7 @@ class LLMAgent:
         # Create the OllamaClient for structured output generation
         if not self.mock:
             try:
+                # Use the OllamaClient that handles all the patching
                 self.ollama_client = OllamaClient(
                     base_url="http://localhost:11434",
                     model_name=model_name,
@@ -72,31 +73,10 @@ class LLMAgent:
                     max_retries=max_retries,
                     timeout=timeout
                 )
-                # Test connection
-                self._test_ollama_connection()
-                logger.info(f"Successfully connected to Ollama with model {model_name}")
+                logger.info(f"Successfully initialized LLMAgent with model {model_name}")
             except Exception as e:
                 logger.warning(f"Failed to connect to Ollama: {e}. Falling back to mock mode.")
                 self.mock = True
-    
-    def _test_ollama_connection(self):
-        """Test the connection to Ollama"""
-        try:
-            # Create a simple test prompt to check if the client works
-            test_prompt = "Generate a one-sentence action for a Mars colonist."
-            system_prompt = "You are an AI helping a Mars colonist make decisions."
-            
-            # Attempt to generate a structured response
-            self.ollama_client.generate_structured_output(
-                prompt=test_prompt,
-                response_model=AgentActionResponse,
-                system_prompt=system_prompt
-            )
-            
-            logger.info(f"Successfully tested Ollama connection with model {self.model_name}")
-        except Exception as e:
-            logger.error(f"Error connecting to Ollama: {e}")
-            raise
     
     def generate_action(self, agent: Agent, context: AgentDecisionContext) -> AgentAction:
         """
@@ -114,7 +94,7 @@ class LLMAgent:
         system_prompt = (
             "You are an AI assistant helping Mars colonists make economic decisions. "
             "Based on the agent's personality and context, choose the most appropriate action. "
-            "Always respond with a valid action type and necessary details."
+            "Always respond with a valid action type and necessary details in JSON format."
         )
         
         try:
@@ -380,6 +360,8 @@ Examples:
 - WORK: When taking a job (requires job_id)
 - BUY: When purchasing an item (requires desired_item)
 - SEARCH_JOB: When looking for new job opportunities
+
+Response must be a JSON object with 'type', 'extra', and 'reasoning' fields.
 """
     
     return prompt

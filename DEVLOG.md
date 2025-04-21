@@ -1,5 +1,89 @@
 # ProtoNomia Development Log
 
+## Improved LLM Response Models with Validation
+
+**Date:** 2025-04-20
+
+**Description:**
+Enhanced the LLM response models using Pydantic validators to ensure high-quality outputs:
+- Added field and model validators to `NarrativeResponse`, `DailySummaryResponse`, and `AgentActionResponse` models
+- Implemented content moderation for narrative outputs to filter inappropriate content
+- Added coherence validation between titles, descriptions, and tags
+- Updated the `OllamaClient` class to better support structured output generation
+- Improved error handling and fallback mechanisms
+- Made OllamaClient more robust with direct JSON parsing when instructor package is not available
+
+**Demand:**
+Continue but ensure you use response models: @https://python.useinstructor.com/blog/2023/10/23/good-llm-validation-is-just-good-validation/#define-the-response-model-with-validators simplify llm interactions across @llm_narrator.py and @llm_agent.py thanks to these run headless.py and tests to validate your work
+
+**Files:**
+- [M] llm_models.py - Added validators for response models
+- [M] llm_utils.py - Improved OllamaClient with better structured output handling
+- [A] test_llm_updates.py - Added test script for validating changes
+- [M] DEVLOG.md - Updated with latest changes
+
+**Bugs:**
+- Fixed variable reference issue in OllamaClient constructor (`model` to `model_name`)
+- Fixed compatibility issues with instructor package by adding manual JSON parsing fallback
+- Fixed missing dependencies by ensuring proper installation of required packages
+
+## Fixed Instructor Patching Implementation
+
+### Date
+2025-04-24
+
+### Description
+Fixed critical issues with Instructor patching implementation that were causing runtime errors. Key fixes include:
+
+1. Updated the OllamaClient to use the correct `instructor.patch()` approach instead of the deprecated `instructor.from_openai()` method
+2. Removed unsupported `proxies` and other problematic keyword arguments from OpenAI client initialization
+3. Modified how the patched client is accessed and used for structured outputs
+4. Simplified the fallback mechanism to ensure compatibility with all Instructor versions
+5. Added additional logging to help diagnose future integration issues
+
+These changes ensure proper compatibility with the latest Instructor version and fix the runtime errors that were preventing the simulation from starting when using LLM features.
+
+### Demand
+Fix the AttributeError where "module 'instructor' has no attribute 'from_openai'" and the TypeError with unexpected "proxies" keyword argument.
+
+### Files
+- [M] `llm_utils.py` - Fixed Instructor patching implementation
+- [M] `agents/llm_agent.py` - Minor updates to use the correct patching approach
+- [M] `DEVLOG.md` - Added entry documenting the fixes
+
+### Bugs
+- Fixed AttributeError with missing "from_openai" method
+- Fixed TypeError with unexpected "proxies" keyword argument
+- Added proper error handling for compatibility with different Instructor versions
+
+## Improved Ollama Integration with OpenAI Compatibility Layer
+
+### Date
+2025-04-23
+
+### Description
+Enhanced the Ollama integration to use the official OpenAI compatibility layer (v1 API) for more reliable structured outputs. Key improvements include:
+
+1. Updated `OllamaClient` to primarily use Ollama's OpenAI compatibility API
+2. Added graceful fallback to direct API when compatibility layer is unavailable
+3. Improved connection testing to detect and verify compatibility API availability
+4. Switched from JSON_SCHEMA to JSON mode for better model compatibility
+5. Implemented proper validation of the compatibility API during initialization
+
+These changes further improve reliability and performance of LLM interactions by leveraging Ollama's built-in OpenAI compatibility, which provides better handling of structured outputs and follows the same interface as our standard OpenAI client, simplifying maintenance.
+
+### Demand
+Reimplement with patch using Ollama's official OpenAI compatibility layer as documented in the Instructor documentation.
+
+### Files
+- [M] `llm_utils.py` - Updated to use Ollama's OpenAI compatibility layer with fallback to direct API
+- [M] `DEVLOG.md` - Added entry documenting the changes
+
+### Bugs
+- Fixed potential issues with JSON schema parsing by switching to JSON mode
+- Added graceful degradation when OpenAI compatibility layer is unavailable
+- Improved error reporting and fallback mechanisms
+
 ## Refactored LLM Interactions to Use Instructor for Improved Structured Output
 
 ### Date

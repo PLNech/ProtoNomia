@@ -12,7 +12,7 @@ from models.base import (
     NarrativeEvent, NarrativeArc
 )
 from narrative.narrator import Narrator
-from llm_utils import OllamaClient
+from llm_utils import OllamaClient, test_ollama_connection
 from llm_models import NarrativeResponse, DailySummaryResponse
 
 # Initialize logger
@@ -34,7 +34,9 @@ class LLMNarrator(Narrator):
         temperature: float = 0.8,
         top_p: float = 0.95,
         top_k: int = 40,
-        test_mode: bool = False
+        test_mode: bool = False,
+        timeout: int = 30,
+        max_retries: int = 3
     ):
         """
         Initialize the LLM Narrator.
@@ -48,6 +50,8 @@ class LLMNarrator(Narrator):
             top_p: Nucleus sampling probability threshold (0.0-1.0)
             top_k: Number of highest probability tokens to consider
             test_mode: Whether to use test mode for overriding in tests
+            timeout: Request timeout in seconds
+            max_retries: Maximum number of retries on failure
         """
         super().__init__(verbosity)
         self.model_name = model_name
@@ -57,38 +61,36 @@ class LLMNarrator(Narrator):
         self.top_p = top_p
         self.top_k = top_k
         self.test_mode = test_mode
+        self.timeout = timeout
+        self.max_retries = max_retries
+        
         logger.info(f"Initialized LLM Narrator with model {model_name}, mock={mock_llm}")
         
-        # Create the OllamaClient for structured output generation
+        # Test Ollama connection if not using mocks
         if not self.mock_llm:
-            self.ollama_client = OllamaClient(
-                base_url=ollama_base_url,
+            success, selected_model, _ = test_ollama_connection(
+                ollama_base_url=ollama_base_url,
                 model_name=model_name,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k
+                timeout=timeout
             )
-            # Test connection
-            self._test_ollama_connection()
-    
-    def _test_ollama_connection(self):
-        """Test the connection to Ollama"""
-        try:
-            # Create a simple test prompt to check if the client works
-            test_prompt = "Generate a one-sentence test narrative about Mars."
-            system_prompt = "You are a narrator for a Mars colony simulation."
-            
-            # Attempt to generate a structured response
-            self.ollama_client.generate_narrative(
-                prompt=test_prompt,
-                system_prompt=system_prompt
-            )
-            
-            logger.info(f"Successfully connected to Ollama with model {self.model_name}")
-        except Exception as e:
-            logger.error(f"Error connecting to Ollama: {e}")
-            logger.warning("Falling back to mock mode due to connection error")
-            self.mock_llm = True
+            if not success:
+                logger.warning(f"Failed to connect to Ollama. Falling back to mock mode.")
+                self.mock_llm = True
+            else:
+                logger.info(f"Successfully connected to Ollama with model {selected_model}")
+                self.model_name = selected_model
+                
+                # Create the OllamaClient for structured output generation
+                self.ollama_client = OllamaClient(
+                    base_url=ollama_base_url,
+                    model_name=selected_model,
+                    temperature=temperature,
+                    top_p=top_p,
+                    top_k=top_k,
+                    max_tokens=1000,
+                    max_retries=max_retries,
+                    timeout=timeout
+                )
     
     def generate_event_from_interaction(
         self, 
@@ -182,9 +184,9 @@ class LLMNarrator(Narrator):
         agent_map: Dict[str, Agent]
     ) -> str:
         """Create a prompt for the interaction narrative generation"""
-        # Get interaction type and results
+        # Get interaction type and parameters
         interaction_type = interaction.interaction_type.value
-        results = interaction.results
+        parameters = interaction.parameters
         
         # Get participant names
         initiator_name = participant_names.get(InteractionRole.INITIATOR, "Agent1")
@@ -199,21 +201,27 @@ class LLMNarrator(Narrator):
         
         # Add specific details based on interaction type
         if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
-            offer = results.get('offer', 0)
-            total = results.get('total', 100)
-            accepted = results.get('accepted', False)
+            offer = parameters.get('offer_amount', 0)
+            total = parameters.get('total_amount', 100)
+            accepted = parameters.get('responder_accepts', False)
             prompt += (
                 f"Details: {initiator_name} offered {responder_name} {offer} credits out of a total of {total} credits. "
                 f"The offer was {'accepted' if accepted else 'rejected'} by {responder_name}.\n"
             )
         elif interaction.interaction_type == EconomicInteractionType.TRUST:
-            investment = results.get('investment', 0)
-            multiplier = results.get('multiplier', 3)
-            returned = results.get('returned', 0)
+            investment = parameters.get('investment', 0)
+            multiplier = parameters.get('multiplier', 3)
+            returned = parameters.get('returned', 0)
             prompt += (
                 f"Details: {initiator_name} invested {investment} credits with {responder_name}. "
                 f"The investment grew by a factor of {multiplier} to {investment * multiplier} credits. "
                 f"{responder_name} returned {returned} credits to {initiator_name}.\n"
+            )
+        else:
+            # Generic prompt for other interaction types
+            prompt += (
+                f"Details: The interaction involves economic exchange between {initiator_name} and {responder_name}. "
+                f"Parameters: {', '.join([f'{k}: {v}' for k, v in parameters.items()])}\n"
             )
         
         # Add personality traits if available
@@ -221,16 +229,23 @@ class LLMNarrator(Narrator):
             agent_id = next((id for id, r in interaction.participants.items() if r == role), None)
             if agent_id and agent_id in agent_map:
                 agent = agent_map[agent_id]
-                if hasattr(agent, 'personality_traits') and agent.personality_traits:
-                    traits = ', '.join([f"{trait}: {value}" for trait, value in agent.personality_traits.items()])
+                if hasattr(agent, 'personality'):
+                    personality = agent.personality
+                    traits = ', '.join([f"{trait}: {getattr(personality, trait, 0)}" for trait in [
+                        'cooperativeness', 'risk_tolerance', 'fairness_preference', 
+                        'altruism', 'rationality', 'long_term_orientation'
+                    ] if hasattr(personality, trait)])
                     prompt += f"{name}'s personality traits: {traits}\n"
         
         # Add instructions for the desired output format
         prompt += "\nPlease generate a creative narrative for this interaction with the following elements:\n"
+        prompt += "- Create a catchy title for this event\n"
+        prompt += "- Write a detailed description of what happened during the interaction\n"
+        prompt += "- Add relevant tags (keywords) that categorize this event\n"
         
         # Adjust level of detail based on verbosity
         detail_level = "detailed and vivid" if self.verbosity >= 4 else "concise" if self.verbosity <= 2 else "balanced"
-        prompt += f"- Create a {detail_level} narrative that captures the interaction\n"
+        prompt += f"\nGenerate a {detail_level} narrative in JSON format with title, description, and tags fields."
         
         return prompt
     

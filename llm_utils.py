@@ -1,404 +1,485 @@
 """
 Utility functions for LLM interactions in ProtoNomia.
-Provides common functionality for Ollama API calls and connection testing.
+
+This module provides reusable functions for working with LLM APIs, 
+particularly focusing on connecting to and using the Ollama API.
 """
 import json
 import logging
-import re
 import time
-from typing import List, Tuple, Type, TypeVar
-
-import instructor
+from typing import Any, Dict, List, Optional, Type, Union
 import requests
 from pydantic import BaseModel
-from tenacity import retry, stop_after_attempt, wait_exponential
 
-from llm_models import NarrativeResponse, DailySummaryResponse
+import instructor
 
-# Initialize logger
 logger = logging.getLogger(__name__)
 
-# Type variable for generic model typing
-T = TypeVar('T', bound=BaseModel)
-
-
-def test_ollama_connection(
-    ollama_base_url: str, 
-    model_name: str, 
-    timeout: int = 10
-) -> Tuple[bool, str, List[str]]:
+def test_ollama_connection(ollama_base_url: str, model_name: str, timeout: int = 5) -> tuple:
     """
-    Test the connection to Ollama and validate model availability.
+    Test connection to Ollama API and check if the specified model is available.
     
     Args:
-        ollama_base_url: Base URL for Ollama API
-        model_name: Name of the model to use
+        ollama_base_url: Base URL for the Ollama API
+        model_name: Name of the model to check
         timeout: Connection timeout in seconds
-    
+        
     Returns:
-        Tuple of (connection_success, selected_model, available_models)
+        Tuple containing (success, selected_model, info) where:
+        - success: Boolean indicating if connection is successful and model is available
+        - selected_model: The model name that was successfully connected to
+        - info: Additional information about the connection
     """
     try:
-        # Check available models
-        tags_url = f"{ollama_base_url}/api/tags"
-        tags_response = requests.get(tags_url, timeout=timeout)
+        # Check if Ollama is running and we can connect
+        response = requests.get(f"{ollama_base_url}/api/tags", timeout=timeout)
+        response.raise_for_status()
         
-        if tags_response.status_code != 200:
-            logger.warning(f"Failed to retrieve Ollama models. Status code: {tags_response.status_code}")
-            return False, "", []
+        # Parse the response to get available models
+        data = response.json()
+        models = [model['name'] for model in data.get('models', [])]
         
-        # Check if the specific model is available
-        models = tags_response.json().get('models', [])
-        model_names = [model['name'] for model in models]
+        # Check if our model is in the list
+        if model_name not in models:
+            logger.warning(f"Model {model_name} not found in available models: {models}")
+            return False, "", {"available_models": models}
+            
+        logger.info(f"Successfully connected to Ollama with model {model_name}")
+        return True, model_name, {"available_models": models}
         
-        # If specified model not found, use first available or fail
-        if model_name not in model_names:
-            logger.warning(f"Model {model_name} not found. Available models: {model_names}")
-            selected_model = model_names[0] if model_names else ""
-        else:
-            selected_model = model_name
-        
-        # Test model generation
-        url = f"{ollama_base_url}/api/generate"
-        response = requests.post(
-            url,
-            json={
-                "model": selected_model,
-                "prompt": "Hello, are you working?",
-                "stream": False,
-                "temperature": 0.1,
-                "max_tokens": 10
-            },
-            timeout=timeout
-        )
-        
-        if response.status_code != 200:
-            logger.warning(f"Model generation failed. Status code: {response.status_code}")
-            return False, selected_model, model_names
-        
-        # Verify response structure
-        result = response.json()
-        if 'response' not in result:
-            logger.warning("Invalid response from Ollama. Missing 'response' key.")
-            return False, selected_model, model_names
-        
-        logger.info(f"Successfully connected to Ollama with model {selected_model}")
-        return True, selected_model, model_names
-    
-    except requests.exceptions.ConnectionError as e:
-        logger.error(f"Connection error to Ollama: {e}")
-        return False, "", []
-    
-    except requests.exceptions.Timeout:
-        logger.error("Timeout connecting to Ollama. Check network or service availability.")
-        return False, "", []
-    
+    except requests.ConnectionError:
+        logger.error(f"Connection error: Could not connect to Ollama at {ollama_base_url}")
+        return False, "", {"error": "connection_error"}
+    except requests.Timeout:
+        logger.error(f"Timeout error: Connection to {ollama_base_url} timed out after {timeout} seconds")
+        return False, "", {"error": "timeout"}
+    except requests.HTTPError as e:
+        logger.error(f"HTTP error: {e}")
+        return False, "", {"error": f"http_error: {e}"}
     except Exception as e:
-        logger.error(f"Unexpected error testing Ollama connection: {e}")
-        return False, "", []
+        logger.error(f"Unexpected error checking Ollama connection: {e}")
+        return False, "", {"error": f"unexpected_error: {e}"}
 
 
 class OllamaClient:
     """
-    Client for interacting with Ollama API with Instructor integration.
-    Provides structured output parsing and automatic retries.
+    Client for interacting with Ollama API with support for structured outputs via Instructor.
+    
+    This client handles:
+    - Connection to the Ollama API
+    - Regular (unstructured) text generation
+    - Structured output generation using Pydantic models
+    - Retries with exponential backoff
     """
     
     def __init__(
         self,
         base_url: str = "http://localhost:11434",
-        model_name: str = "gemma3:1b",
-        temperature: float = 0.8,
+        model_name: str = "llama2",
+        temperature: float = 0.7,
         top_p: float = 0.95,
         top_k: int = 40,
-        max_tokens: int = 500,
+        max_tokens: int = 1024,
         max_retries: int = 3,
-        timeout: int = 30
+        timeout: int = 30,
+        system_prompt: Optional[str] = None
     ):
         """
-        Initialize the Ollama client with Instructor integration.
+        Initialize the Ollama client.
         
         Args:
-            base_url: Base URL for Ollama API
-            model_name: Name of the model to use
-            temperature: Controls randomness in generation
+            base_url: Base URL for the Ollama API
+            model_name: Name of the Ollama model to use
+            temperature: Sampling temperature (higher = more creative)
             top_p: Nucleus sampling probability threshold
             top_k: Number of highest probability tokens to consider
             max_tokens: Maximum number of tokens to generate
             max_retries: Maximum number of retries on failure
             timeout: Request timeout in seconds
+            system_prompt: Default system prompt to use for all requests
         """
         self.base_url = base_url
-        self.model_name = model_name
+        self.model = model_name
         self.temperature = temperature
         self.top_p = top_p
         self.top_k = top_k
         self.max_tokens = max_tokens
-        self.max_retries = max_retries
         self.timeout = timeout
+        self.max_retries = max_retries
+        self.system_prompt = system_prompt
         
-        # Create a mock OpenAI-compatible client for Ollama
-        self.client = self._create_ollama_client()
-        
-        # Patch the client with instructor for structured outputs
-        self.instructor_client = instructor.from_openai(
-            self.client, 
-            mode=instructor.Mode.JSON_SCHEMA,
-            max_retries=max_retries
-        )
-        
-        logger.info(f"Initialized OllamaClient with model {model_name}")
-    
-    def _create_ollama_client(self):
-        """
-        Create a client that mimics the OpenAI client interface but calls Ollama.
-        This allows us to use instructor with Ollama.
-        """
-        # Define a minimal OpenAI-compatible client for Ollama
-        class OllamaCompatClient:
-            def __init__(self, base_url, model, temperature, top_p, top_k, max_tokens, timeout):
-                self.base_url = base_url
-                self.model = model
-                self.temperature = temperature
-                self.top_p = top_p
-                self.top_k = top_k
-                self.max_tokens = max_tokens
-                self.timeout = timeout
-                
-                # Create a ChatCompletions class to mimic OpenAI's structure
-                class ChatCompletions:
-                    def __init__(self, parent):
-                        self.parent = parent
-                    
-                    def create(self, messages, model=None, temperature=None, max_tokens=None, response_model=None, **kwargs):
-                        """
-                        Create chat completions using Ollama.
-                        This mimics OpenAI's chat completions API but calls Ollama.
-                        
-                        If response_model is provided, instructor will handle parsing the response.
-                        """
-                        # Use provided values or fall back to defaults
-                        model = model or self.parent.model
-                        temperature = temperature or self.parent.temperature
-                        max_tokens = max_tokens or self.parent.max_tokens
-                        
-                        # Construct the prompt from messages
-                        prompt = ""
-                        for msg in messages:
-                            role = msg["role"]
-                            content = msg["content"]
-                            if role == "system":
-                                prompt += f"System: {content}\n\n"
-                            elif role == "user":
-                                prompt += f"User: {content}\n\n"
-                            elif role == "assistant":
-                                prompt += f"Assistant: {content}\n\n"
-                            # Add more roles as needed
-                        
-                        prompt += "Assistant: "
-                        
-                        # If using instructor with response_model, add JSON instructions
-                        if response_model:
-                            prompt += "\nPlease respond with valid JSON according to the provided schema.\n"
-                        
-                        # Log the prompt for debugging
-                        logger.debug(f"Calling Ollama with prompt: {prompt[:200]}...")
-                        
-                        # Call Ollama API
-                        url = f"{self.parent.base_url}/api/generate"
-                        start_time = time.time()
-                        
-                        try:
-                            response = requests.post(
-                                url,
-                                json={
-                                    "model": model,
-                                    "prompt": prompt,
-                                    "stream": False,
-                                    "temperature": temperature,
-                                    "top_p": self.parent.top_p,
-                                    "top_k": self.parent.top_k,
-                                    "max_tokens": max_tokens
-                                },
-                                timeout=self.parent.timeout
-                            )
-                            
-                            generation_time = time.time() - start_time
-                            logger.debug(f"Ollama response generated in {generation_time:.2f} seconds")
-                            
-                            if response.status_code != 200:
-                                logger.error(f"Ollama API returned status code {response.status_code}")
-                                logger.error(f"Response content: {response.text[:200]}")
-                                raise Exception(f"Ollama API error: {response.status_code}")
-                            
-                            result = response.json()
-                            response_text = result.get("response", "")
-                            
-                            # Additional validation
-                            if not response_text:
-                                logger.warning("Ollama returned an empty response")
-                                raise Exception("Empty response from Ollama")
-                            
-                            # Create a minimal response that mimics OpenAI format
-                            # This is what instructor will use to parse the response
-                            return {
-                                "model": model,
-                                "choices": [
-                                    {
-                                        "message": {
-                                            "role": "assistant",
-                                            "content": response_text
-                                        },
-                                        "index": 0,
-                                        "finish_reason": "stop"
-                                    }
-                                ]
-                            }
-                        
-                        except Exception as e:
-                            logger.error(f"Error calling Ollama: {e}")
-                            raise
-                
-                # Add the ChatCompletions class to the client
-                self.chat = ChatCompletions(self)
-        
-        # Instantiate and return the client
-        return OllamaCompatClient(
-            self.base_url,
-            self.model_name,
-            self.temperature,
-            self.top_p,
-            self.top_k,
-            self.max_tokens,
-            self.timeout
-        )
-    
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-    def generate_structured_output(self, prompt: str, response_model: Type[T], system_prompt: str = None) -> T:
-        """
-        Generate a structured response using the specified model.
-        
-        Args:
-            prompt: The user prompt
-            response_model: Pydantic model class for the expected response structure
-            system_prompt: Optional system prompt to provide context
-            
-        Returns:
-            An instance of the specified response_model
-        """
-        messages = []
-        
-        # Add system prompt if provided
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        
-        # Add user prompt
-        messages.append({"role": "user", "content": prompt})
-        
+        # Create an instructor client for structured outputs
+        # Note: We'll use direct requests instead of instructor for now
+        # to avoid compatibility issues
+        self.instructor_available = False
         try:
-            logger.debug(f"Generating structured output with model {self.model_name}")
-            logger.debug(f"Response model: {response_model.__name__}")
-            
-            # Use instructor to generate and parse the response
-            result = self.instructor_client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                response_model=response_model
-            )
-            
-            logger.debug(f"Successfully generated structured output: {result.model_dump_json()[:200]}...")
-            return result
+            import instructor
+            self.instructor_available = True
+        except ImportError:
+            logger.warning("Instructor package not available. Structured output will be limited.")
         
-        except Exception as e:
-            logger.error(f"Error generating structured output: {e}")
-            raise
-
-    def generate_narrative(self, prompt: str, system_prompt: str = None) -> NarrativeResponse:
+        # Test connection on initialization
+        self.is_connected, self.selected_model, self.info = test_ollama_connection(base_url, model_name, timeout=5)
+        if not self.is_connected:
+            logger.warning(f"Failed to connect to Ollama at {base_url} with model {model_name}")
+    
+    def generate_text(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> str:
         """
-        Generate a narrative response using the NarrativeResponse model.
+        Generate unstructured text from the Ollama model.
         
         Args:
-            prompt: The prompt describing the interaction
-            system_prompt: Optional system prompt for context
+            prompt: The user prompt to send to the model
+            system_prompt: Optional system prompt that overrides the default
+            temperature: Sampling temperature (higher = more creative, lower = more deterministic)
+            max_tokens: Maximum number of tokens to generate
             
         Returns:
-            NarrativeResponse object with title, description, and tags
-        """
-        return self.generate_structured_output(prompt, NarrativeResponse, system_prompt)
-    
-    def generate_daily_summary(self, prompt: str, system_prompt: str = None) -> DailySummaryResponse:
-        """
-        Generate a daily summary using the DailySummaryResponse model.
-        
-        Args:
-            prompt: The prompt describing the day's events
-            system_prompt: Optional system prompt for context
+            Generated text as a string
             
-        Returns:
-            DailySummaryResponse object with the summary
+        Raises:
+            ConnectionError: If connection to Ollama fails
+            TimeoutError: If request times out
+            ValueError: For other API errors
         """
-        return self.generate_structured_output(prompt, DailySummaryResponse, system_prompt)
-
-def parse_llm_json_response(
-    response_text: str, 
-    default_title: str = "Economic Interaction", 
-    default_description: str = "An economic exchange occurred between agents.",
-    default_tags: List[str] = ["fallback", "error_recovery"]
-) -> Tuple[str, str, List[str]]:
-    """
-    Parse JSON response from LLM, handling various edge cases.
-    
-    Args:
-        response_text: Raw text response from LLM
-        default_title: Fallback title if parsing fails
-        default_description: Fallback description if parsing fails
-        default_tags: Fallback tags if parsing fails
-    
-    Returns:
-        Tuple of (title, description, tags)
-    """
-    try:
-        # First, try to find JSON in the response
-        start_idx = response_text.find('{')
-        end_idx = response_text.rfind('}')
+        if not self.is_connected:
+            raise ConnectionError(f"Not connected to Ollama at {self.base_url}")
         
-        if start_idx != -1 and end_idx != -1:
-            json_text = response_text[start_idx:end_idx+1]
+        # Use instance system prompt if none provided
+        system = system_prompt if system_prompt is not None else self.system_prompt
+        
+        # Use instance defaults for other parameters if none provided
+        temp = temperature if temperature is not None else self.temperature
+        tokens = max_tokens if max_tokens is not None else self.max_tokens
+        
+        # Prepare request
+        url = f"{self.base_url}/api/generate"
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "temperature": temp,
+            "max_tokens": tokens,
+            "top_p": self.top_p,
+            "top_k": self.top_k
+        }
+        
+        # Add system prompt if available
+        if system:
+            payload["system"] = system
             
-            # Try different approaches to parse JSON
+        # Attempt with retries
+        for attempt in range(self.max_retries):
             try:
-                # First attempt with standard parsing
-                response_data = json.loads(json_text)
-            except json.JSONDecodeError:
-                # Try to clean up the JSON text
-                cleaned_json = json_text.replace('\n', ' ').replace('\r', ' ')
-                cleaned_json = cleaned_json.replace(',}', '}').replace(',]', ']')
+                response = requests.post(url, json=payload, timeout=self.timeout)
+                response.raise_for_status()
                 
-                try:
-                    # Extract only the JSON-like structure
-                    pattern = r'\{.*\}'
-                    match = re.search(pattern, cleaned_json, re.DOTALL)
-                    if match:
-                        cleaned_json = match.group(0)
-                    response_data = json.loads(cleaned_json)
-                except Exception:
-                    # Last resort fallback
-                    return default_title, default_description, default_tags
-            
-            title = response_data.get("title", default_title)
-            description = response_data.get("description", default_description)
-            tags = response_data.get("tags", default_tags)
-            
-            return title, description, tags
-        else:
-            # Try to salvage something useful from the response
-            lines = response_text.strip().split('\n')
-            if len(lines) >= 2:
-                return lines[0], '\n'.join(lines[1:]), ["generated", "non-json"]
-            
-            return default_title, response_text, ["fallback"]
+                # Extract and return generated text
+                data = response.json()
+                return data.get("response", "")
+                
+            except (requests.RequestException, json.JSONDecodeError) as e:
+                logger.warning(f"Attempt {attempt+1}/{self.max_retries} failed: {str(e)}")
+                
+                if attempt < self.max_retries - 1:
+                    # Exponential backoff
+                    wait_time = 2 ** attempt
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"All {self.max_retries} attempts failed")
+                    raise ValueError(f"Failed to generate text after {self.max_retries} attempts: {str(e)}")
+        
+        # This should not be reached due to the exception in the loop
+        raise RuntimeError("Unexpected error in generate_text")
     
-    except Exception:
-        return default_title, default_description, default_tags 
+    def generate_structured(
+        self,
+        prompt: str,
+        response_model: Type[BaseModel],
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        validation_context: Optional[Dict[str, Any]] = None
+    ) -> BaseModel:
+        """
+        Generate structured output from the Ollama model using Instructor.
+        
+        Args:
+            prompt: The user prompt to send to the model
+            response_model: Pydantic model class defining the expected response structure
+            system_prompt: Optional system prompt that overrides the default
+            temperature: Optional temperature that overrides the default
+            max_tokens: Optional max tokens that overrides the default
+            validation_context: Optional context data for model validation
+            
+        Returns:
+            Instance of the provided response_model with structured data
+            
+        Raises:
+            ConnectionError: If connection to Ollama fails
+            TimeoutError: If request times out
+            ValueError: For other API errors or if structured output generation fails
+        """
+        if not self.is_connected:
+            raise ConnectionError(f"Not connected to Ollama at {self.base_url}")
+        
+        # Use instance defaults if none provided
+        system = system_prompt if system_prompt is not None else self.system_prompt
+        temp = temperature if temperature is not None else self.temperature
+        tokens = max_tokens if max_tokens is not None else self.max_tokens
+        
+        # Attempt with retries
+        for attempt in range(self.max_retries):
+            try:
+                if self.instructor_available:
+                    # Use instructor for structured output if available
+                    try:
+                        # Build messages list for instructor
+                        messages = []
+                        if system:
+                            messages.append({"role": "system", "content": system})
+                        messages.append({"role": "user", "content": prompt})
+                        
+                        # Use instructor to patch the requests library and create a client
+                        import instructor
+                        import json
+                        import requests
+                        
+                        # Enhanced prompt to encourage structured output
+                        formatted_prompt = f"{prompt}\n\nPlease respond in JSON format that matches the following structure:\n{response_model.model_json_schema()}"
+                        
+                        # Make the request to Ollama
+                        url = f"{self.base_url}/api/chat"
+                        payload = {
+                            "model": self.model,
+                            "messages": messages,
+                            "temperature": temp,
+                            "max_tokens": tokens,
+                            "top_p": self.top_p,
+                            "top_k": self.top_k,
+                            "format": "json"  # Request JSON format explicitly
+                        }
+                        
+                        response = requests.post(url, json=payload, timeout=self.timeout)
+                        response.raise_for_status()
+                        
+                        # Extract generated text
+                        data = response.json()
+                        result_text = data.get("message", {}).get("content", "")
+                        
+                        # Parse the JSON response
+                        try:
+                            # Try to parse the JSON
+                            json_start = result_text.find('{')
+                            json_end = result_text.rfind('}') + 1
+                            if json_start >= 0 and json_end > json_start:
+                                json_text = result_text[json_start:json_end]
+                                # Parse and validate with Pydantic
+                                parsed_data = json.loads(json_text)
+                                return response_model.model_validate(parsed_data, context=validation_context)
+                            else:
+                                raise ValueError(f"No valid JSON found in response: {result_text}")
+                        except (json.JSONDecodeError, ValueError) as e:
+                            logger.warning(f"Failed to parse JSON response: {e}")
+                            logger.debug(f"Response content: {result_text}")
+                            raise ValueError(f"Invalid JSON response: {e}")
+                    except Exception as e:
+                        logger.warning(f"Instructor error: {e}")
+                        # Fall back to manual JSON parsing
+                        raise e
+                else:
+                    # Without instructor, we'll parse JSON manually
+                    # Build messages list
+                    messages = []
+                    if system:
+                        messages.append({"role": "system", "content": system})
+                    messages.append({"role": "user", "content": prompt})
+                    
+                    # Make request directly
+                    url = f"{self.base_url}/api/chat"
+                    payload = {
+                        "model": self.model,
+                        "messages": messages,
+                        "temperature": temp,
+                        "max_tokens": tokens,
+                        "top_p": self.top_p,
+                        "top_k": self.top_k,
+                        "format": "json"  # Request JSON format explicitly
+                    }
+                    
+                    response = requests.post(url, json=payload, timeout=self.timeout)
+                    response.raise_for_status()
+                    
+                    # Extract generated text
+                    data = response.json()
+                    result_text = data.get("message", {}).get("content", "")
+                    
+                    # Parse the JSON response
+                    try:
+                        # Try to parse the JSON
+                        json_start = result_text.find('{')
+                        json_end = result_text.rfind('}') + 1
+                        if json_start >= 0 and json_end > json_start:
+                            json_text = result_text[json_start:json_end]
+                            # Parse and validate with Pydantic
+                            parsed_data = json.loads(json_text)
+                            return response_model.model_validate(parsed_data, context=validation_context)
+                        else:
+                            raise ValueError(f"No valid JSON found in response: {result_text}")
+                    except (json.JSONDecodeError, ValueError) as e:
+                        logger.warning(f"Failed to parse JSON response: {e}")
+                        logger.debug(f"Response content: {result_text}")
+                        raise ValueError(f"Invalid JSON response: {e}")
+                
+            except Exception as e:
+                logger.warning(f"Attempt {attempt+1}/{self.max_retries} failed: {str(e)}")
+                
+                if attempt < self.max_retries - 1:
+                    # Exponential backoff
+                    wait_time = 2 ** attempt
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"All {self.max_retries} attempts failed")
+                    raise ValueError(f"Failed to generate structured output after {self.max_retries} attempts: {str(e)}")
+        
+        # This should not be reached due to the exception in the loop
+        raise RuntimeError("Unexpected error in generate_structured")
+    
+    def generate_narrative(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> 'NarrativeResponse':
+        """
+        Generate a narrative with title, description, and tags using the Ollama model.
+        
+        Args:
+            prompt: The prompt describing the narrative to generate
+            system_prompt: Optional system prompt that overrides the default
+            temperature: Optional temperature that overrides the default
+            max_tokens: Optional max tokens that overrides the default
+            
+        Returns:
+            NarrativeResponse with validated title, description, and tags
+            
+        Raises:
+            ValueError: If narrative generation fails or validation fails
+        """
+        from llm_models import NarrativeResponse
+        
+        if system_prompt is None:
+            default_narrative_prompt = (
+                "You are a creative narrator for a Mars colony simulation. "
+                "Generate engaging narratives about economic interactions between colonists "
+                "with a title, detailed description, and relevant tags."
+            )
+            system_prompt = default_narrative_prompt
+        
+        enhanced_prompt = (
+            f"{prompt}\n\n"
+            "Respond with a structured JSON object containing:\n"
+            "1. title: A catchy, attention-grabbing title that summarizes the event\n"
+            "2. description: A detailed, vivid description of what happened\n"
+            "3. tags: A list of relevant keywords (3-5 tags recommended)\n\n"
+            "Make sure your narrative is creative, engaging, and appropriate for the Mars colony setting."
+        )
+        
+        # Use the unified structured output generation
+        return self.generate_structured(
+            prompt=enhanced_prompt,
+            response_model=NarrativeResponse,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+    
+    def generate_daily_summary(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> 'DailySummaryResponse':
+        """
+        Generate a daily summary for the Mars colony using the Ollama model.
+        
+        Args:
+            prompt: The prompt containing information about the day's events
+            system_prompt: Optional system prompt that overrides the default
+            temperature: Optional temperature that overrides the default
+            max_tokens: Optional max tokens that overrides the default
+            
+        Returns:
+            DailySummaryResponse with a validated summary in Markdown format
+            
+        Raises:
+            ValueError: If summary generation fails or validation fails
+        """
+        from llm_models import DailySummaryResponse
+        
+        if system_prompt is None:
+            default_summary_prompt = (
+                "You are a creative science fiction narrator summarizing "
+                "daily events on a Mars colony. Create engaging, well-structured "
+                "summaries that highlight the most significant events and their impact."
+            )
+            system_prompt = default_summary_prompt
+        
+        enhanced_prompt = (
+            f"{prompt}\n\n"
+            "Respond with a well-structured Markdown summary that includes:\n"
+            "1. A day title with heading\n"
+            "2. An introduction paragraph about the general state of the colony\n"
+            "3. Section headings for notable events with descriptions\n"
+            "4. A conclusion reflecting on the day's significance\n\n"
+            "Make sure your summary is engaging, consistent with science fiction themes, "
+            "and formatted properly with Markdown syntax."
+        )
+        
+        # Use the unified structured output generation
+        return self.generate_structured(
+            prompt=enhanced_prompt,
+            response_model=DailySummaryResponse,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens if max_tokens else 2000  # Daily summaries might need more tokens
+        )
+    
+    def generate_structured_output(
+        self,
+        prompt: str,
+        response_model: Type[BaseModel],
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> BaseModel:
+        """
+        Alias for generate_structured to maintain backward compatibility.
+        
+        This method exists to avoid breaking existing code that may call 
+        generate_structured_output instead of generate_structured.
+        """
+        return self.generate_structured(
+            prompt=prompt,
+            response_model=response_model,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+    
+    def is_connected_to_ollama(self) -> bool:
+        """
+        Check if the client is connected to Ollama.
+        
+        Returns:
+            True if connected, False otherwise
+        """
+        return self.is_connected

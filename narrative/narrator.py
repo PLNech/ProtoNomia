@@ -316,7 +316,7 @@ class Narrator:
         return title, description, tags
     
     def create_arc(
-        self,
+        self, 
         title: str,
         description: str,
         events: List[NarrativeEvent],
