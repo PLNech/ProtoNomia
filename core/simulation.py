@@ -39,7 +39,7 @@ class Simulation:
     def __init__(
             self,
             config: SimulationConfig,
-            use_llm: bool = False,
+            use_llm: bool = True,
             model_name: str = DEFAULT_LM,
             narrator_model_name: str = DEFAULT_LM,
             temperature: float = 0.8,
@@ -417,6 +417,7 @@ class Simulation:
             # If using LLM, use LLMAgent to generate actions
             if self.use_llm and self.llm_agent:
                 context = self._create_decision_context(agent)
+                logger.debug(f"Context: {context}")
                 return self.llm_agent.generate_action(agent, context)
             else:
                 # Use rule-based action generation
@@ -460,18 +461,17 @@ class Simulation:
                                 "status": "pending"
                             })
 
-        # Get available jobs
         jobs_available = [
-            {"id": f"job_{i}", "title": "Software Engineer", "salary": 1000, "duration": 30},
-            {"id": f"job_{i + 1}", "title": "Mining Technician", "salary": 800, "duration": 15},
-            {"id": f"job_{i + 2}", "title": "Hydroponics Specialist", "salary": 900, "duration": 20}
+            {"id": f"job_1", "title": "Software Engineer", "salary": 1000, "duration": 30},
+            {"id": f"job_2", "title": "Mining Technician", "salary": 800, "duration": 15},
+            {"id": f"job_3", "title": "Hydroponics Specialist", "salary": 900, "duration": 20}
         ] if random.random() < 0.3 else []  # Only show jobs sometimes
 
         # Get items for sale
         items_for_sale = [
-            {"id": f"item_{i}", "name": "Food Pack", "price": 50, "seller": "market"},
-            {"id": f"item_{i + 1}", "name": "Water Filter", "price": 200, "seller": "market"},
-            {"id": f"item_{i + 2}", "name": "Entertainment Module", "price": 150, "seller": "market"}
+            {"id": f"item_1", "name": "Food Pack", "price": 50, "seller": "market"},
+            {"id": f"item_2", "name": "Water Filter", "price": 200, "seller": "market"},
+            {"id": f"item_3", "name": "Entertainment Module", "price": 150, "seller": "market"}
         ] if random.random() < 0.3 else []  # Only show items sometimes
 
         # Create the context
@@ -479,8 +479,6 @@ class Simulation:
             turn=self.state.current_tick,
             max_turns=1000,  # Arbitrary large number
             neighbors=neighbors,
-            resources={k.value: v for k, v in agent.resources.balances.items()},
-            needs=agent.needs,
             pending_offers=pending_offers,
             jobs_available=jobs_available,
             items_for_sale=items_for_sale,

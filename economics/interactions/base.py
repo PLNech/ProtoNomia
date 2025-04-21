@@ -61,10 +61,6 @@ class InteractionHandler(ABC):
         Returns:
             The amount of the resource, or 0 if not found
         """
-        if hasattr(agent, 'resources') and hasattr(agent.resources, 'balances'):
-            return agent.resources.balances.get(resource_type, 0.0)
-        
-        # Legacy support for old Agent model
         for resource in agent.resources:
             if resource.resource_type == resource_type:
                 return resource.amount
@@ -86,48 +82,38 @@ class InteractionHandler(ABC):
         Returns:
             True if the update was successful, False if insufficient resources
         """
-        # Check if agent uses the new ResourceBalance model
-        if hasattr(agent, 'resources') and hasattr(agent.resources, 'balances'):
-            current_amount = agent.resources.balances.get(resource_type, 0.0)
+        if agent.resources:
+                
+            # Legacy support for old Agent model
+            # Find the resource
+            resource = None
+            for r in agent.resources:
+                if r.resource_type == resource_type:
+                    resource = r
+                    break
+            
+            # If resource doesn't exist and we're adding, create it
+            if resource is None and amount_change > 0:
+                new_resource = ResourceBalance(
+                    resource_type=resource_type,
+                    amount=amount_change,
+                    last_updated=datetime.now()
+                )
+                agent.resources.append(new_resource)
+                return True
+            
+            # If resource doesn't exist and we're subtracting, fail
+            if resource is None and amount_change < 0:
+                return False
             
             # Check if we have enough resources to subtract
-            if amount_change < 0 and current_amount + amount_change < 0:
+            if amount_change < 0 and resource.amount + amount_change < 0:
                 return False
             
             # Update the resource
-            agent.resources.balances[resource_type] = current_amount + amount_change
+            resource.amount += amount_change
+            resource.last_updated = datetime.now()
             return True
-        
-        # Legacy support for old Agent model
-        # Find the resource
-        resource = None
-        for r in agent.resources:
-            if r.resource_type == resource_type:
-                resource = r
-                break
-        
-        # If resource doesn't exist and we're adding, create it
-        if resource is None and amount_change > 0:
-            new_resource = ResourceBalance(
-                resource_type=resource_type,
-                amount=amount_change,
-                last_updated=datetime.now()
-            )
-            agent.resources.append(new_resource)
-            return True
-        
-        # If resource doesn't exist and we're subtracting, fail
-        if resource is None and amount_change < 0:
-            return False
-        
-        # Check if we have enough resources to subtract
-        if amount_change < 0 and resource.amount + amount_change < 0:
-            return False
-        
-        # Update the resource
-        resource.amount += amount_change
-        resource.last_updated = datetime.now()
-        return True
     
     def calculate_narrative_significance(
         self, 

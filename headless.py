@@ -70,9 +70,9 @@ def parse_args():
                         help='Logging level (default: INFO)')
     
     # LLM configuration for agents
-    parser.add_argument('--use-llm', action='store_true',
+    parser.add_argument('--use-llm', action='store_true', default=True,
                         help='Use LLM for agent decision making and narrative generation')
-    parser.add_argument('--model-name', type=str, default='gemma:1b',
+    parser.add_argument('--model-name', type=str, default=DEFAULT_LM,
                         help='LLM model name to use with Ollama for agents (default: gemma:1b)')
     
     # LLM configuration for narrator

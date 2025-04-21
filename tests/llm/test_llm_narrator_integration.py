@@ -9,6 +9,8 @@ import os
 from datetime import datetime
 import json
 
+from pydantic import ValidationError
+
 from settings import DEFAULT_LM
 
 # Add project root to path for imports
@@ -150,7 +152,7 @@ class TestLLMNarratorIntegration():
                 assert summary is not None and len(summary) > 0
                 assert "Alice" in summary and "Bob" in summary, "Misses protagonists"
                 any_success = True
-            except AssertionError as exc:
+            except (AssertionError, ValidationError) as exc:
                 print(f"Failed try {retry}: {summary} -> {exc}")
         if not any_success:
             raise AssertionError(f"No success after {retries} retries.")

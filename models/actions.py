@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Any
 
 from pydantic import BaseModel, Field, validator
-
+from models.base import ResourceBalance
 
 class ActionType(str, Enum):
     """Types of actions an agent can take"""
@@ -15,18 +15,18 @@ class ActionType(str, Enum):
     SEARCH_JOB = "SEARCH_JOB"         # Look for employment
     WORK = "WORK"                     # Work at a job
     BUY = "BUY"                       # Purchase goods
-    SELL = "sell"  # Sell goods or services
-    MOVE = "move"  # Move to a new location
-    LEARN = "learn"  # Learn a new skill or improve existing ones
-    SOCIALIZE = "socialize"  # Interact socially with other agents
-    RESEARCH = "research"  # Research new technologies or information
-    INVEST = "invest"  # Invest in assets or projects
-    DONATE = "donate"  # Donate to others or public goods
-    PRODUCE = "produce"  # Produce goods or services
-    CONSUME = "consume"  # Consume goods or services
-    STEAL = "steal"  # Attempt to steal resources (risky)
-    SABOTAGE = "sabotage"  # Attempt to sabotage others (risky)
-    FORM_COALITION = "form_coalition"  # Form a coalition with other agents
+    SELL = "SELL"  # Sell goods or services
+    MOVE = "MOVE"  # Move to a new location
+    LEARN = "LEARN"  # Learn a new skill or improve existing ones
+    SOCIALIZE = "SOCIALIZE"  # Interact socially with other agents
+    RESEARCH = "RESEARCH"  # Research new technologies or information
+    INVEST = "INVEST"  # Invest in assets or projects
+    DONATE = "DONATE"  # Donate to others or public goods
+    PRODUCE = "PRODUCE"  # Produce goods or services
+    CONSUME = "CONSUME"  # Consume goods or services
+    STEAL = "STEAL"  # Attempt to steal resources (risky)
+    SABOTAGE = "SABOTAGE"  # Attempt to sabotage others (risky)
+    FORM_COALITION = "FORM_COALITION"  # Form a coalition with other agents
 
 class OfferData(BaseModel):
     """Data for an offer action"""
@@ -167,10 +167,6 @@ class LLMAgentActionResponse(BaseModel):
 
 class AgentDecisionContext(BaseModel):
     """Context provided to agent for decision making"""
-    agent_id: str
-    name: str
-    resources: Dict[str, float]
-    needs: Dict[str, float]
     turn: int
     max_turns: int
     neighbors: List[str]

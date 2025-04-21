@@ -48,7 +48,6 @@ def test_agent():
 def decision_context(test_agent):
     """Create a decision context for the agent"""
     return AgentDecisionContext(
-        agent_id=test_agent.id,
         turn=10,
         max_turns=100,
         neighbors=["Agent1", "Agent2"],

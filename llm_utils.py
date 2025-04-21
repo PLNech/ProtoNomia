@@ -12,7 +12,7 @@ from settings import DEFAULT_LM
 
 # Create TypeVar for the response model
 T = TypeVar('T', bound=BaseModel)
-
+logger = logging.getLogger()
 
 class OllamaClient:
     """
@@ -132,6 +132,8 @@ class OllamaClient:
                 max_tokens=tokens,
                 max_retries=retries
             )
+
+            logger.debug(f"generate_structured({T}): {response}")
 
             return response
 

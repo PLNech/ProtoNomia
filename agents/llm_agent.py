@@ -88,7 +88,7 @@ class LLMAgent:
 
         try:
             # Get structured response using Ollama
-            action_response = self.ollama_client.generate_structured_output(
+            action_response = self.ollama_client.generate_structured(
                 prompt=prompt,
                 response_model=AgentActionResponse,
                 system_prompt=system_prompt
@@ -186,7 +186,7 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
         f"You are an agent in a simulated economy on Mars in the year 2993.\n\n"
         f"### YOUR PROFILE\n"
         f"- Name: {agent.name}\n"
-        f"- Age: {agent.age} years\n"
+        f"- Age: {agent.age_days} years\n"
         f"- Type: {agent.agent_type.value}\n"
         f"- Faction: {agent.faction.value if agent.faction else 'None'}\n"
     )
@@ -205,8 +205,8 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
     # Add resource information
     prompt += "\n### YOUR RESOURCES\n"
     if hasattr(agent, 'resources') and agent.resources:
-        for resource_type, amount in agent.resources.balances.items():
-            prompt += f"- {resource_type}: {amount}\n"
+        for resource in agent.resources:
+            prompt += f"- {resource.resource_type}: {resource.amount}\n"
     else:
         prompt += "- No resources\n"
 
@@ -214,12 +214,7 @@ def format_prompt(agent: Agent, context: AgentDecisionContext) -> str:
     prompt += f"\n- Current job: {agent.job if hasattr(agent, 'job') and agent.job else 'None'}\n"
 
     # Add needs information (rest, hunger, etc.)
-    prompt += "\n### YOUR NEEDS\n"
-    if hasattr(agent, 'needs'):
-        for need_name, need_value in agent.needs.items():
-            prompt += f"- {need_name}: {need_value}/100\n"
-    else:
-        prompt += "- Energy: 80/100\n- Hunger: 70/100\n"
+    prompt += "\n### YOUR NEEDS: {agent.needs}\n"
 
     # Add social context
     prompt += "\n### SOCIAL CONTEXT\n"

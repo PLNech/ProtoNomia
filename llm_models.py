@@ -99,12 +99,12 @@ class DailySummaryResponse(BaseModel):
         # Check if the summary has at least two paragraphs
         paragraphs = [p for p in v.split('\n\n') if p.strip()]
         if len(paragraphs) < 2:
-            print(f"SilentError: Summary should contain multiple paragraphs ({v})")
+            pass # print(f"SilentError: Summary should contain multiple paragraphs ({v})")
             # raise ValueError("Summary should contain multiple paragraphs")
 
         # Check if summary has reasonable length
         if len(v.split()) < 100:
-            print(f"SilentError: Summary is too short, please provide more details ({v})")
+            pass # print(f"SilentError: Summary is too short, please provide more details ({v})")
             # raise ValueError("Summary is too short, please provide more details")
 
         # Check for thematic elements
@@ -135,14 +135,14 @@ example_daily_summary_2: DailySummaryResponse = DailySummaryResponse(
             "Innovation became indistinguishable from mass delusion.",
     emerging_trends=['virtual reality', 'technological mutation', 'consciousness commodification']
 )
-    
+
+valid_action_types = [t.value for t in ActionType]
 
 class AgentActionResponse(BaseModel):
     """Structured response for agent action generation"""
     
-    type: str = Field(
-        description="The type of action the agent will take",
-        examples=["REST", "OFFER", "NEGOTIATE", "ACCEPT", "REJECT", "WORK", "BUY", "SEARCH_JOB"]
+    type: ActionType = Field(
+        description=f"The type of action the agent will take. Must be one of {valid_action_types    }"
     )
     
     extra: Optional[Dict[str, Any]] = Field(
@@ -160,9 +160,8 @@ class AgentActionResponse(BaseModel):
     @classmethod
     def validate_action_type(cls, v: str) -> str:
         """Validate that the action type is one of the allowed values"""
-        valid_list = [str(t) for t in ActionType]
-        if v not in valid_list:
-            raise ValueError(f"Invalid action type: {v}. Must be one of {cls.VALID_ACTION_TYPES}")
+        if v not in valid_action_types:
+            raise ValueError(f"Invalid action type: {v}. Must be one of {valid_action_types}")
         return v
     
     @field_validator('reasoning')
