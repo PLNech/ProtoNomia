@@ -119,8 +119,8 @@ class TestNarrator:
         assert ultimatum_event.title is not None and len(ultimatum_event.title) > 0
         assert ultimatum_event.description is not None and len(ultimatum_event.description) > 0
         assert len(ultimatum_event.agents_involved) == 2
-        assert test_agents[0].id in ultimatum_event.agents_involved
-        assert test_agents[1].id in ultimatum_event.agents_involved
+        assert test_agents[0] in ultimatum_event.agents_involved
+        assert test_agents[1] in ultimatum_event.agents_involved
         
         # Generate a narrative event from a trust game
         trust_event = narrator.generate_event_from_interaction(
@@ -133,8 +133,8 @@ class TestNarrator:
         assert trust_event.title is not None and len(trust_event.title) > 0
         assert trust_event.description is not None and len(trust_event.description) > 0
         assert len(trust_event.agents_involved) == 2
-        assert test_agents[0].id in trust_event.agents_involved
-        assert test_agents[2].id in trust_event.agents_involved
+        assert test_agents[0] in trust_event.agents_involved
+        assert test_agents[2] in trust_event.agents_involved
         
         # Ensure the descriptions are different
         assert ultimatum_event.description != trust_event.description

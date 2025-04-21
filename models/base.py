@@ -72,10 +72,17 @@ class AgentNeeds(BaseModel):
         if not 0 <= v <= 1:
             raise ValueError("Need values must be between 0 and 1")
         return v
+# TODO: Use simpler ID generation (agent_1, agent_2, etc.)
+agent_counter: int = 0
+def agent_id_factory() -> str:
+    """Generate a simple ID for an agent"""
+    global agent_counter
+    agent_counter += 1
+    return f"agent_{agent_counter}"
 
 class Agent(BaseModel):
     """Economic agent in the simulation"""
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    id: str = Field(default_factory=agent_id_factory)
     name: str
     agent_type: AgentType
     faction: AgentFaction
@@ -97,6 +104,50 @@ class Agent(BaseModel):
             return (self.death_date - self.birth_date).days
         return (current_date - self.birth_date).days
 
+    def __eq__(self, other: Any) -> bool:
+        """Check if two agents are the same"""
+        if isinstance(other, Agent):
+            return self.id == other.id
+        return False
+    
+    def __str__(self) -> str:
+        """String representation of an agent: 
+        First a # Personal section: their name, age, alive status and birth date/death date+age or age+location if alive accordingly.
+        Then a # Personality section: their core personality traits and needs.
+        Then a # Resources section: their current resources and relationships and skills and memory.
+        """
+        full_str = f"# {self.name}\n ## Personal info\n"
+        if self.is_alive:
+            full_str += f"{self.age_days} days old, currently in {self.location}"
+        else:
+            full_str += f" (died {self.death_date} at {self.age_days} days old), buried in {self.location}"
+        full_str += f"\n ## Personality\n"
+        full_str += f"Cooperativeness: {self.personality.cooperativeness}\n"
+        full_str += f"Risk tolerance: {self.personality.risk_tolerance}\n"
+        full_str += f"Fairness preference: {self.personality.fairness_preference}\n"
+        full_str += f"Altruism: {self.personality.altruism}\n"
+        full_str += f"Rationality: {self.personality.rationality}\n"
+        full_str += f"Long-term orientation: {self.personality.long_term_orientation}\n"
+        full_str += f"\n ## Needs\n"
+        full_str += f"Subsistence: {self.needs.subsistence}\n"
+        full_str += f"Security: {self.needs.security}\n"
+        full_str += f"Social: {self.needs.social}\n"
+        full_str += f"Esteem: {self.needs.esteem}\n"
+        full_str += f"Self-actualization: {self.needs.self_actualization}\n"
+        full_str += f"\n ## Resources\n"
+        for resource in self.resources:
+            full_str += f"{resource.resource_type}: {resource.amount}\n"
+        full_str += f"\n ## Relationships\n"
+        for relationship in self.relationships:
+            full_str += f"{relationship.agent_id}: {relationship.relationship_score}\n"
+        full_str += f"\n ## Skills\n"
+        for skill in self.skills:
+            full_str += f"{skill.skill_type}: {skill.skill_level}\n"
+        return full_str
+    
+    def __repr__(self) -> str:
+        """A shorter unique identifier for an agent."""
+        return f"Agent(id={self.id}, name={self.name})"
 # ========== Economic Interaction Models ==========
 
 class EconomicInteractionType(str, Enum):
@@ -175,7 +226,7 @@ class NarrativeEvent(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     title: str
     description: str
-    agents_involved: List[str]  # Agent IDs
+    agents_involved: List[Agent] = Field(default_factory=list)
     interaction_id: Optional[str] = None  # If related to an interaction
     significance: float = Field(0.5, ge=0.0, le=1.0)  # How important is this event
     tags: List[str] = Field(default_factory=list)
@@ -186,7 +237,7 @@ class NarrativeArc(BaseModel):
     title: str
     description: str
     events: List[str] = Field(default_factory=list)  # Event IDs in sequence
-    agents_involved: List[str] = Field(default_factory=list)  # Agent IDs
+    agents_involved: List[Agent] = Field(default_factory=list)  # Agent IDs
     start_time: datetime = Field(default_factory=datetime.now)
     end_time: Optional[datetime] = None
     is_complete: bool = False

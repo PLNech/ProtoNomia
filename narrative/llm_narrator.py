@@ -73,12 +73,13 @@ class LLMNarrator(Narrator):
         try:
             # Map agent IDs to agent objects for easier lookup
             agent_map = {agent.id: agent for agent in agents}
+            agent_names = {agent.id: agent.name for agent in agents}
 
             # Get participant agent names
             participant_names = {}
             for agent_id, role in interaction.participants.items():
                 if agent_id in agent_map:
-                    participant_names[role] = agent_map[agent_id].name
+                    participant_names[role] = agent_names[agent_id]
 
             # Create a prompt for the LLM
             prompt = self._create_interaction_prompt(interaction, participant_names, agent_map)
@@ -101,7 +102,7 @@ class LLMNarrator(Narrator):
                 timestamp=datetime.now(),
                 title=narrative_response.title,
                 description=narrative_response.description,
-                agents_involved=list(interaction.participants,
+                agents_involved=[agent_map[agent_id] for agent_id in interaction.participants.keys()],
                 interaction_id=interaction.id,
                 significance=interaction.narrative_significance,
                 tags=narrative_response.tags
@@ -117,7 +118,7 @@ class LLMNarrator(Narrator):
                 timestamp=datetime.now(),
                 title="Economic Interaction",
                 description="An economic interaction occurred between agents.",
-                agents_involved=list(interaction.participants.keys()),
+                agents_involved=[agent_map[agent_id] for agent_id in interaction.participants.keys()],
                 interaction_id=interaction.id,
                 significance=interaction.narrative_significance,
                 tags=["fallback", "error_recovery"]
@@ -303,14 +304,15 @@ class LLMNarrator(Narrator):
             prompt += "**Key Events to Incorporate:**\n\n"
 
             # Sort events by significance
-            sorted_events = sorted(events, key=lambda e: e.significance, reverse=True)
+            sorted_events: list[NarrativeEvent] = sorted(events, key=lambda e: e.significance, reverse=True)
 
             # Include the top events based on verbosity
             max_events = min(len(sorted_events), self.verbosity * 3)
             for i, event in enumerate(sorted_events[:max_events]):
+                involved = ', '.join(repr(e) for e in event.agents_involved) if event.agents_involved else None
                 prompt += f"Event {i + 1}: {event.title}\n"
                 prompt += f"Description: {event.description}\n"
-                prompt += f"Agents involved: {', '.join(event.agents_involved)}\n"
+                prompt += f"Agents involved: {involved}\n"
                 prompt += f"Tags: {', '.join(event.tags)}\n"
                 prompt += f"Significance level: {event.significance:.1f}/1.0\n\n"
         else:

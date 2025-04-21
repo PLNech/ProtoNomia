@@ -71,25 +71,25 @@ class NarrativeResponse(BaseModel):
 
         return v
 
+
 class DailySummaryResponse(BaseModel):
     """Structured response for daily summary generation"""
 
     headline: str = Field(
-        description="An engaging 5-10 words headline that captures the day's most important theme or development",
+        description="An engaging 5-15 words headline that captures the day's most important theme or development",
         min_length=10,
         max_length=100
     )
 
     summary: str = Field(
-        description="A daily summary of MAX 15-30 words that weaves individual events into a cohesive narrative",
-        min_length=40,
-        max_length=2000
+        description="A detailed 50-100 words daily summary that weaves individual events into a cohesive narrative",
+        min_length=100,
+        max_length=5000
     )
 
     emerging_trends: Optional[List[str]] = Field(
-        description="0-5 Emerging social, economic, or technological trends in the colony, as list of lowercase strings.",
-        default=None,
-        max_length=10
+        description="Emerging social, economic, or technological trends in the colony, as list of lowercase strings.",
+        default=None
     )
 
     @field_validator('summary')
@@ -97,15 +97,22 @@ class DailySummaryResponse(BaseModel):
     def validate_summary(cls, v: str) -> str:
         """Validate the summary to ensure it has proper content"""
         # Check if the summary has at least two paragraphs
-        # paragraphs = [p for p in v.split('\n\n') if p.strip()]
-        # if len(paragraphs) < 2:
-            # print(f"SilentError: Summary should contain multiple paragraphs ({v})")
+        paragraphs = [p for p in v.split('\n\n') if p.strip()]
+        if len(paragraphs) < 2:
+            print(f"SilentError: Summary should contain multiple paragraphs ({v})")
             # raise ValueError("Summary should contain multiple paragraphs")
 
         # Check if summary has reasonable length
         if len(v.split()) < 100:
             print(f"SilentError: Summary is too short, please provide more details ({v})")
             # raise ValueError("Summary is too short, please provide more details")
+
+        # Check for thematic elements
+        thematic_terms = ['community', 'survival', 'economy', 'resources', 'adaptation',
+                          'technology', 'culture', 'faction', 'politics', 'environment']
+        if not any(term in v.lower() for term in thematic_terms):
+            print(f"SilentError: Summary should incorporate thematic elements about Martian society ({v})")
+            # raise ValueError("Summary should incorporate thematic elements about Martian society")
 
         return v
     

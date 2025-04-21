@@ -78,7 +78,7 @@ class Narrator:
             timestamp=datetime.now(),
             title=title,
             description=description,
-            agents_involved=list(interaction.participants.keys()),
+            agents_involved=[agent_map[agent_id] for agent_id in interaction.participants.keys()],
             interaction_id=interaction.id,
             significance=interaction.narrative_significance,
             tags=tags
@@ -339,7 +339,7 @@ class Narrator:
             title=title,
             description=description,
             events=[event.id for event in events],
-            agents_involved=[agent.id for agent in agents],
+            agents_involved=[agent for event in events for agent in event.agents_involved],
             start_time=min(event.timestamp for event in events),
             is_complete=False
         )
@@ -376,11 +376,9 @@ class Narrator:
             summary += "## Notable Events\n\n"
             
             for i, event in enumerate(significant_events[:min(5, len(significant_events))]):
-                # Get agent names involved
-                agent_names = [agent_map.get(agent_id, "Unknown") for agent_id in event.agents_involved]
-                
                 # Add event to summary
                 summary += f"### {event.title}\n"
+                summary += f"**Protagonists:** {', '.join([agent.name for agent in event.agents_involved])}\n"
                 summary += f"{event.description}\n\n"
         else:
             summary += "## A Quiet Day\n\nNo significant events were recorded today.\n\n"
@@ -388,7 +386,7 @@ class Narrator:
         # Add a conclusion
         summary += self._generate_daily_conclusion(day, events)
         
-        logger.info(f"Generated daily summary for day {day} with {len(events)} events")
+        logger.info(f"Generated daily summary for day {day} with {len(events)} events: {summary}")
         return summary
     
     def _generate_daily_intro(self, day: int, event_count: int, agent_count: int) -> str:
