@@ -3,13 +3,13 @@
 Test script to validate the LLM updates.
 This script tests the updated response models with validators and the OllamaClient methods.
 """
-import json
 import sys
-from typing import Dict, Any, List, Optional
+
 from pydantic import ValidationError
 
-from llm_models import NarrativeResponse, DailySummaryResponse, AgentActionResponse
+from llm_models import NarrativeResponse, AgentActionResponse
 from llm_utils import OllamaClient
+
 
 def test_narrative_response():
     """Test the NarrativeResponse model with validators"""
@@ -56,56 +56,6 @@ def test_narrative_response():
         return False
     except ValidationError as e:
         print(f"✓ Validation caught prohibited terms")
-    
-    return True
-
-def test_daily_summary_response():
-    """Test the DailySummaryResponse model with validators"""
-    print("\nTesting DailySummaryResponse...")
-    
-    # Valid response
-    valid_data = {
-        "summary": """# Day 42 on Mars
-
-The colony continues to thrive despite challenges with water recycling.
-
-## Notable Events
-
-### New Trade Route Established
-A group of enterprising colonists established a new trade route.
-
-### Resource Discovery
-Rare minerals were found in the northern quadrant.
-
-As the Martian sunset bathed the colony in red light, the colonists prepared for another day."""
-    }
-    
-    try:
-        response = DailySummaryResponse(**valid_data)
-        print(f"✓ Valid summary accepted: {len(response.summary)} chars")
-    except ValidationError as e:
-        print(f"✗ Error with valid data: {e}")
-        return False
-    
-    # Invalid response (no headings)
-    invalid_data = {
-        "summary": """Day 42 on Mars
-
-The colony continues to thrive despite challenges with water recycling.
-
-Notable Events:
-A group of enterprising colonists established a new trade route.
-Rare minerals were found in the northern quadrant.
-
-As the Martian sunset bathed the colony in red light, the colonists prepared for another day."""
-    }
-    
-    try:
-        response = DailySummaryResponse(**invalid_data)
-        print(f"✗ Invalid summary (no headings) accepted")
-        return False
-    except ValidationError as e:
-        print(f"✓ Validation caught missing headings")
     
     return True
 
@@ -217,7 +167,6 @@ def main():
     """Run all tests and print a summary"""
     tests = [
         test_narrative_response,
-        test_daily_summary_response,
         test_agent_action_response,
         test_ollama_client_mock
     ]

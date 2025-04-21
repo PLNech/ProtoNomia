@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 import argparse
+import json
+import logging
 import sys
 import time
-import logging
-import json
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from datetime import datetime
 
+from core.simulation import Simulation
 # Import ProtoNomia modules
 from models.base import (
-    Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, 
-    ResourceType, EconomicInteraction, EconomicInteractionType, 
-    InteractionRole, SimulationConfig, SimulationState
+    EconomicInteractionType,
+    SimulationConfig
 )
-from core.simulation import Simulation
+from settings import DEFAULT_LM
 
 # Configure logging
 logging.basicConfig(
@@ -66,7 +65,7 @@ def parse_args():
                         help='Output file for simulation results (JSON)')
     parser.add_argument('--verbosity', type=int, default=3, choices=range(1, 6),
                         help='Narrative verbosity level (1-5, default: 3)')
-    parser.add_argument('--log-level', type=str, default='INFO',
+    parser.add_argument('--log-level', type=str, default='DEBUG',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help='Logging level (default: INFO)')
     
@@ -77,8 +76,8 @@ def parse_args():
                         help='LLM model name to use with Ollama for agents (default: gemma:1b)')
     
     # LLM configuration for narrator
-    parser.add_argument('--narrator-model-name', type=str, default='gemma3:1b',
-                        help='LLM model name to use with Ollama for narrator (default: gemma3:1b)')
+    parser.add_argument('--narrator-model-name', type=str, default=DEFAULT_LM,
+                        help=f'LLM model name to use with Ollama for narrator (default: {DEFAULT_LM})')
     parser.add_argument('--temperature', type=float, default=0.8,
                         help='Temperature for LLM generation (0.0-1.0, default: 0.8)')
     parser.add_argument('--top-p', type=float, default=0.95,

@@ -7,7 +7,7 @@ import logging
 import requests
 from instructor.exceptions import InstructorRetryException
 
-from llm_models import NarrativeResponse, DailySummaryResponse
+from llm_models import NarrativeResponse, DailySummaryResponse, example_daily_summary_1, example_daily_summary_2
 from settings import DEFAULT_LM
 
 # Create TypeVar for the response model
@@ -26,7 +26,7 @@ class OllamaClient:
             temperature: float = 0.8,
             top_p: float = 0.95,
             top_k: int = 40,
-            max_tokens: int = 4096,
+            max_tokens: int = 2**14,
             max_retries: int = 5,
             timeout: int = 30,
             system_prompt: str = ""
@@ -79,6 +79,7 @@ class OllamaClient:
             self,
             prompt: str,
             response_model: Type[T],
+            examples: Optional[list[T]] = None,
             system_prompt: Optional[str] = None,
             temperature: Optional[float] = None,
             max_tokens: Optional[int] = None,
@@ -90,6 +91,7 @@ class OllamaClient:
         Args:
             prompt: The user prompt
             response_model: Pydantic model for structured response
+            examples: Examples of response to give to the LLM
             system_prompt: Optional system prompt override
             temperature: Optional temperature override
             max_tokens: Optional max tokens override
@@ -109,6 +111,16 @@ class OllamaClient:
             messages = []
             if system:
                 messages.append({"role": "system", "content": system})
+
+            if examples:
+                examples_str = "Examples: " + ",".join([e.model_dump_json() for e in examples])
+            else:
+                examples_str = ""
+
+            format_guidance = f"""Your response must be only valid JSON conforming to this response schema: 
+            {response_model.model_json_schema()}
+            {examples_str}"""
+            messages.append({"role": "system", "content": format_guidance})
             messages.append({"role": "user", "content": prompt})
 
             # Use Instructor's create method with structured response
@@ -168,6 +180,7 @@ class OllamaClient:
         return self.generate_structured(
             prompt=prompt,
             response_model=DailySummaryResponse,
+            examples=[example_daily_summary_1, example_daily_summary_2],
             system_prompt=system_prompt
         )
 

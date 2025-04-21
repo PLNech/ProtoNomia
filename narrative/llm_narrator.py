@@ -56,7 +56,7 @@ class LLMNarrator(Narrator):
             temperature=temperature,
             top_p=top_p,
             top_k=top_k,
-            max_tokens=4096,
+            max_tokens=2**14,
             max_retries=max_retries,
             timeout=timeout
         )
@@ -101,7 +101,7 @@ class LLMNarrator(Narrator):
                 timestamp=datetime.now(),
                 title=narrative_response.title,
                 description=narrative_response.description,
-                agents_involved=list(interaction.participants.keys()),
+                agents_involved=list(interaction.participants,
                 interaction_id=interaction.id,
                 significance=interaction.narrative_significance,
                 tags=narrative_response.tags
@@ -146,13 +146,15 @@ class LLMNarrator(Narrator):
             )
 
             # Format the final summary with the headline as the main title
-            formatted_summary = f"# {summary_response.headline}\n\n{summary_response.summary}"
+            formatted_summary = (f"# {summary_response.headline}\n\n{summary_response.summary}\n\n"
+                                 f"Emerging Trends:{summary_response.emerging_trends or None}")
 
             return formatted_summary
 
         except Exception as e:
             logger.error(f"Error generating daily summary: {e}")
-            # Fallback to a simple summary in case of error
+            raise
+            # FIXME: Consider fallback to a simple summary in case of error
             return f"# Day {day} on Mars\n\n" + \
                 f"Today, {len(events)} events occurred in the Mars colony.\n\n" + \
                 f"The simulation has {len(agents)} active agents."
@@ -361,6 +363,6 @@ class LLMNarrator(Narrator):
         detail_level = "richly detailed and character-focused" if self.verbosity >= 4 \
             else "concise but thematically unified" if self.verbosity <= 2 \
             else "balanced with both overview and specific moments"
-        prompt += f"\nGenerate a {detail_level} summary in Markdown format with headings, paragraphs, and sections."
+        prompt += f"\nGenerate a {detail_level} summary."
 
         return prompt

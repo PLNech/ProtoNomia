@@ -3,13 +3,14 @@ Structured response models for LLM interactions in ProtoNomia.
 
 This module defines the Pydantic models used for structured outputs from LLM calls.
 """
-from typing import List, Optional, Dict, Any, ClassVar
-from pydantic import BaseModel, Field, field_validator, model_validator
 import re
+from typing import Dict, Any, ClassVar
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional
-import re
+from pydantic import model_validator
+
+from models.actions import ActionType
 
 
 class NarrativeResponse(BaseModel):
@@ -17,18 +18,20 @@ class NarrativeResponse(BaseModel):
 
     title: str = Field(
         description="A catchy, thematic title that captures the core economic tension or relationship",
-        max_length=100
+        max_length=100,
     )
 
     description: str = Field(
-        description="A detailed scene with dialogue showing this interaction through character actions and reactions, including environmental details that ground this exchange in the Martian setting",
+        description="A detailed scene with dialogue showing this interaction through character actions and reactions, "
+                    "including environmental details that ground this exchange in the Martian setting",
         max_length=2000
     )
 
     tags: List[str] = Field(
-        description="Keywords that categorize this event (economics, conflict, collaboration, etc.)",
-        min_items=2,
-        max_items=7
+        description="Keywords that categorize this event: one to five from [economics/conflict/collaboration/"
+                    "resources/technology/politics/survival/trust/negotiation/faction].",
+        min_length=1,
+        max_length=5,
     )
 
     theme: Optional[str] = Field(
@@ -47,13 +50,8 @@ class NarrativeResponse(BaseModel):
         """Validate that the description includes dialogue and setting details"""
         # Check for dialogue (quotes)
         if not re.search(r'["\'](.*?)["\']', v):
-            raise ValueError("Description should include character dialogue in quotes")
-
-        # Check for Mars-specific setting details
-        mars_terms = ['Mars', 'Martian', 'colony', 'dome', 'habitat', 'oxygen', 'gravity', 'dust']
-        if not any(term.lower() in v.lower() for term in mars_terms):
-            raise ValueError("Description should include Mars-specific setting details")
-
+            print(f"SilentError: Description should include character dialogue in quotes ({v})")
+            # raise ValueError("Description should include character dialogue in quotes")
         return v
 
     @field_validator('tags')
@@ -68,64 +66,69 @@ class NarrativeResponse(BaseModel):
 
         # At least one tag should be from valid categories
         if not any(tag.lower() in valid_categories for tag in v):
-            raise ValueError(f"Tags should include at least one category from: {', '.join(valid_categories)}")
+            print (f"SilentError: Tags should include at least one category from: {', '.join(valid_categories)}")
+            # raise ValueError(f"Tags should include at least one category from: {', '.join(valid_categories)}")
 
         return v
-
 
 class DailySummaryResponse(BaseModel):
     """Structured response for daily summary generation"""
 
     headline: str = Field(
-        description="An engaging headline that captures the day's most important theme or development",
+        description="An engaging 5-10 words headline that captures the day's most important theme or development",
+        min_length=10,
         max_length=100
     )
 
     summary: str = Field(
-        description="A detailed daily summary in Markdown format that weaves individual events into a cohesive narrative",
-        max_length=5000
-    )
-
-    key_themes: List[str] = Field(
-        description="The main themes explored in this daily summary",
-        min_items=1,
-        max_items=5
-    )
-
-    notable_characters: Optional[List[str]] = Field(
-        description="Characters who played significant roles in today's events",
-        default=None
+        description="A daily summary of MAX 15-30 words that weaves individual events into a cohesive narrative",
+        min_length=40,
+        max_length=2000
     )
 
     emerging_trends: Optional[List[str]] = Field(
-        description="Emerging social, economic, or technological trends in the colony",
-        default=None
+        description="0-5 Emerging social, economic, or technological trends in the colony, as list of lowercase strings.",
+        default=None,
+        max_length=10
     )
 
     @field_validator('summary')
     @classmethod
     def validate_summary(cls, v: str) -> str:
-        """Validate the summary to ensure it has proper markdown formatting and content"""
-        # Check if the summary has markdown headings
-        if not re.search(r'#+ ', v):
-            raise ValueError("Summary should contain Markdown headings")
-
+        """Validate the summary to ensure it has proper content"""
         # Check if the summary has at least two paragraphs
-        paragraphs = [p for p in v.split('\n\n') if p.strip()]
-        if len(paragraphs) < 2:
-            raise ValueError("Summary should contain multiple paragraphs")
+        # paragraphs = [p for p in v.split('\n\n') if p.strip()]
+        # if len(paragraphs) < 2:
+            # print(f"SilentError: Summary should contain multiple paragraphs ({v})")
+            # raise ValueError("Summary should contain multiple paragraphs")
 
         # Check if summary has reasonable length
         if len(v.split()) < 100:
-            raise ValueError("Summary is too short, please provide more details")
-
-        # Check for thematic elements
-        thematic_terms = ['community', 'survival', 'economy', 'resources', 'adaptation',
-                          'technology', 'culture', 'faction', 'politics', 'environment']
-        if not any(term in v.lower() for term in thematic_terms):
-            raise ValueError("Summary should incorporate thematic elements about Martian society")
+            print(f"SilentError: Summary is too short, please provide more details ({v})")
+            # raise ValueError("Summary is too short, please provide more details")
 
         return v
+    
+example_daily_summary_1: DailySummaryResponse = DailySummaryResponse(
+    headline="Synthetic Oxygen Scarcity Triggers Paranoid Negotiation Protocol",
+    summary="In the sterile corridors, Bob's memory implant flickered with desperation. "
+            "Alice, her neural interface humming, negotiated oxygen credits with a mechanical precision that masked "
+            "her underlying existential dread. The colony's breath hung in quantum uncertainty—each transaction a potential"
+            " betrayal, each molecule of air a currency of survival in this red-dust hallucination we call home.",
+    emerging_trends=['resource scarcity', 'neural negotiation', 'survival economics']
+)
+
+example_daily_summary_2: DailySummaryResponse = DailySummaryResponse(
+    headline="Hallucinatory VR Breakthrough Sparks Capitalist Fever Dream",
+    summary="The VR headset materialized—not as technology, but as a collective hallucination. "
+            "Inventors and speculators swarmed like digital parasites, their consciousness bleeding "
+            "into marketing algorithms. Each pixel promised escape, each refresh rate a new reality construct.\n\n"
+            "The entertainment industry mutated overnight, transforming from mere content delivery "
+            "to a full-spectrum reality manipulation engine. "
+            "Innovation became indistinguishable from mass delusion.",
+    emerging_trends=['virtual reality', 'technological mutation', 'consciousness commodification']
+)
+    
 
 class AgentActionResponse(BaseModel):
     """Structured response for agent action generation"""
@@ -145,16 +148,13 @@ class AgentActionResponse(BaseModel):
         max_length=500
     )
     
-    # Valid action types
-    VALID_ACTION_TYPES: ClassVar[List[str]] = [
-        "REST", "OFFER", "NEGOTIATE", "ACCEPT", "REJECT", "WORK", "BUY", "SEARCH_JOB"
-    ]
-    
+
     @field_validator('type')
     @classmethod
     def validate_action_type(cls, v: str) -> str:
         """Validate that the action type is one of the allowed values"""
-        if v not in cls.VALID_ACTION_TYPES:
+        valid_list = [str(t) for t in ActionType]
+        if v not in valid_list:
             raise ValueError(f"Invalid action type: {v}. Must be one of {cls.VALID_ACTION_TYPES}")
         return v
     

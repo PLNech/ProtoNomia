@@ -52,7 +52,7 @@ class TestHeadlessScript:
             '--death-rate', '0.006',
             '--verbosity', '4',
             '--use-llm',
-            '--model-name', 'gemma3:1b'
+            '--model-name', 'foo:42b'
         ]):
             args = headless.parse_args()
             
@@ -68,7 +68,7 @@ class TestHeadlessScript:
             assert args.death_rate == 0.006
             assert args.verbosity == 4
             assert args.use_llm is True
-            assert args.model_name == 'gemma3:1b'
+            assert args.model_name == 'foo:42b'
     
     def test_timeout_functionality(self):
         """Test that the timeout parameter works correctly"""

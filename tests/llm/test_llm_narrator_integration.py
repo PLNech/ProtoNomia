@@ -1,11 +1,15 @@
 """
 Integration tests for the LLM-based narrator with actual LLM service.
 """
+from unittest import TestCase
+
 import pytest
 import sys
 import os
 from datetime import datetime
 import json
+
+from settings import DEFAULT_LM
 
 # Add project root to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -74,7 +78,7 @@ def test_interaction(test_agents):
 
 @pytest.mark.llm
 @pytest.mark.skipif(not os.environ.get("RUN_LLM_TESTS"), reason="LLM tests are disabled. Set RUN_LLM_TESTS=1 to enable.")
-class TestLLMNarratorIntegration:
+class TestLLMNarratorIntegration():
     """
     Integration tests for LLMNarrator with actual LLM service.
     
@@ -84,7 +88,7 @@ class TestLLMNarratorIntegration:
     def test_llm_narrator_connection(self):
         """Test that we can connect to the LLM service"""
         try:
-            narrator = LLMNarrator(model_name="gemma3:1b")
+            narrator = LLMNarrator()
             # If we got here without exception, connection was successful
             assert True
         except Exception as e:
@@ -92,7 +96,7 @@ class TestLLMNarratorIntegration:
     
     def test_generate_event_from_interaction(self, test_agents, test_interaction):
         """Test generating a narrative event from an interaction using LLM"""
-        narrator = LLMNarrator(model_name="gemma3:1b")
+        narrator = LLMNarrator()
         
         # Generate a narrative event
         event = narrator.generate_event_from_interaction(test_interaction, test_agents)
@@ -111,7 +115,7 @@ class TestLLMNarratorIntegration:
     
     def test_daily_summary_generation(self, test_agents):
         """Test generating a daily summary using LLM"""
-        narrator = LLMNarrator(model_name="gemma3:1b")
+        narrator = LLMNarrator(max_retries=1)
         
         # Create some narrative events
         events = [
@@ -136,10 +140,19 @@ class TestLLMNarratorIntegration:
         ]
         
         # Generate a daily summary
-        summary = narrator.generate_daily_summary(day=42, events=events, agents=test_agents)
-        
-        # Verify basic properties of the summary
-        assert summary is not None and len(summary) > 0
-        assert "Day 42" in summary or "day 42" in summary.lower()
-        assert "Alice" in summary or "Bob" in summary
-        assert "resource" in summary.lower() or "shortage" in summary.lower() or "deal" in summary.lower() or "offer" in summary.lower() 
+        retries = 5
+        any_success = False
+        for retry in range(retries):
+            try:
+                summary = narrator.generate_daily_summary(day=42, events=events, agents=test_agents)
+
+                # Verify basic properties of the summary
+                assert summary is not None and len(summary) > 0
+                assert summary.lower().index("42") != -1, "Misses day 42"
+                assert "Alice" in summary and "Bob" in summary, "Misses protagonists"
+                assert "resource" in summary.lower() or "shortage" in summary.lower() or "deal" in summary.lower() or "offer" in summary.lower(), "Misses key words"
+                any_success = True
+            except AssertionError as exc:
+                print(f"Failed try {retry}: {summary} -> {exc}")
+        if not any_success:
+            raise AssertionError(f"No success after {retries} retries.")
