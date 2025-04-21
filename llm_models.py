@@ -31,7 +31,7 @@ class NarrativeResponse(BaseModel):
         description="Keywords that categorize this event: one to five from [economics/conflict/collaboration/"
                     "resources/technology/politics/survival/trust/negotiation/faction].",
         min_length=1,
-        max_length=5,
+        max_length=10,
     )
 
     theme: Optional[str] = Field(
@@ -142,20 +142,20 @@ class AgentActionResponse(BaseModel):
     """Structured response for agent action generation"""
     
     type: ActionType = Field(
-        description=f"The type of action the agent will take. Must be one of {valid_action_types    }"
+        description=f"The type of action the agent will take. Must be one of {valid_action_types}"
     )
     
-    extra: Optional[Dict[str, Any]] = Field(
-        default=None,
+    extra: Dict[str, Any] = Field(
+        default_factory=dict,
         description="Extra information specific to the action type"
     )
     
-    reasoning: str = Field(
+    reasoning: Optional[str] = Field(
+        default=None,
         description="The reasoning behind the agent's action choice",
         max_length=500
     )
     
-
     @field_validator('type')
     @classmethod
     def validate_action_type(cls, v: str) -> str:
@@ -164,38 +164,65 @@ class AgentActionResponse(BaseModel):
             raise ValueError(f"Invalid action type: {v}. Must be one of {valid_action_types}")
         return v
     
-    @field_validator('reasoning')
-    @classmethod
-    def validate_reasoning(cls, v: str) -> str:
-        """Validate that the reasoning is meaningful"""
-        if len(v.split()) < 5:
-            raise ValueError("Reasoning must be more detailed")
-        return v
-    
     @model_validator(mode='after')
-    def validate_action_details(self) -> 'AgentActionResponse':
-        """Validate that the action has the required details for its type"""
-        if self.type == "OFFER":
-            extra = self.extra or {}
+    def validate_and_enrich(self) -> 'AgentActionResponse':
+        """Validate action details and enrich with reasoning if not provided"""
+        # First validate required fields for each action type
+        extra = self.extra
+        
+        if self.type == ActionType.OFFER:
             required_fields = ["what", "against_what", "to_agent_id"]
             for field in required_fields:
                 if field not in extra:
                     raise ValueError(f"OFFER action requires '{field}' in extra data")
         
-        elif self.type in ["NEGOTIATE", "ACCEPT", "REJECT"]:
-            extra = self.extra or {}
+        elif self.type in [ActionType.NEGOTIATE, ActionType.ACCEPT, ActionType.REJECT]:
             if "offer_id" not in extra:
                 raise ValueError(f"{self.type} action requires 'offer_id' in extra data")
         
-        elif self.type == "WORK":
-            extra = self.extra or {}
+        elif self.type == ActionType.WORK:
             if "job_id" not in extra:
                 raise ValueError("WORK action requires 'job_id' in extra data")
         
-        elif self.type == "BUY":
-            extra = self.extra or {}
+        elif self.type == ActionType.BUY:
             if "desired_item" not in extra:
                 raise ValueError("BUY action requires 'desired_item' in extra data")
+        
+        # Now handle reasoning - generate it if not provided or too short
+        if not self.reasoning or len(self.reasoning.split()) < 3:
+            # First check if there's any reasoning-like information in the extra fields
+            for field in ['reason', 'explanation', 'message', 'justification']:
+                if field in extra and extra[field]:
+                    self.reasoning = f"I'm choosing to {self.type} because {extra[field]}"
+                    return self
+            
+            # Generate default reasoning based on action type
+            if self.type == ActionType.BUY:
+                item = extra.get('desired_item', 'item')
+                self.reasoning = f"I need to BUY {item} to meet my needs."
+                
+            elif self.type == ActionType.SELL:
+                item = extra.get('item_type', 'resources')
+                self.reasoning = f"I have excess {item} that I can SELL for credits."
+                
+            elif self.type == ActionType.SEARCH_JOB:
+                self.reasoning = f"I need to search for a job to improve my economic situation."
+                
+            elif self.type == ActionType.WORK:
+                job = extra.get('job_id', 'my current job')
+                self.reasoning = f"Working on {job} will provide me with income."
+                
+            elif self.type == ActionType.OFFER:
+                what = extra.get('what', 'resources')
+                against = extra.get('against_what', 'something I need')
+                self.reasoning = f"I'm offering {what} in exchange for {against}."
+                
+            elif self.type == ActionType.REST:
+                self.reasoning = "I need to rest to recover energy."
+                
+            else:
+                # Default for any other action type
+                self.reasoning = f"I've decided to {self.type} based on my current situation."
                 
         return self
 

@@ -83,7 +83,11 @@ class LLMAgent:
         system_prompt = (
             "You are an AI assistant helping Mars colonists make economic decisions. "
             "Based on the agent's personality and context, choose the most appropriate action. "
-            "Always respond with a valid action type and necessary details in JSON format."
+            "Your response must be valid JSON with a 'type' field for the action type and an 'extra' field "
+            "containing any additional information needed for the action. "
+            "For example: {\"type\": \"BUY\", \"extra\": {\"desired_item\": \"Food Pack\"}} "
+            "or {\"type\": \"SEARCH_JOB\", \"extra\": {\"reason\": \"I need a reliable income source\"}}. "
+            "The 'reason' or 'explanation' field in 'extra' is very helpful."
         )
 
         try:
@@ -117,20 +121,49 @@ class LLMAgent:
             self._fill_action_details(action)
 
             logger.debug(f"Generated action for agent {agent.id}: {action.type}")
-            if action_response.reasoning:
-                logger.debug(f"Reasoning: {action_response.reasoning}")
+            logger.debug(f"Reasoning: {action_response.reasoning}")
 
             return action
 
         except Exception as e:
             logger.error(f"Error generating action: {e}")
+            
+            # Attempt to extract useful information even from invalid responses
+            try:
+                # If we can extract some kind of type information, use it instead of defaulting to REST
+                if "last_completion" in str(e) and "content" in str(e):
+                    import re
+                    import json
+                    
+                    # Extract the JSON content from the error message
+                    match = re.search(r'content=\'(.*?)\'', str(e))
+                    if match:
+                        content = match.group(1)
+                        try:
+                            # Try to parse it as JSON
+                            data = json.loads(content)
+                            if "type" in data and data["type"] in [t.value for t in ActionType]:
+                                # We have a valid action type, create action with it
+                                return AgentAction(
+                                    type=ActionType(data["type"]),
+                                    agent_id=agent.id,
+                                    turn=context.turn,
+                                    timestamp=time.time(),
+                                    extra=data.get("extra", {})
+                                )
+                        except:
+                            pass
+                
+            except Exception as inner_e:
+                logger.debug(f"Failed to extract data from error: {inner_e}")
+            
             # Fall back to a REST action on failure
             return AgentAction(
                 type=ActionType.REST,
                 agent_id=agent.id,
                 turn=context.turn,
                 timestamp=time.time(),
-                extra={"reason": "Error in LLM processing, defaulting to REST"}
+                extra={"reason": f"Error in LLM processing, defaulting to REST: {str(e)[:100]}"}
             )
 
     def _fill_action_details(self, action: AgentAction) -> None:

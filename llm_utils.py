@@ -5,7 +5,7 @@ from typing import List, Type, TypeVar, Optional
 import instructor
 import logging
 import requests
-from instructor.exceptions import InstructorRetryException
+from instructor.exceptions import IncompleteOutputException
 
 from llm_models import NarrativeResponse, DailySummaryResponse, example_daily_summary_1, example_daily_summary_2
 from settings import DEFAULT_LM
@@ -101,6 +101,9 @@ class OllamaClient:
             An instance of the response_model
         """
         try:
+            # Check if we're dealing with agent action response - which may need special handling
+            is_agent_action = response_model.__name__ == 'AgentActionResponse'
+            
             # Use defaults if parameters not provided
             system = system_prompt if system_prompt is not None else self.system_prompt
             temp = temperature if temperature is not None else self.temperature
@@ -117,31 +120,122 @@ class OllamaClient:
             else:
                 examples_str = ""
 
-            format_guidance = f"""Your response must be only valid JSON conforming to this response schema: 
-            {response_model.model_json_schema()}
-            {examples_str}"""
+            # For smaller models, use a simplified schema for agent actions
+            if is_agent_action and self.model_name in ["gemma3:4b", "gemma:1b", "phi:latest", "gemma3:2b"]:
+                format_guidance = """Your response must be only valid JSON conforming to this simplified schema:
+                {
+                  "type": "ACTION_TYPE",  # e.g., "BUY", "SELL", "SEARCH_JOB", "REST", etc.
+                  "extra": {
+                    # Action-specific details here
+                    # For BUY: "desired_item": "item name"
+                    # For WORK: "job_id": "job123"
+                    # etc.
+                    "reason": "brief explanation of why this action was chosen"
+                  }
+                }
+                """
+            else:
+                format_guidance = f"""Your response must be only valid JSON conforming to this response schema: 
+                {response_model.model_json_schema()}
+                {examples_str}"""
+                
             messages.append({"role": "system", "content": format_guidance})
             messages.append({"role": "user", "content": prompt})
 
             # Use Instructor's create method with structured response
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                response_model=response_model,
-                temperature=temp,
-                max_tokens=tokens,
-                max_retries=retries
-            )
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    response_model=response_model,
+                    temperature=temp,
+                    max_tokens=tokens,
+                    max_retries=retries
+                )
+                
+                logger.debug(f"generate_structured({response_model.__name__}): {response}")
+                return response
+                
+            except IncompleteOutputException as e:
+                self.logger.error(f"Failed to generate structured output")
+                self.logger.error(f"Last output: {e}")
+                
+                # For agent actions, try to recover from partial responses
+                if is_agent_action:
+                    recovered_response = self._recover_agent_action(e)
+                    if recovered_response:
+                        return recovered_response
+                
+                raise
 
-            logger.debug(f"generate_structured({T}): {response}")
-
-            return response
-
-        except InstructorRetryException as e:
-            # Log detailed retry information
-            self.logger.error(f"Failed to generate structured output after {e.n_attempts} attempts")
-            self.logger.error(f"Last completion: {e.last_completion}")
+        except Exception as e:
+            self.logger.error(f"Error in generate_structured: {e}")
             raise
+
+    def _recover_agent_action(self, exception) -> Optional[T]:
+        """
+        Attempt to recover a partial agent action response from a failed completion.
+        
+        Args:
+            exception: The exception with information about the failed completion
+            
+        Returns:
+            Optional recovered AgentActionResponse object
+        """
+        try:
+            from llm_models import AgentActionResponse
+            from models.actions import ActionType
+            
+            # Try to extract potential JSON content
+            import json
+            import re
+            
+            # Get the string representation of the exception
+            error_str = str(exception)
+            
+            # Try to find JSON-like content in the exception message
+            json_pattern = r'\{.*\}'
+            match = re.search(json_pattern, error_str, re.DOTALL)
+            
+            if match:
+                # Extract and clean potential JSON
+                content = match.group(0)
+                content = content.strip()
+                
+                # Try to parse as JSON
+                try:
+                    data = json.loads(content)
+                    
+                    # Check if we have the minimal required fields
+                    if "type" in data and data["type"] in [t.value for t in ActionType]:
+                        # Create a minimal valid response
+                        action_type = data["type"]
+                        extra = data.get("extra", {})
+                        reasoning = None
+                        
+                        # Try to extract reasoning from text or extra fields
+                        for field in ["reasoning", "reason", "explanation", "justification", "message"]:
+                            if field in data and data[field]:
+                                reasoning = data[field]
+                                break
+                            elif extra and field in extra and extra[field]:
+                                reasoning = extra[field]
+                                break
+                        
+                        # Create the response object
+                        response_data = {"type": action_type, "extra": extra}
+                        if reasoning:
+                            response_data["reasoning"] = reasoning
+                        
+                        # Return validated object
+                        return AgentActionResponse(**response_data)
+                except json.JSONDecodeError:
+                    self.logger.debug(f"Failed to parse potential JSON: {content}")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to recover agent action: {e}")
+        
+        return None
 
     def generate_narrative(
             self,
