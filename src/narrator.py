@@ -271,6 +271,6 @@ class Narrator:
 
         return DailySummaryResponse(
             title=random.choice(day_titles),
-            summary=summary_text,
+            content=summary_text,
             highlights=highlights[:3]  # Limit to 3 highlights
         )

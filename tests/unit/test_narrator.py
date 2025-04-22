@@ -66,7 +66,7 @@ class TestNarrator(unittest.TestCase):
         # Setup mock response
         mock_summary = DailySummaryResponse(
             title="Test Day",
-            summary="This is a test summary",
+            content="This is a test summary",
             highlights=["Highlight 1", "Highlight 2"]
         )
         self.mock_ollama_client.generate_daily_summary.return_value = mock_summary
@@ -77,7 +77,7 @@ class TestNarrator(unittest.TestCase):
 
         # Verify the result
         self.assertEqual(result.title, "Test Day")
-        self.assertEqual(result.summary, "This is a test summary")
+        self.assertEqual(result.content, "This is a test summary")
         self.assertEqual(len(result.highlights), 2)
 
         # Verify generate_daily_summary was called
@@ -174,7 +174,7 @@ class TestNarrator(unittest.TestCase):
         # Verify result is a valid DailySummaryResponse
         self.assertIsInstance(result, DailySummaryResponse)
         self.assertIsNotNone(result.title)
-        self.assertIsNotNone(result.summary)
+        self.assertIsNotNone(result.content)
         self.assertIsInstance(result.highlights, list)
 
 

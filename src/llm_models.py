@@ -15,7 +15,7 @@ class NarrativeResponse(BaseModel):
 
     description: str = Field(
         description="A detailed scene with dialogue showing this interaction through character actions and reactions, "
-                    "including environmental details that ground this exchange in the Martian setting",
+                    "including environmental details that ground this exchange in the Martian setting. MAX 100 WORDS",
         max_length=500
     )
 
@@ -27,7 +27,7 @@ class DailySummaryResponse(BaseModel):
         description="A catchy title for the day's events. MAXIMUM 8 WORDS"
     )
 
-    summary: str = Field(
+    content: str = Field(
         description="A narrative summary of the day's events in the colony. MIN 10 WORDS MAX 30."
     )
 
@@ -36,10 +36,10 @@ class DailySummaryResponse(BaseModel):
 # Example Daily Summaries for LLM guidance
 example_daily_summary_1 = DailySummaryResponse(
     title="Dusty Deals and Shroom Dreams",
-    summary="Day 3 on Mars brought economic stirrings as colonists began establishing trade. Sarah crafted a makeshift air filter, while Malik harvested the first batch of Martian mushrooms. Despite fatigue, colonists showed remarkable resilience, with jokes about 'getting rich in red dirt' echoing through the habitation units.",
+    content="Day 3 on Mars brought economic stirrings as colonists began establishing trade. Sarah crafted a makeshift air filter, while Malik harvested the first batch of Martian mushrooms. Despite fatigue, colonists showed remarkable resilience, with jokes about 'getting rich in red dirt' echoing through the habitation units.",
 )
 
 example_daily_summary_2 = DailySummaryResponse(
     title="Fungal Fortune, Colonial Crisis",
-    summary="Day 7 marked contrasts in the colony's development. The mushroom trade flourished with Dave's discovery of a premium growth technique, while resource scarcity led to the first heated market disputes. Meanwhile, Elena's critical rest levels resulted in the colony's first medical emergency, prompting discussions about work-life balance in the harsh Martian environment.",
+    content="Day 7 marked contrasts in the colony's development. The mushroom trade flourished with Dave's discovery of a premium growth technique, while resource scarcity led to the first heated market disputes. Meanwhile, Elena's critical rest levels resulted in the colony's first medical emergency, prompting discussions about work-life balance in the harsh Martian environment.",
 )

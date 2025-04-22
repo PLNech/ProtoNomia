@@ -219,8 +219,8 @@ class Simulation:
         """
         for agent in self.state.agents:
             # Reduce food and rest needs
-            agent.needs.food = max(0, agent.needs.food - random.uniform(0.1, 0.2))
-            agent.needs.rest = max(0, agent.needs.rest - random.uniform(0.1, 0.15))
+            agent.needs.food = max(0, agent.needs.food - random.uniform(0.01, 0.02))
+            agent.needs.rest = max(0, agent.needs.rest - random.uniform(0.01, 0.015))
             agent.needs.fun = max(0, agent.needs.fun - random.uniform(0.05, 0.1))
 
             # Log critically low needs
@@ -580,7 +580,7 @@ class Simulation:
         # Generate the narrative using the Narrator
         try:
             narrative = self.narrator.generate_daily_summary(self.state)
-            logger.info(f"Day {self.state.day} Narrative: {narrative.title}")
+            logger.info(f"Day {self.state.day} Narrative: {narrative.title}\n{narrative.content}")
 
             # Save narrative to file
             narrative_file = os.path.join(self.output_dir, f"day_{self.state.day}_narrative.txt")
@@ -717,7 +717,7 @@ def main(agents, days, model, output, temperature, log_level):
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler(os.path.join(output, 'simulation.log'))
+            # logging.FileHandler(os.path.join(output, 'simulation.log'))
         ]
     )
 
