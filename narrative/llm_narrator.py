@@ -3,15 +3,15 @@ LLM-based Narrator module for ProtoNomia.
 This module uses Ollama to generate narrative events from economic interactions.
 """
 import logging
-from typing import List, Dict, Any, Tuple
 from datetime import datetime
+from typing import List, Dict, Any, Tuple
 
+from llm_utils import OllamaClient
 from models.base import (
-    Agent, EconomicInteraction, EconomicInteractionType, InteractionRole,
-    NarrativeEvent, InteractionOutcome, ResourceType
+    Agent, EconomicInteraction, InteractionRole,
+    NarrativeEvent, ResourceType
 )
 from narrative.narrator import Narrator
-from llm_utils import OllamaClient
 from settings import DEFAULT_LM
 
 # Initialize logger
@@ -250,176 +250,45 @@ class LLMNarrator(Narrator):
         
         prompt += ", ".join(participants_list) + "\n\n"
         
-        # Add specific details based on interaction type
-        if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
-            # Get values from parameters or outcomes (if available)
-            total_amount = parameters.get('total_amount', 100)
-            proposed_amount = parameters.get('proposed_amount')
-            acceptance = parameters.get('response')
-            resource_type = parameters.get('resource_type', ResourceType.CREDITS).value
-            
-            proposer_name = participant_names.get(InteractionRole.PROPOSER, "Proposer")
-            responder_name = participant_names.get(InteractionRole.RESPONDER, "Responder")
-            
-            # Add economic outcomes if available
-            proposer_outcome = resources_exchanged.get('proposer', {})
-            responder_outcome = resources_exchanged.get('responder', {})
-            
-            proposer_strategy = strategies_used.get('proposer', {}).get('type', 'unknown')
-            responder_strategy = strategies_used.get('responder', {}).get('type', 'unknown')
-            
-            prompt += (
-                f"Core Event: {proposer_name} offered {responder_name} {proposed_amount} {resource_type} "
-                f"out of a total of {total_amount} {resource_type}. "
-                f"The offer was {'accepted' if acceptance else 'rejected'} by {responder_name}.\n\n"
-            )
-            
-            # Add economic outcomes
-            if proposer_outcome and responder_outcome:
-                prompt += (
-                    f"Economic Outcome: {proposer_name} {'gained' if proposer_outcome.get('utility_change', 0) > 0 else 'lost'} "
-                    f"{abs(proposer_outcome.get('utility_change', 0))} utility "
-                    f"while {responder_name} {'gained' if responder_outcome.get('utility_change', 0) > 0 else 'lost'} "
-                    f"{abs(responder_outcome.get('utility_change', 0))} utility.\n\n"
-                )
-                
-                prompt += (
-                    f"Strategies: {proposer_name} employed a '{proposer_strategy}' approach, "
-                    f"while {responder_name} responded with a '{responder_strategy}' strategy.\n\n"
-                )
-            
-            prompt += (
-                f"Consider what this reveals about power dynamics, negotiation styles, and the personal history between them. "
-                f"What motivated this particular offer? What consequences might this have for their future interactions?\n"
-            )
-        elif interaction.interaction_type == EconomicInteractionType.TRUST:
-            # Get values from parameters or outcomes
-            initial_amount = parameters.get('initial_amount', 100)
-            invested_amount = parameters.get('invested_amount', 0)
-            multiplier = parameters.get('multiplier', 3)
-            returned_amount = parameters.get('returned_amount', 0)
-            resource_type = parameters.get('resource_type', ResourceType.CREDITS).value
-            
-            investor_name = participant_names.get(InteractionRole.INVESTOR, "Investor")
-            trustee_name = participant_names.get(InteractionRole.TRUSTEE, "Trustee")
-            
-            multiplied_amount = invested_amount * multiplier if invested_amount is not None else 0
-            
-            # Add economic outcomes if available
-            investor_outcome = resources_exchanged.get('investor', {})
-            trustee_outcome = resources_exchanged.get('trustee', {})
-            
-            investor_strategy = strategies_used.get('investor', {}).get('type', 'unknown')
-            trustee_strategy = strategies_used.get('trustee', {}).get('type', 'unknown')
-            
-            prompt += (
-                f"Core Event: {investor_name} invested {invested_amount} {resource_type} with {trustee_name}. "
-                f"The investment grew by a factor of {multiplier} to {multiplied_amount} {resource_type}. "
-                f"{trustee_name} returned {returned_amount} {resource_type} to {investor_name}.\n\n"
-            )
-            
-            # Add economic outcomes
-            if investor_outcome and trustee_outcome:
-                prompt += (
-                    f"Economic Outcome: {investor_name} {'gained' if investor_outcome.get('utility_change', 0) > 0 else 'lost'} "
-                    f"{abs(investor_outcome.get('utility_change', 0))} utility "
-                    f"while {trustee_name} {'gained' if trustee_outcome.get('utility_change', 0) > 0 else 'lost'} "
-                    f"{abs(trustee_outcome.get('utility_change', 0))} utility.\n\n"
-                )
-                
-                prompt += (
-                    f"Strategies: {investor_name} exhibited a '{investor_strategy}' approach to investing, "
-                    f"while {trustee_name} demonstrated a '{trustee_strategy}' approach to trustworthiness.\n\n"
-                )
-            
-            prompt += (
-                f"Consider the emotional stakes, prior experiences that built or eroded trust, and how this "
-                f"exchange affects the community's perception of both parties. Is this part of a pattern or an unusual event?\n"
-            )
-        elif interaction.interaction_type == EconomicInteractionType.PUBLIC_GOODS:
-            # Get values from parameters or outcomes
-            endowment = parameters.get('endowment', 100)
-            multiplier = parameters.get('multiplier', 2.0)
-            contributions = parameters.get('contributions', {})
-            resource_type = parameters.get('resource_type', ResourceType.CREDITS).value
-            
-            # Format the contributions for the prompt
-            contribution_text = []
-            for agent_id, amount in contributions.items():
-                if agent_id in agent_map:
-                    contribution_text.append(f"{agent_map[agent_id].name}: {amount} {resource_type}")
-            
-            contributions_str = ", ".join(contribution_text) if contribution_text else "No contributions"
-            
-            total_contribution = sum(contributions.values()) if contributions else 0
-            multiplied_pool = total_contribution * multiplier
-            num_participants = len(interaction.participants)
-            individual_return = multiplied_pool / num_participants if num_participants > 0 else 0
-            
-            prompt += (
-                f"Core Event: A public goods game where each participant received an endowment of {endowment} {resource_type}.\n"
-                f"Contributions: {contributions_str}\n"
-                f"The combined pool of {total_contribution} {resource_type} was multiplied by {multiplier} to {multiplied_pool} {resource_type}.\n"
-                f"Each participant received {individual_return} {resource_type} from the common pool.\n\n"
-            )
-            
-            # Add strategies for each participant
-            strategies_text = []
-            for agent_id, role in interaction.participants.items():
-                role_name = role.value
-                if role_name in strategies_used and agent_id in agent_map:
-                    strategy = strategies_used[role_name].get('type', 'unknown')
-                    strategies_text.append(f"{agent_map[agent_id].name}: {strategy}")
-            
-            if strategies_text:
-                prompt += f"Strategies: {', '.join(strategies_text)}\n\n"
-            
-            prompt += (
-                f"Consider how this reveals group dynamics, cooperation vs. self-interest, and the emerging social norms "
-                f"in the Mars colony. How does the shared environment of Mars influence collective decision-making?\n"
-            )
-        else:
-            # Generic prompt for other interaction types
-            prompt += (
-                f"Core Event: An economic exchange with these details: "
-                f"{', '.join([f'{k}: {v}' for k, v in parameters.items()])}\n\n"
-                f"Consider the broader context - is this transaction routine or unusual? "
-                f"What environmental or sociopolitical factors on Mars influenced this exchange?\n"
-            )
+        # Generic prompt for other interaction types
+        prompt += (
+            f"Core Event: An economic exchange with these details: "
+            f"{', '.join([f'{k}: {v}' for k, v in parameters.items()])}\n\n"
+            f"Consider the broader context - is this transaction routine or unusual? "
+            f"What environmental or sociopolitical factors on Mars influenced this exchange?\n"
+        )
 
         # Add personality traits if available
         prompt += "\n**Character Background:**\n"
         for role, name in participant_names.items():
-            agent_id = next((id for id, r in interaction.participants.items() if r == role), None)
-            if agent_id and agent_id in agent_map:
-                agent = agent_map[agent_id]
-                if hasattr(agent, 'personality'):
-                    personality = agent.personality
-                    traits = ', '.join([f"{trait}: {getattr(personality, trait, 0)}" for trait in [
-                        'cooperativeness', 'risk_tolerance', 'fairness_preference',
-                        'altruism', 'rationality', 'long_term_orientation'
-                    ] if hasattr(personality, trait)])
+            agent = next((agent for agent, r in interaction.participants.items() if r == role), None)
+            if hasattr(agent, 'personality'):
+                personality = agent.personality
+                traits = ', '.join([f"{trait}: {getattr(personality, trait, 0)}" for trait in [
+                    'cooperativeness', 'risk_tolerance', 'fairness_preference',
+                    'altruism', 'rationality', 'long_term_orientation'
+                ] if hasattr(personality, trait)])
 
-                    faction = agent.faction.value if hasattr(agent, 'faction') else "Unknown"
-                    agent_type = agent.agent_type.value if hasattr(agent, 'agent_type') else "Unknown"
+                faction = agent.faction.value if hasattr(agent, 'faction') else "Unknown"
+                agent_type = agent.agent_type.value if hasattr(agent, 'agent_type') else "Unknown"
 
-                    prompt += f"- {name}: A {faction} {agent_type} with these traits: {traits}\n"
+                prompt += f"- {name}: A {faction} {agent_type} with these traits: {traits}\n"
 
-                    # Add specific character interpretation prompts
-                    if hasattr(personality, 'cooperativeness') and getattr(personality, 'cooperativeness', 0) > 0.7:
-                        prompt += f"  {name} typically seeks harmony and collaborative solutions.\n"
-                    elif hasattr(personality, 'cooperativeness') and getattr(personality, 'cooperativeness', 0) < 0.3:
-                        prompt += f"  {name} often acts independently, sometimes at others' expense.\n"
+                # Add specific character interpretation prompts
+                if hasattr(personality, 'cooperativeness') and getattr(personality, 'cooperativeness', 0) > 0.7:
+                    prompt += f"  {name} typically seeks harmony and collaborative solutions.\n"
+                elif hasattr(personality, 'cooperativeness') and getattr(personality, 'cooperativeness', 0) < 0.3:
+                    prompt += f"  {name} often acts independently, sometimes at others' expense.\n"
 
-                    if hasattr(personality, 'risk_tolerance') and getattr(personality, 'risk_tolerance', 0) > 0.7:
-                        prompt += f"  {name} embraces uncertainty and bold ventures in this harsh Martian frontier.\n"
-                    elif hasattr(personality, 'risk_tolerance') and getattr(personality, 'risk_tolerance', 0) < 0.3:
-                        prompt += f"  {name} carefully calculates each move in the precarious Martian environment.\n"
-                    
-                    # Add resource information
-                    if hasattr(agent, 'resources') and agent.resources:
-                        resources_str = ', '.join([f"{r.resource_type.value}: {r.amount}" for r in agent.resources])
-                        prompt += f"  {name}'s current resources: {resources_str}\n"
+                if hasattr(personality, 'risk_tolerance') and getattr(personality, 'risk_tolerance', 0) > 0.7:
+                    prompt += f"  {name} embraces uncertainty and bold ventures in this harsh Martian frontier.\n"
+                elif hasattr(personality, 'risk_tolerance') and getattr(personality, 'risk_tolerance', 0) < 0.3:
+                    prompt += f"  {name} carefully calculates each move in the precarious Martian environment.\n"
+
+                # Add resource information
+                if hasattr(agent, 'resources') and agent.resources:
+                    resources_str = ', '.join([f"{r.resource_type.value}: {r.amount}" for r in agent.resources])
+                    prompt += f"  {name}'s current resources: {resources_str}\n"
 
         # Add setting elements for immersive world-building
         prompt += "\n**Martian Setting Elements (include at least one):**\n"

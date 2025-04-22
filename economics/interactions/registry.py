@@ -4,11 +4,10 @@ Registry for economic interaction handlers in ProtoNomia.
 import logging
 from typing import Dict, List, Optional
 
-from models.base import Agent, EconomicInteraction, EconomicInteractionType
+from models.base import Agent, EconomicInteraction, ActionType
 from economics.interactions.base import InteractionHandler
-from economics.interactions.ultimatum import UltimatumGameHandler
-from economics.interactions.trust import TrustGameHandler
-from economics.interactions.public_goods import PublicGoodsGameHandler
+from economics.interactions.job_market import JobMarketHandler
+from economics.interactions.goods_market import GoodsMarketHandler
 
 logger = logging.getLogger(__name__)
 
@@ -16,24 +15,21 @@ class InteractionRegistry:
     """Registry of all available interaction handlers"""
     
     def __init__(self):
-        self.handlers: Dict[EconomicInteractionType, InteractionHandler] = {}
+        self.handlers: Dict[ActionType, InteractionHandler] = {}
         self._register_handlers()
     
     def _register_handlers(self):
         """Register all available interaction handlers"""
         # Register handlers
-        self.register_handler(UltimatumGameHandler())
-        self.register_handler(TrustGameHandler())
-        self.register_handler(PublicGoodsGameHandler())
-        
-        # TODO: Register more handlers as they are implemented
+        self.register_handler(JobMarketHandler())
+        self.register_handler(GoodsMarketHandler())
     
     def register_handler(self, handler: InteractionHandler):
         """Register a new interaction handler"""
         self.handlers[handler.interaction_type] = handler
         logger.info(f"Registered handler for {handler.interaction_type}")
     
-    def create_interaction(self, interaction_type: EconomicInteractionType, **kwargs) -> EconomicInteraction:
+    def create_interaction(self, interaction_type: ActionType, **kwargs) -> EconomicInteraction:
         """Create a new interaction of the specified type"""
         if interaction_type not in self.handlers:
             raise ValueError(f"No handler registered for interaction type {interaction_type}")
@@ -101,45 +97,4 @@ class InteractionRegistry:
         for agent in agents:
             if agent.id == agent_id:
                 return agent
-        return None
-    
-    def migrate_interaction_to_agent_refs(self, interaction: EconomicInteraction, agents: List[Agent]) -> EconomicInteraction:
-        """Migrate an interaction from using agent IDs to using agent references
-        
-        This is a migration helper for converting old interaction format to new format.
-        
-        Args:
-            interaction: The interaction to migrate
-            agents: List of all available agents
-            
-        Returns:
-            The migrated interaction with direct agent references
-        """
-        # If the interaction already uses agent references, no need to migrate
-        if not interaction.participants or all(isinstance(key, Agent) for key in interaction.participants.keys()):
-            return interaction
-        
-        # Migrate participants
-        new_participants = {}
-        for agent_id, role in interaction.participants.items():
-            agent = self.find_agent_by_id(agent_id, agents)
-            if agent:
-                new_participants[agent] = role
-            else:
-                logger.warning(f"Could not find agent with ID {agent_id} during migration")
-        
-        interaction.participants = new_participants
-        
-        # Migrate outcomes
-        for outcome in interaction.outcomes:
-            if hasattr(outcome, 'agent_id'):
-                # Find the agent
-                agent = self.find_agent_by_id(outcome.agent_id, agents)
-                if agent:
-                    outcome.agent = agent
-                    # Delete the old agent_id attribute
-                    delattr(outcome, 'agent_id')
-                else:
-                    logger.warning(f"Could not find agent with ID {outcome.agent_id} during outcome migration")
-        
-        return interaction 
+        return None 

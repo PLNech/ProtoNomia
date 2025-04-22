@@ -11,15 +11,13 @@ from typing import Dict, Optional, Any, List, Tuple
 # Import required modules
 from agents.llm_agent import LLMAgent
 from economics.economy_manager import EconomyManager
-from economics.interactions.public_goods import PublicGoodsGameHandler
-from economics.interactions.trust import TrustGameHandler
-from economics.interactions.ultimatum import UltimatumGameHandler
-from models.actions import AgentAction, ActionType, AgentDecisionContext
+from economics.interactions.job_market import JobMarketHandler
+from economics.interactions.goods_market import GoodsMarketHandler
 from models.base import (
     Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance,
-    ResourceType, EconomicInteraction, EconomicInteractionType,
+    ResourceType, EconomicInteraction,
     InteractionRole, SimulationConfig, SimulationState,
-    NarrativeEvent, NarrativeArc, PopulationControlParams, AgentNeeds
+    NarrativeEvent, NarrativeArc, PopulationControlParams, AgentNeeds, ActionType, AgentDecisionContext, AgentAction
 )
 from models.economy import GoodsListing, JobListing, ListingType
 from narrative.llm_narrator import LLMNarrator
@@ -108,14 +106,6 @@ class Simulation:
 
     def _initialize_modules(self):
         """Initialize all required modules for the simulation"""
-        # Initialize economic interaction handlers
-        self.interaction_handlers = {
-            EconomicInteractionType.ULTIMATUM: UltimatumGameHandler(),
-            EconomicInteractionType.TRUST: TrustGameHandler(),
-            EconomicInteractionType.PUBLIC_GOODS: PublicGoodsGameHandler()
-        }
-        logger.info(f"Initialized interaction handlers: {list(self.interaction_handlers.keys())}")
-
         # Initialize the economy manager
         self.economy_manager = EconomyManager()
         logger.info("Initialized EconomyManager")
@@ -470,19 +460,47 @@ class Simulation:
         pending_offers = []
         for interaction_id in self.state.active_interactions:
             interaction = self.interactions[interaction_id]
-            if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
-                if agent.id in interaction.participants:
-                    role = interaction.participants[agent.id]
-                    if role == InteractionRole.RESPONDER:
-                        # This is an offer waiting for this agent to respond
-                        initiator_id = next((id for id, r in interaction.participants.items()
-                                             if r == InteractionRole.INITIATOR), None)
-                        if initiator_id:
+            
+            # Check for job applications where this agent is the employer
+            if interaction.interaction_type == EconomicInteractionType.JOB_APPLICATION:
+                if agent in interaction.participants:
+                    role = interaction.participants[agent]
+                    if role == InteractionRole.EMPLOYER and interaction.parameters.get("stage") == "application":
+                        # This is a job application waiting for this employer to respond
+                        employee = next((a for a, r in interaction.participants.items() 
+                                       if r == InteractionRole.EMPLOYEE), None)
+                        if employee:
                             pending_offers.append({
                                 "id": interaction.id,
-                                "from_agent": initiator_id,
-                                "what": interaction.parameters.get("offer_amount", 0),
-                                "against_what": interaction.parameters.get("total_amount", 100),
+                                "type": "job_application",
+                                "from_agent": employee.id,
+                                "job_type": interaction.parameters.get("job_type", "Unknown"),
+                                "salary": interaction.parameters.get("salary", 0),
+                                "status": "pending"
+                            })
+            
+            # Check for goods purchases where this agent is the seller
+            elif interaction.interaction_type == EconomicInteractionType.GOODS_PURCHASE:
+                if agent in interaction.participants:
+                    role = interaction.participants[agent]
+                    if role == InteractionRole.SELLER and interaction.parameters.get("stage") == "purchase":
+                        # This is a purchase waiting for this seller to respond
+                        buyer = next((a for a, r in interaction.participants.items() 
+                                    if r == InteractionRole.BUYER), None)
+                        if buyer:
+                            resource_type = interaction.parameters.get("resource_type", ResourceType.CREDITS)
+                            if isinstance(resource_type, ResourceType):
+                                resource_name = resource_type.value
+                            else:
+                                resource_name = str(resource_type)
+                                
+                            pending_offers.append({
+                                "id": interaction.id,
+                                "type": "goods_purchase",
+                                "from_agent": buyer.id,
+                                "resource_type": resource_name,
+                                "amount": interaction.parameters.get("purchase_amount", 0),
+                                "total_price": interaction.parameters.get("total_price", 0),
                                 "status": "pending"
                             })
 
@@ -620,19 +638,6 @@ class Simulation:
             
             return
 
-        # Handle different action types using the old system
-        if action.type == ActionType.OFFER:
-            # Create a new interaction
-            if action.offer_details and action.offer_details.to_agent_id:
-                self._create_interaction(
-                    initiator_id=action.agent_id,
-                    responder_id=action.offer_details.to_agent_id,
-                    interaction_type=EconomicInteractionType.ULTIMATUM,
-                    parameters={
-                        "offer_amount": 30,  # Placeholder values
-                        "total_amount": 100
-                    }
-                )
 
         # Process active interactions
         self._process_active_interactions()
@@ -655,21 +660,81 @@ class Simulation:
 
     def _create_random_economic_interaction(self):
         """Create a random economic interaction between agents"""
-        # Only create an interaction if we have enough active agents
+        # Select random agents
         if len(self.state.active_agents) < 2:
             return
+            
+        # Select two random agents
+        agent_ids = random.sample(self.state.active_agents, 2)
+        agent1 = self.agents[agent_ids[0]]
+        agent2 = self.agents[agent_ids[1]]
         
-        # Create a random interaction using the economy manager
-        interaction = self.economy_manager.create_random_economic_interaction(
-            active_agents=self.state.active_agents,
-            agents=self.agents
-        )
+        # Decide what type of interaction to create
+        interaction_type = random.choice([
+            EconomicInteractionType.JOB_APPLICATION,
+            EconomicInteractionType.GOODS_PURCHASE
+        ])
         
-        if interaction:
-            # Store the interaction
-            self.interactions[interaction.id] = interaction
-            self.state.active_interactions.append(interaction.id)
-            logger.debug(f"Created random interaction: {interaction.id} ({interaction.interaction_type.value})")
+        # Create the interaction
+        if interaction_type == EconomicInteractionType.JOB_APPLICATION:
+            # Decide who is employer and who is employee
+            employer = agent1
+            employee = agent2
+            
+            # Create a mock job listing for this interaction
+            job_listing = JobListing(
+                listing_type=ListingType.JOB_OFFER,
+                creator_id=employer.id,
+                job_type=random.choice(["Engineer", "Technician", "Scientist", "Manager", "Worker"]),
+                salary_per_turn=random.uniform(50.0, 150.0),
+                requirements="Experience on Mars required",
+                max_employees=2
+            )
+            
+            # Create the job application interaction
+            handler = JobMarketHandler()
+            interaction = handler.create_interaction(
+                employer=employer,
+                employee=employee,
+                job_listing=job_listing
+            )
+            
+        elif interaction_type == EconomicInteractionType.GOODS_PURCHASE:
+            # Decide who is seller and who is buyer
+            seller = agent1
+            buyer = agent2
+            
+            # Create a mock goods listing for this interaction
+            resource_type = random.choice([
+                ResourceType.FOOD, 
+                ResourceType.WATER,
+                ResourceType.MEDICINE,
+                ResourceType.PHYSICAL_GOODS
+            ])
+            
+            goods_listing = GoodsListing(
+                listing_type=ListingType.GOODS_OFFER,
+                creator_id=seller.id,
+                resource_type=resource_type,
+                amount=random.uniform(5.0, 20.0),
+                price_per_unit=random.uniform(5.0, 15.0)
+            )
+            
+            # Create the goods purchase interaction
+            handler = GoodsMarketHandler()
+            interaction = handler.create_interaction(
+                seller=seller,
+                buyer=buyer,
+                goods_listing=goods_listing,
+                purchase_amount=random.uniform(1.0, 5.0)
+            )
+        
+        # Store the interaction
+        self.interactions[interaction.id] = interaction
+        self.state.active_interactions.append(interaction.id)
+        logger.info(f"Created random {interaction_type.value} interaction between {agent1.name} and {agent2.name}")
+        
+        return interaction
 
     def _generate_narrative(self):
         """Generate narrative events from interactions"""
@@ -787,7 +852,7 @@ class Simulation:
             self,
             initiator_id: str,
             responder_id: str,
-            interaction_type: EconomicInteractionType,
+            interaction_type: ActionType,
             parameters: Dict[str, Any]
     ) -> str:
         """Create a new interaction between agents"""

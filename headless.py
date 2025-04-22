@@ -51,8 +51,8 @@ def parse_args():
     # Interaction parameters
     parser.add_argument('--interactions', type=str, nargs='+',
                         choices=[e.value for e in EconomicInteractionType],
-                        default=['trust_game', 'ultimatum_game'],
-                        help='Enabled economic interactions (default: trust_game ultimatum_game)')
+                        default=['job_application', 'goods_purchase'],
+                        help='Enabled economic interactions (default: job_application goods_purchase)')
     
     # Population control parameters
     parser.add_argument('--birth-rate', type=float, default=0.01,

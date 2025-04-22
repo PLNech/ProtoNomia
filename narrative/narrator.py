@@ -5,11 +5,11 @@ This module handles the generation of narrative events from economic interaction
 import logging
 import random
 from datetime import datetime
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 
 from models.base import (
-    Agent, EconomicInteraction, EconomicInteractionType, InteractionRole, 
-    NarrativeEvent, NarrativeArc
+    Agent, EconomicInteraction, InteractionRole,
+    NarrativeEvent, NarrativeArc, ResourceType, ActionType
 )
 
 # Initialize logger
@@ -52,19 +52,26 @@ class Narrator:
         
         # Get participant agent names
         participant_names = {}
-        for agent_id, role in interaction.participants.items():
-            if agent_id in agent_map:
-                participant_names[role] = agent_map[agent_id].name
+        for agent, role in interaction.participants.items():
+            participant_names[role] = agent.name
         
         # Generate title and description based on interaction type
         title, description, tags = "", "", []
         
-        if interaction.interaction_type == EconomicInteractionType.ULTIMATUM:
-            title, description, tags = self._generate_ultimatum_narrative(
+        if interaction.interaction_type == ActionType.JOB_APPLICATION:
+            title, description, tags = self._generate_job_application_narrative(
                 interaction, participant_names, agent_map
             )
-        elif interaction.interaction_type == EconomicInteractionType.TRUST:
-            title, description, tags = self._generate_trust_narrative(
+        elif interaction.interaction_type == ActionType.JOB_OFFER:
+            title, description, tags = self._generate_job_offer_narrative(
+                interaction, participant_names, agent_map
+            )
+        elif interaction.interaction_type == ActionType.GOODS_PURCHASE:
+            title, description, tags = self._generate_goods_purchase_narrative(
+                interaction, participant_names, agent_map
+            )
+        elif interaction.interaction_type == ActionType.GOODS_SALE:
+            title, description, tags = self._generate_goods_sale_narrative(
                 interaction, participant_names, agent_map
             )
         else:
@@ -78,7 +85,7 @@ class Narrator:
             timestamp=datetime.now(),
             title=title,
             description=description,
-            agents_involved=[agent_map[agent_id] for agent_id in interaction.participants.keys()],
+            agents_involved=[agent for agent in interaction.participants.keys()],
             interaction_id=interaction.id,
             significance=interaction.narrative_significance,
             tags=tags
@@ -87,205 +94,234 @@ class Narrator:
         logger.debug(f"Generated narrative event: {title}")
         return event
     
-    def _generate_ultimatum_narrative(
+    def _generate_job_application_narrative(
         self, 
         interaction: EconomicInteraction,
         participant_names: Dict[InteractionRole, str],
         agent_map: Dict[str, Agent]
     ) -> tuple:
-        """Generate narrative for an Ultimatum Game interaction"""
+        """Generate narrative for a job application interaction"""
         # Extract parameters
-        total_amount = interaction.parameters.get("total_amount", 0)
-        offer_amount = interaction.parameters.get("offer_amount", 0)
-        responder_accepts = interaction.parameters.get("responder_accepts", False)
-        currency = interaction.parameters.get("currency", "credits")
+        job_type = interaction.parameters.get("job_type", "Unknown")
+        salary = interaction.parameters.get("salary", 0)
+        successful = interaction.parameters.get("application_successful", False)
         
         # Get agent names
-        proposer_name = participant_names.get(InteractionRole.PROPOSER, "Unknown Proposer")
-        responder_name = participant_names.get(InteractionRole.RESPONDER, "Unknown Responder")
-        
-        # Calculate offer fairness
-        fairness = offer_amount / total_amount if total_amount > 0 else 0
+        initiator_name = participant_names.get(InteractionRole.INITIATOR, "Unknown Employer")
+        responder_name = participant_names.get(InteractionRole.RESPONDER, "Unknown Applicant")
         
         # Generate title based on the interaction outcome
-        if responder_accepts:
-            if fairness < 0.3:
-                title = f"{responder_name} Accepts Unfair Deal from {proposer_name}"
-                tags = ["unfair_deal", "acceptance", "ultimatum"]
-            elif fairness > 0.5:
-                title = f"{proposer_name} Makes Fair Offer to {responder_name}"
-                tags = ["fair_deal", "cooperation", "ultimatum"]
-            else:
-                title = f"{proposer_name} and {responder_name} Conclude Deal"
-                tags = ["deal", "bargaining", "ultimatum"]
+        if successful:
+            title = f"{responder_name} Hired by {initiator_name} as {job_type}"
+            tags = ["job_application", "hiring", "employment", "success"]
         else:
-            if fairness > 0.4:
-                title = f"{responder_name} Rejects Reasonable Offer from {proposer_name}"
-                tags = ["rejection", "principle", "ultimatum"]
-            else:
-                title = f"{responder_name} Rejects Unfair Offer from {proposer_name}"
-                tags = ["unfair_deal", "rejection", "ultimatum"]
+            title = f"{responder_name}'s Application for {job_type} at {initiator_name} Rejected"
+            tags = ["job_application", "rejection", "unemployment", "failure"]
         
         # Generate description with varying detail based on verbosity
         if self.verbosity >= 4:
             # High verbosity - detailed description
-            if responder_accepts:
-                if fairness < 0.3:
-                    description = (
-                        f"In a tense negotiation at {self._get_random_location()}, {proposer_name} offered a mere {offer_amount} "
-                        f"{currency} of a {total_amount} {currency} pot to {responder_name}. Despite the clearly unfair "
-                        f"terms, {responder_name} reluctantly accepted the offer, prioritizing some gain over none. "
-                        f"The acceptance surprised onlookers, who whispered about {responder_name}'s desperation "
-                        f"or perhaps a hidden debt to {proposer_name}. For their part, {proposer_name} walked away "
-                        f"with a satisfied smirk, having secured {total_amount - offer_amount} {currency} "
-                        f"from the deal."
-                    )
-                elif fairness > 0.5:
-                    description = (
-                        f"In a display of equitable negotiation at {self._get_random_location()}, {proposer_name} "
-                        f"offered {offer_amount} {currency} from a total of {total_amount} {currency} to {responder_name}. "
-                        f"The fair proposal was quickly accepted, creating a positive atmosphere and potentially "
-                        f"strengthening future relations between them. Observers noted how {proposer_name}'s "
-                        f"reputation for fairness might serve them well in Mars' tight-knit economic community."
-                    )
-                else:
-                    description = (
-                        f"At {self._get_random_location()}, {proposer_name} proposed a split of {total_amount} {currency}, "
-                        f"offering {offer_amount} {currency} to {responder_name} and keeping {total_amount - offer_amount} "
-                        f"{currency} for themselves. After brief consideration, {responder_name} accepted the terms. "
-                        f"The somewhat uneven split raised a few eyebrows, but both parties seemed satisfied with the outcome."
-                    )
-            else:
-                if fairness > 0.4:
-                    description = (
-                        f"In a surprising turn at {self._get_random_location()}, {responder_name} firmly rejected "
-                        f"{proposer_name}'s offer of {offer_amount} {currency} from a {total_amount} {currency} pot. "
-                        f"Despite the relatively balanced proposal, {responder_name} stood on principle, preferring "
-                        f"to walk away with nothing rather than accept the terms. {proposer_name} appeared visibly "
-                        f"frustrated, having miscalculated what would constitute an acceptable offer, and likewise "
-                        f"left empty-handed."
-                    )
-                else:
-                    description = (
-                        f"At a tense meeting in {self._get_random_location()}, {proposer_name} attempted to impose unfavorable "
-                        f"terms on {responder_name}, offering just {offer_amount} {currency} from a {total_amount} {currency} "
-                        f"total. {responder_name} didn't hesitate to reject the insulting proposal, leaving {proposer_name} "
-                        f"with nothing as well. Observers commented on {proposer_name}'s tactical error in underestimating "
-                        f"{responder_name}'s dignity and willingness to sacrifice potential gain to punish unfairness."
-                    )
-        elif self.verbosity >= 2:
-            # Medium verbosity - moderate description
-            if responder_accepts:
+            if successful:
                 description = (
-                    f"{proposer_name} offered {responder_name} {offer_amount} {currency} from a total of {total_amount} "
-                    f"{currency}. {responder_name} accepted the offer, resulting in {proposer_name} keeping "
-                    f"{total_amount - offer_amount} {currency} for themselves."
+                    f"In a successful job negotiation at {self._get_random_location()}, {responder_name} applied for "
+                    f"the position of {job_type} at {initiator_name}'s company. After reviewing the application "
+                    f"and credentials, {initiator_name} decided to hire {responder_name} at a salary of {salary} "
+                    f"credits per turn. Both parties seemed pleased with the arrangement, with {responder_name} "
+                    f"expressing enthusiasm about the opportunity and {initiator_name} confident in finding a "
+                    f"capable new employee. The position comes with typical Martian employment benefits including "
+                    f"oxygen ration supplements and radiation shielding allowance."
                 )
             else:
                 description = (
-                    f"{proposer_name} offered {responder_name} {offer_amount} {currency} from a total of {total_amount} "
-                    f"{currency}. {responder_name} rejected the offer, so both parties received nothing."
+                    f"At {self._get_random_location()}, {responder_name} applied for a {job_type} position "
+                    f"with {initiator_name}'s company, but was ultimately rejected after consideration. "
+                    f"The position, which offered {salary} credits per turn, attracted multiple qualified "
+                    f"candidates. {initiator_name} expressed that while {responder_name} had impressive "
+                    f"qualifications, they were looking for someone with more specialized experience in Martian "
+                    f"operations. {responder_name} appeared disappointed but determined to continue the job search "
+                    f"elsewhere in the colony."
+                )
+        elif self.verbosity >= 2:
+            # Medium verbosity - moderate description
+            if successful:
+                description = (
+                    f"{responder_name} applied for a {job_type} position with {initiator_name} and was hired at "
+                    f"a salary of {salary} credits per turn. The new employment relationship looks promising "
+                    f"for both parties."
+                )
+            else:
+                description = (
+                    f"{responder_name} applied for a {job_type} position with {initiator_name} offering {salary} "
+                    f"credits per turn, but was rejected. The job search continues."
                 )
         else:
             # Low verbosity - minimal description
-            if responder_accepts:
-                description = f"{proposer_name} offered {offer_amount}/{total_amount} {currency} to {responder_name} who accepted."
+            if successful:
+                description = f"{responder_name} hired as {job_type} by {initiator_name} for {salary} credits."
             else:
-                description = f"{proposer_name} offered {offer_amount}/{total_amount} {currency} to {responder_name} who rejected."
+                description = f"{responder_name} rejected for {job_type} position by {initiator_name}."
         
         return title, description, tags
     
-    def _generate_trust_narrative(
+    def _generate_goods_purchase_narrative(
         self, 
         interaction: EconomicInteraction,
         participant_names: Dict[InteractionRole, str],
         agent_map: Dict[str, Agent]
     ) -> tuple:
-        """Generate narrative for a Trust Game interaction"""
+        """Generate narrative for a goods purchase interaction"""
         # Extract parameters
-        investment = interaction.parameters.get("investment_amount", 0)
-        multiplier = interaction.parameters.get("multiplier", 3.0)
-        returned = interaction.parameters.get("return_amount", 0)
-        currency = interaction.parameters.get("currency", "credits")
+        resource_type = interaction.parameters.get("resource_type", ResourceType.CREDITS)
+        if isinstance(resource_type, ResourceType):
+            resource_name = resource_type.value
+        else:
+            resource_name = str(resource_type)
+            
+        purchase_amount = interaction.parameters.get("purchase_amount", 0)
+        price_per_unit = interaction.parameters.get("price_per_unit", 0)
+        total_price = interaction.parameters.get("total_price", 0)
+        successful = interaction.parameters.get("purchase_successful", False)
         
         # Get agent names
-        investor_name = participant_names.get(InteractionRole.INVESTOR, "Unknown Investor")
-        trustee_name = participant_names.get(InteractionRole.TRUSTEE, "Unknown Trustee")
+        initiator_name = participant_names.get(InteractionRole.INITIATOR, "Unknown Seller")
+        responder_name = participant_names.get(InteractionRole.RESPONDER, "Unknown Buyer")
         
-        # Calculate multiplied amount and return ratio
-        multiplied = investment * multiplier
-        return_ratio = returned / multiplied if multiplied > 0 else 0
-        
-        # Generate title based on the interaction details
-        if investment > 5.0 and return_ratio < 0.2:
-            title = f"{trustee_name} Betrays {investor_name}'s Trust"
-            tags = ["betrayal", "distrust", "high_stakes"]
-        elif investment > 5.0 and return_ratio > 0.5:
-            title = f"{investor_name} and {trustee_name} Build Mutual Trust"
-            tags = ["cooperation", "trust", "reciprocity"]
-        elif investment < 2.0 and return_ratio > 0.7:
-            title = f"{trustee_name} Shows Unexpected Generosity to {investor_name}"
-            tags = ["generosity", "unexpected", "goodwill"]
-        elif investment < 2.0:
-            title = f"{investor_name} Shows Little Trust in {trustee_name}"
-            tags = ["caution", "distrust", "minimal_risk"]
+        # Generate title based on the interaction outcome
+        if successful:
+            title = f"{responder_name} Purchases {resource_name} from {initiator_name}"
+            tags = ["goods_purchase", "transaction", "commerce", "success"]
         else:
-            title = f"{investor_name} Invests in {trustee_name}"
-            tags = ["investment", "trust", "business"]
+            failure_reason = interaction.parameters.get("failure_reason", "Unknown reason")
+            title = f"{responder_name} Fails to Purchase {resource_name} from {initiator_name}"
+            tags = ["goods_purchase", "failed_transaction", "commerce", "failure"]
         
         # Generate description with varying detail based on verbosity
         if self.verbosity >= 4:
             # High verbosity - detailed description
-            if investment > 5.0 and return_ratio < 0.2:
+            if successful:
                 description = (
-                    f"In a dramatic display of broken trust at {self._get_random_location()}, {investor_name} took a significant "
-                    f"risk by investing {investment} {currency} with {trustee_name}. The investment grew to {multiplied:.1f} "
-                    f"{currency} under {trustee_name}'s management, but when the time came to share the profits, "
-                    f"{trustee_name} returned a mere {returned:.1f} {currency} to {investor_name}, keeping the lion's share "
-                    f"for themselves. The betrayal was met with murmurs throughout the Martian financial community, and "
-                    f"{investor_name} was seen later drowning their sorrows at a local establishment, vowing never to "
-                    f"trust so freely again."
-                )
-            elif investment > 5.0 and return_ratio > 0.5:
-                description = (
-                    f"A model partnership formed at {self._get_random_location()} when {investor_name} placed a substantial "
-                    f"investment of {investment} {currency} in {trustee_name}'s hands. When the investment grew to "
-                    f"{multiplied:.1f} {currency}, {trustee_name} honored their implicit agreement by returning "
-                    f"{returned:.1f} {currency} to {investor_name}, keeping {multiplied - returned:.1f} {currency} "
-                    f"for themselves. Observers noted that such demonstrations of mutual trust and fair dealing are "
-                    f"what allow Mars' economy to thrive despite the harsh conditions. Both parties were seen later "
-                    f"celebrating their successful venture."
-                )
-            elif investment < 2.0 and return_ratio > 0.7:
-                description = (
-                    f"In an unexpected turn of events at {self._get_random_location()}, {investor_name} made a token "
-                    f"investment of just {investment} {currency} with {trustee_name}, clearly showing limited trust. "
-                    f"When the amount grew to {multiplied:.1f} {currency}, {trustee_name} surprised everyone by "
-                    f"returning {returned:.1f} {currency} to {investor_name} - a far more generous share than "
-                    f"expected given the minimal initial trust. {investor_name} appeared both grateful and somewhat "
-                    f"embarrassed, perhaps recognizing they had misjudged {trustee_name}'s character."
+                    f"At the bustling {self._get_random_location()}, {responder_name} approached {initiator_name}'s "
+                    f"market stall with interest in acquiring {resource_name}. After examining the quality and "
+                    f"negotiating briefly, they agreed on a price of {price_per_unit} credits per unit. "
+                    f"{responder_name} purchased {purchase_amount} units for a total of {total_price} credits. "
+                    f"Both parties appeared satisfied with the transaction, with {initiator_name} carefully counting "
+                    f"out the credits while {responder_name} inspected their newly acquired goods. A small crowd of "
+                    f"onlookers noted the exchange, with some commenting on the fair market value demonstrated."
                 )
             else:
                 description = (
-                    f"At {self._get_random_location()}, {investor_name} cautiously invested {investment} {currency} with "
-                    f"{trustee_name}. The investment grew to {multiplied:.1f} {currency}, from which {trustee_name} "
-                    f"returned {returned:.1f} {currency} to {investor_name}. The transaction proceeded without "
-                    f"drama, though attentive observers might have noted the careful calculations both parties "
-                    f"seemed to be making throughout the exchange."
+                    f"At {self._get_random_location()}, {responder_name} attempted to purchase {purchase_amount} units "
+                    f"of {resource_name} from {initiator_name} at {price_per_unit} credits per unit. Unfortunately, "
+                    f"the transaction could not be completed due to {failure_reason}. {initiator_name} seemed "
+                    f"disappointed but understanding, while {responder_name} appeared frustrated by the situation. "
+                    f"Other market-goers continued their business around them, such failed transactions being a "
+                    f"common enough sight in the Martian economy where resources can be scarce and credits tight."
                 )
         elif self.verbosity >= 2:
             # Medium verbosity - moderate description
-            description = (
-                f"{investor_name} invested {investment} {currency} with {trustee_name}, which grew to "
-                f"{multiplied:.1f} {currency}. {trustee_name} then returned {returned:.1f} {currency} to "
-                f"{investor_name}, keeping {multiplied - returned:.1f} {currency}."
-            )
+            if successful:
+                description = (
+                    f"{responder_name} purchased {purchase_amount} units of {resource_name} from {initiator_name} for "
+                    f"{total_price} credits ({price_per_unit} per unit). The transaction was completed successfully "
+                    f"at {self._get_random_location()}."
+                )
+            else:
+                description = (
+                    f"{responder_name} attempted to purchase {purchase_amount} units of {resource_name} from "
+                    f"{initiator_name} for {total_price} credits, but the transaction failed due to {failure_reason}."
+                )
         else:
             # Low verbosity - minimal description
+            if successful:
+                description = f"{responder_name} bought {purchase_amount} {resource_name} from {initiator_name} for {total_price} credits."
+            else:
+                description = f"{responder_name} failed to buy {resource_name} from {initiator_name}: {failure_reason}."
+        
+        return title, description, tags
+    
+    def _generate_job_offer_narrative(
+        self, 
+        interaction: EconomicInteraction,
+        participant_names: Dict[InteractionRole, str],
+        agent_map: Dict[str, Agent]
+    ) -> tuple:
+        """Generate narrative for a job offer interaction"""
+        # Extract parameters
+        job_type = interaction.parameters.get("job_type", "Unknown")
+        salary = interaction.parameters.get("salary", 0)
+        max_positions = interaction.parameters.get("max_positions", 1)
+        
+        # Get agent names
+        employer_name = participant_names.get(InteractionRole.EMPLOYER, "Unknown Employer")
+        
+        # Generate title
+        title = f"{employer_name} Posts New {job_type} Position"
+        tags = ["job_offer", "employment", "opportunity", "job_market"]
+        
+        # Generate description based on verbosity
+        if self.verbosity >= 4:
             description = (
-                f"{investor_name} invested {investment}, received {returned:.1f} back from {trustee_name} "
-                f"(multiplier: {multiplier})."
+                f"Economic opportunity has emerged at {self._get_random_location()} as {employer_name} announced "
+                f"a new job opening for a {job_type} position. The role offers {salary} credits per turn and "
+                f"seeks up to {max_positions} qualified individuals. According to the job listing, this position "
+                f"requires specialized skills suitable for Mars' unique working conditions. {employer_name} "
+                f"emphasized that candidates should have experience with the colony's systems and be prepared for "
+                f"the challenging environment. The announcement generated buzz among job-seekers in the colony, "
+                f"particularly those with relevant qualifications looking to secure stable employment."
             )
+        elif self.verbosity >= 2:
+            description = (
+                f"{employer_name} has posted a job opening for a {job_type} position offering {salary} credits "
+                f"per turn. The employer is looking to hire up to {max_positions} qualified candidate(s) with "
+                f"relevant skills and experience."
+            )
+        else:
+            description = f"{employer_name} offers {job_type} job: {salary} credits, {max_positions} position(s) available."
+        
+        return title, description, tags
+    
+    def _generate_goods_sale_narrative(
+        self, 
+        interaction: EconomicInteraction,
+        participant_names: Dict[InteractionRole, str],
+        agent_map: Dict[str, Agent]
+    ) -> tuple:
+        """Generate narrative for a goods sale listing interaction"""
+        # Extract parameters
+        resource_type = interaction.parameters.get("resource_type", ResourceType.CREDITS)
+        if isinstance(resource_type, ResourceType):
+            resource_name = resource_type.value
+        else:
+            resource_name = str(resource_type)
+            
+        amount = interaction.parameters.get("amount", 0)
+        price_per_unit = interaction.parameters.get("price_per_unit", 0)
+        
+        # Get agent names
+        employer_name = participant_names.get(InteractionRole.EMPLOYER, "Unknown Employer")
+        
+        # Generate title
+        title = f"{employer_name} Offers {resource_name} for Sale"
+        tags = ["goods_sale", "market_listing", "commerce", "offer"]
+        
+        # Generate description based on verbosity
+        if self.verbosity >= 4:
+            description = (
+                f"The marketplace at {self._get_random_location()} saw a new addition today as {employer_name} set up "
+                f"a display offering {amount} units of {resource_name} for sale. Priced at {price_per_unit} credits "
+                f"per unit, the goods attracted attention from various potential buyers examining the quality and "
+                f"negotiation potential. {employer_name} appeared confident in the fair pricing, explaining to interested "
+                f"parties that the resource is in particularly good condition. Market observers noted that this offering "
+                f"could impact local prices for {resource_name}, which have been relatively volatile in the colony's "
+                f"developing economy."
+            )
+        elif self.verbosity >= 2:
+            description = (
+                f"{employer_name} has listed {amount} units of {resource_name} for sale at {price_per_unit} credits "
+                f"per unit. The goods are now available for purchase at {self._get_random_location()}."
+            )
+        else:
+            description = f"{employer_name} selling {amount} {resource_name} for {price_per_unit} credits each."
         
         return title, description, tags
     

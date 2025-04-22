@@ -10,8 +10,8 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from agents.llm_agent import LLMAgent
-from models.base import Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, ResourceType
-from models.actions import AgentDecisionContext, ActionType
+from models.base import Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, ResourceType, ActionType, \
+    AgentDecisionContext
 
 
 @pytest.fixture

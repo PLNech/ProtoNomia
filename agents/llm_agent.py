@@ -7,11 +7,8 @@ import time
 
 from llm_models import AgentActionResponse
 from llm_utils import OllamaClient
-from models.actions import (
-    ActionType, AgentAction, AgentDecisionContext,
-    OfferAction, NegotiateAction, AcceptRejectAction, WorkAction, BuyAction
-)
-from models.base import Agent
+from models.base import Agent, ActionType, OfferAction, NegotiateAction, AcceptRejectAction, WorkAction, BuyAction, \
+    AgentDecisionContext, AgentAction
 from settings import DEFAULT_LM
 
 # Initialize logger

@@ -5,10 +5,8 @@ import pytest
 from datetime import datetime
 
 from models.base import (
-    Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, ResourceType
-)
-from models.actions import (
-    AgentAction, ActionType, HireAction, FireAction, ApplyAction, ListGoodsAction, RetractAction, PurchaseAction
+    Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, ResourceType, ActionType, HireAction, FireAction,
+    ApplyAction, ListGoodsAction, RetractAction, PurchaseAction, AgentAction
 )
 from models.economy import (
     Listing, GoodsListing, JobListing, ListingType, GoodsMarket, JobMarket, EconomyState

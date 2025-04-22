@@ -1,5 +1,29 @@
 # ProtoNomia Development Log
 
+## Simplified Economy to Focus on Job and Goods Markets
+**Date**: 2023-04-13
+**Description**: Simplified the codebase to focus on job market and goods market interactions, removing complex economic game theory interactions. The simulation now revolves around agents applying for jobs, offering jobs, buying and selling goods. This provides a more focused base for the Mars economy simulation, making it easier to understand and extend.
+
+**Demand**: This got too complicated, let's simplify for now to focus on a good jobs+Goods simulation, we can add emergent economic interactions in a second round when we have a first solid simulation.
+
+**Files**:
+- [M] models/base.py - Simplified EconomicInteractionType enum
+- [M] economics/interactions/registry.py - Updated registry to use job and goods handlers
+- [A] economics/interactions/job_market.py - Added new job market handler
+- [A] economics/interactions/goods_market.py - Added new goods market handler
+- [D] economics/interactions/ultimatum.py - Removed game theory handler
+- [D] economics/interactions/trust.py - Removed game theory handler
+- [D] economics/interactions/public_goods.py - Removed game theory handler
+- [M] narrative/narrator.py - Updated narrator to support job and goods interactions
+- [M] core/simulation.py - Updated simulation to work with simplified interactions
+- [M] tests/unit/test_economic_interactions.py - Updated tests for simplified interactions
+- [M] tests/unit/test_narrator.py - Updated tests for narrator with new interactions
+
+**Bugs**:
+- Fixed simulation creation of random economic interactions
+- Fixed pending offers logic in agent decision context
+- Fixed narrator integration with new interaction types
+
 ## Comprehensive Economic Interaction System Implementation
 
 ### Date

@@ -1,7 +1,7 @@
 """
-Economic interaction handlers for different game theory simulations.
+Economic interaction handlers for different simulations.
 
-This package contains handlers for various economic games and interactions
+This package contains handlers for various economic interactions
 that can occur between agents in the simulation.
 """
 
@@ -10,14 +10,13 @@ from typing import Dict, List, Any, Optional
 import logging
 
 from models.base import (
-    Agent, EconomicInteraction, EconomicInteractionType, InteractionRole,
-    InteractionOutcome, InteractionStrategy, ResourceBalance, ResourceType
+    Agent, EconomicInteraction, InteractionRole,
+    InteractionOutcome, InteractionStrategy, ResourceBalance, ResourceType, ActionType
 )
 
 from .base import InteractionHandler
-from .ultimatum import UltimatumGameHandler
-from .trust import TrustGameHandler
-from .public_goods import PublicGoodsGameHandler
+from .job_market import JobMarketHandler
+from .goods_market import GoodsMarketHandler
 
 logger = logging.getLogger(__name__)
 
@@ -26,15 +25,14 @@ class InteractionRegistry:
     """Registry of all available interaction handlers"""
     
     def __init__(self):
-        self.handlers: Dict[EconomicInteractionType, InteractionHandler] = {}
+        self.handlers: Dict[ActionType, InteractionHandler] = {}
         self._register_handlers()
     
     def _register_handlers(self):
         """Register all available interaction handlers"""
         # Register handlers
-        self.register_handler(UltimatumGameHandler())
-        self.register_handler(TrustGameHandler())
-        self.register_handler(PublicGoodsGameHandler())
+        self.register_handler(JobMarketHandler())
+        self.register_handler(GoodsMarketHandler())
         
         # TODO: Register more handlers as they are implemented
         # self.register_handler(CournotCompetitionHandler())
@@ -48,7 +46,7 @@ class InteractionRegistry:
         self.handlers[handler.interaction_type] = handler
         logger.info(f"Registered handler for {handler.interaction_type}")
     
-    def create_interaction(self, interaction_type: EconomicInteractionType, **kwargs) -> EconomicInteraction:
+    def create_interaction(self, interaction_type: ActionType, **kwargs) -> EconomicInteraction:
         """Create a new interaction of the specified type"""
         if interaction_type not in self.handlers:
             raise ValueError(f"No handler registered for interaction type {interaction_type}")
@@ -65,9 +63,8 @@ class InteractionRegistry:
 # Import all handlers for easy access
 __all__ = [
     'InteractionHandler',
-    'UltimatumGameHandler',
-    'TrustGameHandler',
-    'PublicGoodsGameHandler',
+    'JobMarketHandler',
+    'GoodsMarketHandler',
     'InteractionRegistry'
 ]
 

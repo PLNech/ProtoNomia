@@ -1,187 +1,216 @@
+"""
+Tests for the narrator module, which generates narrative events from economic interactions.
+"""
 import pytest
 from datetime import datetime
-from typing import Dict, List
 
 from models.base import (
-    Agent, AgentType, AgentFaction, AgentPersonality, 
-    EconomicInteraction, EconomicInteractionType, InteractionRole,
-    NarrativeEvent, NarrativeArc
+    Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, ResourceType,
+    EconomicInteraction, InteractionRole, NarrativeEvent, ActionType
 )
-
 from narrative.narrator import Narrator
-
 
 @pytest.fixture
 def test_agents():
-    """Create a set of test agents for the narrator"""
-    agent1 = Agent(
-        name="Alice Chen",
+    """Create test agents for the narrator tests"""
+    employer = Agent(
+        id="employer_1",
+        name="Employer Corp",
         agent_type=AgentType.INDIVIDUAL,
         faction=AgentFaction.MARS_NATIVE,
         personality=AgentPersonality(
-            cooperativeness=0.8,
-            risk_tolerance=0.4,
-            fairness_preference=0.9,
-            altruism=0.7,
-            rationality=0.6,
-            long_term_orientation=0.5
-        )
+            cooperativeness=0.6,
+            risk_tolerance=0.6,
+            fairness_preference=0.5,
+            altruism=0.4,
+            rationality=0.8,
+            long_term_orientation=0.7
+        ),
+        resources=[
+            ResourceBalance(
+                resource_type=ResourceType.CREDITS,
+                amount=1000.0
+            )
+        ],
+        is_alive=True
     )
     
-    agent2 = Agent(
-        name="Bob Rodriguez",
+    employee = Agent(
+        id="employee_1",
+        name="John Worker",
+        agent_type=AgentType.INDIVIDUAL,
+        faction=AgentFaction.MARS_NATIVE,
+        personality=AgentPersonality(
+            cooperativeness=0.7,
+            risk_tolerance=0.5,
+            fairness_preference=0.6,
+            altruism=0.5,
+            rationality=0.7,
+            long_term_orientation=0.6
+        ),
+        resources=[
+            ResourceBalance(
+                resource_type=ResourceType.CREDITS,
+                amount=500.0
+            )
+        ],
+        is_alive=True
+    )
+    
+    seller = Agent(
+        id="seller_1",
+        name="Goods Vendor",
         agent_type=AgentType.INDIVIDUAL,
         faction=AgentFaction.INDEPENDENT,
         personality=AgentPersonality(
-            cooperativeness=0.3,
-            risk_tolerance=0.8,
-            fairness_preference=0.4,
-            altruism=0.2,
-            rationality=0.9,
-            long_term_orientation=0.3
-        )
-    )
-    
-    agent3 = Agent(
-        name="MarsTech Corp",
-        agent_type=AgentType.CORPORATION,
-        faction=AgentFaction.TERRA_CORP,
-        personality=AgentPersonality(
-            cooperativeness=0.2,
+            cooperativeness=0.5,
             risk_tolerance=0.7,
-            fairness_preference=0.3,
-            altruism=0.1,
-            rationality=0.9,
-            long_term_orientation=0.9
-        )
+            fairness_preference=0.6,
+            altruism=0.3,
+            rationality=0.8,
+            long_term_orientation=0.6
+        ),
+        resources=[
+            ResourceBalance(
+                resource_type=ResourceType.CREDITS,
+                amount=800.0
+            ),
+            ResourceBalance(
+                resource_type=ResourceType.FOOD,
+                amount=100.0
+            )
+        ],
+        is_alive=True
     )
     
-    return [agent1, agent2, agent3]
-
+    return [employer, employee, seller]
 
 @pytest.fixture
 def test_interactions(test_agents):
     """Create test interactions for the narrator"""
-    # Create an Ultimatum Game interaction
-    ultimatum = EconomicInteraction(
-        interaction_type=EconomicInteractionType.ULTIMATUM,
+    # Create a job application interaction
+    job_application = EconomicInteraction(
+        interaction_type=ActionType.JOB_APPLICATION,
         participants={
-            test_agents[0].id: InteractionRole.PROPOSER,
-            test_agents[1].id: InteractionRole.RESPONDER
+            test_agents[0]: InteractionRole.INITIATOR,
+            test_agents[1]: InteractionRole.RESPONDER
         },
         parameters={
-            "total_amount": 100.0,
-            "offer_amount": 20.0,
-            "currency": "credits"
+            "job_type": "Engineer",
+            "salary": 120.0,
+            "application_successful": True,
+            "stage": "complete"
         },
-        is_complete=True
+        is_complete=True,
+        narrative_significance=0.7
     )
     
-    # Create a Trust Game interaction
-    trust = EconomicInteraction(
-        interaction_type=EconomicInteractionType.TRUST,
+    # Create a goods purchase interaction
+    goods_purchase = EconomicInteraction(
+        interaction_type=ActionType.GOODS_PURCHASE,
         participants={
-            test_agents[0].id: InteractionRole.INVESTOR,
-            test_agents[2].id: InteractionRole.TRUSTEE
+            test_agents[2]: InteractionRole.INITIATOR,
+            test_agents[1]: InteractionRole.RESPONDER
         },
         parameters={
-            "investment_amount": 50.0,
-            "multiplier": 3.0,
-            "return_amount": 0.0,  # No reciprocation
-            "currency": "credits"
+            "resource_type": ResourceType.FOOD,
+            "purchase_amount": 5.0,
+            "price_per_unit": 10.0,
+            "total_price": 50.0,
+            "purchase_successful": True,
+            "stage": "complete"
         },
-        is_complete=True
+        is_complete=True,
+        narrative_significance=0.6
     )
     
-    return [ultimatum, trust]
-
+    return [job_application, goods_purchase]
 
 class TestNarrator:
-    """Tests for the narrator functionality"""
+    """Tests for the Narrator class"""
     
-    def test_create_narrator(self):
-        """Test that a narrator can be created"""
-        narrator = Narrator(verbosity=3)
-        assert narrator.verbosity == 3
+    def test_initialization(self):
+        """Test narrator initialization"""
+        narrator = Narrator(verbosity=4)
+        assert narrator.verbosity == 4
+        
+        narrator = Narrator(verbosity=10)  # Exceeds max
+        assert narrator.verbosity == 5     # Should be capped at 5
+        
+        narrator = Narrator(verbosity=0)   # Below min
+        assert narrator.verbosity == 1     # Should be at least 1
     
-    def test_generate_event_from_interaction(self, test_agents, test_interactions):
-        """Test that the narrator can generate events from interactions"""
+    def test_generate_job_application_narrative(self, test_agents, test_interactions):
+        """Test generating narrative for a job application interaction"""
         narrator = Narrator(verbosity=3)
+        job_interaction = test_interactions[0]
         
-        # Generate a narrative event from an ultimatum game
-        ultimatum_event = narrator.generate_event_from_interaction(
-            test_interactions[0],
-            test_agents
-        )
+        event = narrator.generate_event_from_interaction(job_interaction, test_agents)
         
-        # Verify event properties
-        assert isinstance(ultimatum_event, NarrativeEvent)
-        assert ultimatum_event.title is not None and len(ultimatum_event.title) > 0
-        assert ultimatum_event.description is not None and len(ultimatum_event.description) > 0
-        assert len(ultimatum_event.agents_involved) == 2
-        assert test_agents[0] in ultimatum_event.agents_involved
-        assert test_agents[1] in ultimatum_event.agents_involved
-        
-        # Generate a narrative event from a trust game
-        trust_event = narrator.generate_event_from_interaction(
-            test_interactions[1],
-            test_agents
-        )
-        
-        # Verify event properties
-        assert isinstance(trust_event, NarrativeEvent)
-        assert trust_event.title is not None and len(trust_event.title) > 0
-        assert trust_event.description is not None and len(trust_event.description) > 0
-        assert len(trust_event.agents_involved) == 2
-        assert test_agents[0] in trust_event.agents_involved
-        assert test_agents[2] in trust_event.agents_involved
-        
-        # Ensure the descriptions are different
-        assert ultimatum_event.description != trust_event.description
+        # Check event properties
+        assert isinstance(event, NarrativeEvent)
+        assert "Engineer" in event.title
+        assert "hire" in event.title.lower() or "hired" in event.title.lower()
+        assert event.agents_involved == [test_agents[0], test_agents[1]]
+        assert event.significance == job_interaction.narrative_significance
+        assert "job_application" in event.tags
+        assert "employment" in event.tags
+        assert "success" in event.tags
+        assert event.description is not None and len(event.description) > 0
     
-    def test_create_narrative_arc(self, test_agents, test_interactions):
-        """Test that the narrator can create narrative arcs from related events"""
+    def test_generate_goods_purchase_narrative(self, test_agents, test_interactions):
+        """Test generating narrative for a goods purchase interaction"""
         narrator = Narrator(verbosity=3)
+        purchase_interaction = test_interactions[1]
         
-        # Generate narrative events
-        event1 = narrator.generate_event_from_interaction(test_interactions[0], test_agents)
-        event2 = narrator.generate_event_from_interaction(test_interactions[1], test_agents)
+        event = narrator.generate_event_from_interaction(purchase_interaction, test_agents)
         
-        # Create a narrative arc
-        arc = narrator.create_arc(
-            title="Trust Issues",
-            description="A series of betrayals between Mars natives and corporate interests",
-            events=[event1, event2],
-            agents=[test_agents[0], test_agents[1], test_agents[2]]
-        )
-        
-        # Verify arc properties
-        assert isinstance(arc, NarrativeArc)
-        assert arc.title == "Trust Issues"
-        assert len(arc.events) == 2
-        assert len(arc.agents_involved) == 3
-        assert not arc.is_complete
+        # Check event properties
+        assert isinstance(event, NarrativeEvent)
+        assert "Purchase" in event.title or "Purchases" in event.title
+        assert "food" in event.title.lower()
+        assert event.agents_involved == [test_agents[2], test_agents[1]]
+        assert event.significance == purchase_interaction.narrative_significance
+        assert "goods_purchase" in event.tags
+        assert "transaction" in event.tags
+        assert "commerce" in event.tags
+        assert event.description is not None and len(event.description) > 0
     
-    def test_generate_daily_summary(self, test_agents, test_interactions):
-        """Test that the narrator can generate daily summaries"""
+    def test_verbosity_levels(self, test_agents, test_interactions):
+        """Test different verbosity levels for narrative generation"""
+        # Test with minimum verbosity
+        narrator_min = Narrator(verbosity=1)
+        event_min = narrator_min.generate_event_from_interaction(test_interactions[0], test_agents)
+        
+        # Test with medium verbosity
+        narrator_med = Narrator(verbosity=3)
+        event_med = narrator_med.generate_event_from_interaction(test_interactions[0], test_agents)
+        
+        # Test with maximum verbosity
+        narrator_max = Narrator(verbosity=5)
+        event_max = narrator_max.generate_event_from_interaction(test_interactions[0], test_agents)
+        
+        # Descriptions should get progressively longer with higher verbosity
+        assert len(event_min.description) < len(event_med.description)
+        assert len(event_med.description) < len(event_max.description)
+    
+    def test_daily_summary(self, test_agents, test_interactions):
+        """Test generating a daily summary from narrative events"""
         narrator = Narrator(verbosity=3)
         
-        # Generate narrative events
+        # Generate narrative events from the interactions
         events = [
-            narrator.generate_event_from_interaction(test_interactions[0], test_agents),
-            narrator.generate_event_from_interaction(test_interactions[1], test_agents)
+            narrator.generate_event_from_interaction(interaction, test_agents)
+            for interaction in test_interactions
         ]
         
         # Generate daily summary
-        summary = narrator.generate_daily_summary(
-            day=5,
-            events=events,
-            agents=test_agents
-        )
+        summary = narrator.generate_daily_summary(1, events, test_agents)
         
-        # Verify summary
-        assert "Day 5" in summary
-        assert len(summary) > 100  # Should be reasonably detailed
-        assert test_agents[0].name in summary
-        assert test_agents[1].name in summary
-        assert test_agents[2].name in summary 
+        # Check summary properties
+        assert "Day 1" in summary
+        assert "Notable Events" in summary
+        
+        # Check that all event titles are mentioned in the summary
+        for event in events:
+            assert event.title in summary or event.agents_involved[0].name in summary 

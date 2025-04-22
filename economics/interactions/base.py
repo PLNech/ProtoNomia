@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 import logging
 
 from models.base import (
-    Agent, EconomicInteraction, EconomicInteractionType, InteractionRole,
-    InteractionOutcome, InteractionStrategy, ResourceBalance, ResourceType
+    Agent, EconomicInteraction, InteractionRole,
+    InteractionOutcome, InteractionStrategy, ResourceBalance, ResourceType, ActionType
 )
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class InteractionHandler(ABC):
     """Base class for handling a specific economic interaction type"""
     
-    interaction_type: EconomicInteractionType
+    interaction_type: ActionType
     
     @abstractmethod
     def create_interaction(self, **kwargs) -> EconomicInteraction:

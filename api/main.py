@@ -175,7 +175,7 @@ def on_interaction_completed(interaction):
                     "event": "interaction_completed",
                     "data": {
                         "id": interaction.id,
-                        "type": interaction.interaction_type.value,
+                        "type": interaction.action_type.value,
                         "is_complete": interaction.is_complete,
                         "participants": list(interaction.participants.keys()),
                         "narrative_significance": interaction.narrative_significance

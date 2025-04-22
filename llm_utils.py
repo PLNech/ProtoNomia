@@ -184,8 +184,8 @@ class OllamaClient:
         """
         try:
             from llm_models import AgentActionResponse
-            from models.actions import ActionType
-            
+            from models.base import ActionType
+
             # Try to extract potential JSON content
             import json
             import re

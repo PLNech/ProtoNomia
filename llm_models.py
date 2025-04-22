@@ -10,7 +10,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field, field_validator
 from pydantic import model_validator
 
-from models.actions import ActionType
+from models.base import ActionType
 
 
 class NarrativeResponse(BaseModel):
