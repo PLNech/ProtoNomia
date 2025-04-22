@@ -1,18 +1,19 @@
 from openai import OpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Type, TypeVar, Optional
+import time
 
 import instructor
 import logging
 import requests
 from instructor.exceptions import IncompleteOutputException
 
-from settings import DEFAULT_LM
+from src.llm_models import NarrativeResponse, DailySummaryResponse, example_daily_summary_1, example_daily_summary_2
+from src.settings import DEFAULT_LM
 
 # Create TypeVar for the response model
 T = TypeVar('T', bound=BaseModel)
-logger = logging.getLogger()
-
+logger = logging.getLogger(__name__)
 
 class OllamaClient:
     """
@@ -26,14 +27,14 @@ class OllamaClient:
             temperature: float = 0.8,
             top_p: float = 0.95,
             top_k: int = 40,
-            max_tokens: int = 2 ** 14,
-            max_retries: int = 5,
+            max_tokens: int = 2**14,
+            max_retries: int = 3,
             timeout: int = 30,
             system_prompt: str = ""
     ):
         """
         Initialize the Ollama client.
-
+        
         Args:
             base_url: Base URL for the Ollama API
             model_name: Name of the model to use
@@ -75,6 +76,24 @@ class OllamaClient:
             self.logger.warning(f"Failed to connect to Ollama: {e}")
             return False
 
+    def _retry_with_backoff(self, func, *args, **kwargs):
+        """Helper method to retry API calls with a simple retry mechanism"""
+        retries = self.max_retries
+        last_exception = None
+        
+        while retries > 0:
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_exception = e
+                self.logger.warning(f"API call failed, {retries} retries left: {e}")
+                retries -= 1
+                if retries > 0:
+                    time.sleep(2)  # Simple fixed delay
+        
+        # If we've exhausted retries, raise the last exception
+        raise last_exception if last_exception else Exception("API call failed after retries")
+
     def generate_structured(
             self,
             prompt: str,
@@ -87,7 +106,7 @@ class OllamaClient:
     ) -> T:
         """
         Generate structured output from Ollama using Instructor.
-
+        
         Args:
             prompt: The user prompt
             response_model: Pydantic model for structured response
@@ -96,11 +115,14 @@ class OllamaClient:
             temperature: Optional temperature override
             max_tokens: Optional max tokens override
             max_retries: Optional max retries override
-
+            
         Returns:
             An instance of the response_model
         """
         try:
+            # Check if we're dealing with agent action response - which may need special handling
+            is_agent_action = response_model.__name__ == 'AgentActionResponse'
+            
             # Use defaults if parameters not provided
             system = system_prompt if system_prompt is not None else self.system_prompt
             temp = temperature if temperature is not None else self.temperature
@@ -117,33 +139,158 @@ class OllamaClient:
             else:
                 examples_str = ""
 
-            format_guidance = f"""Your response must be only valid JSON conforming to this response schema: 
-            {response_model.model_json_schema()}
-            {examples_str}"""
-
+            # For smaller models, use a simplified schema for agent actions
+            if is_agent_action and self.model_name in ["gemma3:4b", "gemma3:1b", "gemma:1b", "phi:latest", "gemma3:2b"]:
+                format_guidance = """Your response must be only valid JSON conforming to this simplified schema:
+                {
+                  "type": "ACTION_TYPE",  # e.g., "BUY", "SELL", "SEARCH_JOB", "REST", etc.
+                  "extra": {
+                    # Action-specific details here as a JSON object
+                    # For BUY: "desired_item": "item name"
+                    # For WORK: "job_id": "job123"
+                    # etc.
+                  },
+                  "reasoning": "brief explanation of why this action was chosen"
+                }
+                
+                IMPORTANT: 'extra' MUST be a JSON object/dictionary, not a string or other type.
+                If you have no extra data, use an empty object: "extra": {}
+                """
+            else:
+                format_guidance = f"""Your response must be only valid JSON conforming to this response schema: 
+                {response_model.model_json_schema()}
+                {examples_str}
+                
+                IMPORTANT: Make sure all fields have the correct type according to the schema.
+                """
+                
             messages.append({"role": "system", "content": format_guidance})
             messages.append({"role": "user", "content": prompt})
 
             # Use Instructor's create method with structured response
-            try:
-                response = self.client.chat.completions.create(
+            def _generate():
+                return self.client.chat.completions.create(
                     model=self.model_name,
                     messages=messages,
                     response_model=response_model,
                     temperature=temp,
-                    max_tokens=tokens,
-                    max_retries=retries
+                    max_tokens=tokens
                 )
-
-                logger.debug(f"generate_structured({response_model.__name__}): {response}")
-                return response
-
-            except IncompleteOutputException as e:
-                self.logger.error(f"Failed to generate structured output")
-                self.logger.error(f"Last output: {e}")
-
-                raise
-
+            
+            # Use retry mechanism with backoff
+            response = self._retry_with_backoff(_generate)
+            logger.debug(f"generate_structured({response_model.__name__}): {response}")
+            return response
+                
+        except IncompleteOutputException as e:
+            self.logger.error(f"Failed to generate structured output: {e}")
+            self.logger.error(f"Last output: {e}")
+            
+            # For agent actions, try to recover from partial responses
+            if is_agent_action:
+                recovered_response = self._recover_agent_action(e)
+                if recovered_response:
+                    return recovered_response
+            
+            raise
         except Exception as e:
             self.logger.error(f"Error in generate_structured: {e}")
             raise
+
+    def _recover_agent_action(self, exception):
+        """Attempt to recover a partial agent action response"""
+        # This is a placeholder for potential recovery logic
+        # In a real implementation, we might parse the partial response
+        # and try to construct a valid AgentActionResponse
+        return None
+
+    def generate_narrative(
+            self,
+            prompt: str,
+            system_prompt: str
+    ) -> NarrativeResponse:
+        """
+        Generate a narrative response for an interaction.
+        
+        Args:
+            prompt: The prompt for narrative generation
+            system_prompt: System prompt for the model
+            
+        Returns:
+            A NarrativeResponse object
+        """
+        return self.generate_structured(
+            prompt=prompt,
+            response_model=NarrativeResponse,
+            system_prompt=system_prompt
+        )
+
+    def generate_daily_summary(
+            self,
+            prompt: str,
+            system_prompt: str
+    ) -> DailySummaryResponse:
+        """
+        Generate a daily summary response.
+        
+        Args:
+            prompt: The prompt for summary generation
+            system_prompt: System prompt for the model
+            
+        Returns:
+            A DailySummaryResponse object
+        """
+        try:
+            return self.generate_structured(
+                prompt=prompt,
+                response_model=DailySummaryResponse,
+                examples=[example_daily_summary_1, example_daily_summary_2],
+                system_prompt=system_prompt
+            )
+        except Exception as e:
+            self.logger.error(f"Error generating daily summary: {e}")
+            raise
+
+    def generate_text(
+            self,
+            prompt: str,
+            system_prompt: Optional[str] = None
+    ) -> str:
+        """
+        Generate simple text output (fallback method).
+        
+        Args:
+            prompt: The user prompt
+            system_prompt: Optional system prompt
+            
+        Returns:
+            Generated text as string
+        """
+        try:
+            # Use default system prompt if none provided
+            system = system_prompt if system_prompt is not None else self.system_prompt
+
+            # Prepare messages
+            messages = []
+            if system:
+                messages.append({"role": "system", "content": system})
+            messages.append({"role": "user", "content": prompt})
+
+            # Define the function to call
+            def _generate():
+                # Use Instructor's create method
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    response_model=None,  # No structured model for plain text
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens
+                )
+                return response.choices[0].message.content or ""
+
+            # Use retry mechanism
+            return self._retry_with_backoff(_generate)
+
+        except Exception as e:
+            self.logger.error(f"Error generating text: {e}")
+            return f"Error generating text: {str(e)}"
