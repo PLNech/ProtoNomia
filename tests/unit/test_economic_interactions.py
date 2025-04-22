@@ -7,7 +7,7 @@ import random
 
 from models.base import (
     Agent, AgentType, AgentFaction, AgentPersonality, ResourceBalance, ResourceType,
-    EconomicInteraction, EconomicInteractionType, InteractionRole, InteractionOutcome
+    EconomicInteraction, ActionType, InteractionRole, InteractionOutcome
 )
 from economics.interactions.job_market import JobMarketHandler
 from economics.interactions.goods_market import GoodsMarketHandler
@@ -108,7 +108,7 @@ class TestJobMarketInteraction:
         )
         
         # Check interaction properties
-        assert interaction.interaction_type == EconomicInteractionType.JOB_APPLICATION
+        assert interaction.interaction_type == ActionType.APPLY
         assert len(interaction.participants) == 2
         assert agent_employer in interaction.participants
         assert agent_employee in interaction.participants
@@ -174,7 +174,7 @@ class TestGoodsMarketInteraction:
         )
         
         # Check interaction properties
-        assert interaction.interaction_type == EconomicInteractionType.GOODS_PURCHASE
+        assert interaction.interaction_type == ActionType.BUY
         assert len(interaction.participants) == 2
         assert agent_employer in interaction.participants
         assert agent_employee in interaction.participants
@@ -271,29 +271,29 @@ class TestGoodsMarketInteraction:
 def test_interaction_registry(interaction_registry, agent_employer, agent_employee, job_listing, goods_listing):
     """Test the interaction registry with the simplified interactions"""
     # Check that the registry has the appropriate handlers
-    assert EconomicInteractionType.JOB_APPLICATION in interaction_registry.handlers
-    assert EconomicInteractionType.GOODS_PURCHASE in interaction_registry.handlers
+    assert ActionType.APPLY in interaction_registry.handlers
+    assert ActionType.BUY in interaction_registry.handlers
     
     # Test creating a job application interaction
     job_interaction = interaction_registry.create_interaction(
-        interaction_type=EconomicInteractionType.JOB_APPLICATION,
+        interaction_type=ActionType.APPLY,
         employer=agent_employer,
         employee=agent_employee,
         job_listing=job_listing
     )
     
-    assert job_interaction.interaction_type == EconomicInteractionType.JOB_APPLICATION
+    assert job_interaction.interaction_type == ActionType.APPLY
     
     # Test creating a goods purchase interaction
     goods_interaction = interaction_registry.create_interaction(
-        interaction_type=EconomicInteractionType.GOODS_PURCHASE,
+        interaction_type=ActionType.BUY,
         seller=agent_employer,
         buyer=agent_employee,
         goods_listing=goods_listing,
         purchase_amount=3.0
     )
     
-    assert goods_interaction.interaction_type == EconomicInteractionType.GOODS_PURCHASE
+    assert goods_interaction.interaction_type == ActionType.BUY
     
     # Test processing an interaction
     processed_interaction = interaction_registry.process_interaction(job_interaction)

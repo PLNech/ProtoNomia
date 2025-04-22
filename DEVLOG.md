@@ -390,3 +390,38 @@ Refactored the EconomicInteraction model to store direct Agent object references
 - Fixed inconsistency in resource updates where outcomes were calculated but not applied to agents
 - Improved personality-driven decision making that was previously using random values instead of agent traits
 
+# Updated Narrator Implementation
+
+## Date
+2025-04-22
+
+## Description
+Consolidated the narrator system to use a single `Narrator` class based on the previous LLM-powered implementation. Made the following changes:
+1. Renamed `llm_narrator.py` to `narrator.py` and renamed the class from `LLMNarrator` to `Narrator`
+2. Updated all imports and references across the codebase to use the new `Narrator` class
+3. Updated `core/simulation.py` to use the renamed narrator in both LLM and non-LLM modes
+4. Fixed missing enum values in `InteractionRole` and `ActionType`
+5. Updated tests to use the new `Narrator` class
+
+## Demand
+Ah yes, Continue but remember that we deleted the simple narrator, in your refactoring you must also rename our llm_narrator to just narrator.py and ensure we use a single narrator class, the llm-enabled one, all around the project.
+
+## Files
+- [R] `narrative/llm_narrator.py` -> `narrative/narrator.py`
+- [M] `narrative/__init__.py`
+- [M] `core/simulation.py`
+- [M] `models/base.py`
+- [M] `tests/unit/test_narrator.py`
+- [M] `tests/llm/test_llm_narrator_integration.py`
+- [M] `tests/llm/test_simulation_llm_integration.py`
+- [M] `tests/unit/test_simulation.py`
+- [A] `DEVLOG.md`
+
+## Bugs
+1. Fixed the `ModuleNotFoundError: No module named 'narrative.narrator'` error by renaming `llm_narrator.py` to `narrator.py`
+2. Fixed AttributeError for `ActionType.PURCHASE` by replacing it with `ActionType.BUY`
+3. Fixed AttributeError for missing `SELLER`, `BUYER`, `EMPLOYER`, and `EMPLOYEE` roles in `InteractionRole` enum
+4. Added `RETRACT` to `ActionType` enum to match its usage in the codebase
+
+# Made APPLY action testable
+

@@ -20,7 +20,6 @@ from models.base import (
     NarrativeEvent, NarrativeArc, PopulationControlParams, AgentNeeds, ActionType, AgentDecisionContext, AgentAction
 )
 from models.economy import GoodsListing, JobListing, ListingType
-from narrative.llm_narrator import LLMNarrator
 from narrative.narrator import Narrator
 from population.controller import PopulationController
 from settings import DEFAULT_LM
@@ -126,20 +125,26 @@ class Simulation:
             logger.info(f"Initialized LLM agent with model {self.model_name}")
 
             # Use LLM for narrative generation
-            logger.info(f"Initializing LLM Narrator with model {self.narrator_model_name}")
-            self.narrator = LLMNarrator(
+            logger.info(f"Initializing Narrator with model {self.narrator_model_name}")
+            self.narrator = Narrator(
                 verbosity=self.config.narrative_verbosity,
                 model_name=self.narrator_model_name,
                 temperature=self.temperature,
                 top_p=self.top_p,
                 top_k=self.top_k
             )
-            logger.info(f"Initialized LLM Narrator with model {self.narrator_model_name}")
+            logger.info(f"Initialized Narrator with model {self.narrator_model_name}")
         else:
-            # Use rule-based narrator
-            logger.info("Initializing traditional Narrator")
-            self.narrator = Narrator(verbosity=self.config.narrative_verbosity)
-            logger.info(f"Initialized rule-based Narrator with verbosity {self.config.narrative_verbosity}")
+            # Use rule-based agent decision making but still use the LLM-based narrator
+            logger.info("Initializing Narrator")
+            self.narrator = Narrator(
+                verbosity=self.config.narrative_verbosity,
+                model_name=self.narrator_model_name,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                top_k=self.top_k
+            )
+            logger.info(f"Initialized Narrator with verbosity {self.config.narrative_verbosity}")
 
             # No LLM agent needed for rule-based simulation
             self.llm_agent = None
@@ -627,7 +632,7 @@ class Simulation:
         # Process market-related actions through the economy manager
         if action.type in [
             ActionType.HIRE, ActionType.FIRE, ActionType.APPLY, 
-            ActionType.LIST_GOODS, ActionType.RETRACT, ActionType.PURCHASE,
+            ActionType.LIST_GOODS, ActionType.RETRACT, ActionType.BUY,
             ActionType.WORK
         ]:
             success, message = self.economy_manager.process_action(action, self.agents)
@@ -671,12 +676,12 @@ class Simulation:
         
         # Decide what type of interaction to create
         interaction_type = random.choice([
-            EconomicInteractionType.JOB_APPLICATION,
-            EconomicInteractionType.GOODS_PURCHASE
+            ActionType.APPLY,
+            ActionType.BUY
         ])
         
         # Create the interaction
-        if interaction_type == EconomicInteractionType.JOB_APPLICATION:
+        if interaction_type == ActionType.APPLY:
             # Decide who is employer and who is employee
             employer = agent1
             employee = agent2
@@ -699,7 +704,7 @@ class Simulation:
                 job_listing=job_listing
             )
             
-        elif interaction_type == EconomicInteractionType.GOODS_PURCHASE:
+        elif interaction_type == ActionType.BUY:
             # Decide who is seller and who is buyer
             seller = agent1
             buyer = agent2
@@ -708,7 +713,7 @@ class Simulation:
             resource_type = random.choice([
                 ResourceType.FOOD, 
                 ResourceType.WATER,
-                ResourceType.MEDICINE,
+                ResourceType.OXYGEN,
                 ResourceType.PHYSICAL_GOODS
             ])
             

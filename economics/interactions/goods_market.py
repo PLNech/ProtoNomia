@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class GoodsMarketHandler(InteractionHandler):
     """Handler for goods market interactions"""
     
-    interaction_type = ActionType.GOODS_PURCHASE
+    interaction_type = ActionType.BUY
     
     def create_interaction(self, **kwargs) -> EconomicInteraction:
         """Create a new goods purchase interaction

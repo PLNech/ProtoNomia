@@ -43,6 +43,7 @@ class ActionType(str, Enum):
     FIRE = "FIRE"                     # Fire an employee
     APPLY = "APPLY"                   # Apply for a job listing
     LIST_GOODS = "LIST_GOODS"         # Create a goods listing (offer or request)
+    RETRACT = "RETRACT"               # Retract a listing
     BUY = "BUY"                       # Purchase from a goods listing.
 
 
@@ -502,6 +503,14 @@ class InteractionRole(str, Enum):
     
     INITIATOR = "initiator"         # Agent who started the interaction
     RESPONDER = "responder"         # Agent who responds to an initiated interaction
+    
+    # Job market roles
+    EMPLOYER = "employer"           # Agent offering a job
+    EMPLOYEE = "employee"           # Agent seeking or performing a job
+    
+    # Goods market roles
+    SELLER = "seller"               # Agent selling goods
+    BUYER = "buyer"                 # Agent buying goods
 
 class InteractionStrategy(BaseModel):
     """Strategy used by an agent in an interaction"""

@@ -12,7 +12,7 @@ from pydantic import ValidationError
 # Add project root to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from narrative.llm_narrator import LLMNarrator
+from narrative.narrator import Narrator
 from models.base import (
     Agent, AgentType, AgentFaction, AgentPersonality,
     EconomicInteraction, EconomicInteractionType, InteractionRole,
@@ -79,7 +79,7 @@ def test_interaction(test_agents):
                     reason="LLM tests are disabled. Set RUN_LLM_TESTS=1 to enable.")
 class TestLLMNarratorIntegration():
     """
-    Integration tests for LLMNarrator with actual LLM service.
+    Integration tests for Narrator with actual LLM service.
     
     These tests require an actual LLM service running.
     """
@@ -87,7 +87,7 @@ class TestLLMNarratorIntegration():
     def test_llm_narrator_connection(self):
         """Test that we can connect to the LLM service"""
         try:
-            narrator = LLMNarrator()
+            narrator = Narrator()
             # If we got here without exception, connection was successful
             assert True
         except Exception as e:
@@ -95,7 +95,7 @@ class TestLLMNarratorIntegration():
 
     def test_generate_event_from_interaction(self, test_agents, test_interaction):
         """Test generating a narrative event from an interaction using LLM"""
-        narrator = LLMNarrator()
+        narrator = Narrator()
 
         # Generate a narrative event
         event = narrator.generate_event_from_interaction(test_interaction, test_agents)
@@ -114,7 +114,7 @@ class TestLLMNarratorIntegration():
 
     def test_daily_summary_generation(self, test_agents):
         """Test generating a daily summary using LLM"""
-        narrator = LLMNarrator(max_retries=1)
+        narrator = Narrator(max_retries=1)
 
         # Create some narrative events
         events = [

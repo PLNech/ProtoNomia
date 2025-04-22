@@ -12,7 +12,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from core.simulation import Simulation
-from models.base import SimulationConfig, EconomicInteractionType
+from models.base import SimulationConfig, ActionType
 
 
 class TestSimulation:
@@ -22,7 +22,6 @@ class TestSimulation:
         """Test that Simulation correctly initializes all required handlers"""
         # Create a simulation with mocked dependencies to avoid actual LLM calls
         with patch('core.simulation.LLMAgent'), \
-             patch('core.simulation.LLMNarrator'), \
              patch('core.simulation.Narrator'), \
              patch('core.simulation.UltimatumGameHandler'), \
              patch('core.simulation.TrustGameHandler'), \
@@ -38,9 +37,9 @@ class TestSimulation:
                 resource_scarcity=0.5,
                 terra_mars_trade_ratio=0.6,
                 enabled_interaction_types=[
-                    EconomicInteractionType.ULTIMATUM,
-                    EconomicInteractionType.TRUST,
-                    EconomicInteractionType.PUBLIC_GOODS
+                    ActionType.ULTIMATUM,
+                    ActionType.TRUST,
+                    ActionType.PUBLIC_GOODS
                 ],
                 narrative_verbosity=3
             )
@@ -49,6 +48,6 @@ class TestSimulation:
             sim = Simulation(config=config)
             
             # Check that interaction handlers are initialized
-            assert EconomicInteractionType.ULTIMATUM in sim.interaction_handlers
-            assert EconomicInteractionType.TRUST in sim.interaction_handlers
-            assert EconomicInteractionType.PUBLIC_GOODS in sim.interaction_handlers 
+            assert ActionType.ULTIMATUM in sim.interaction_handlers
+            assert ActionType.TRUST in sim.interaction_handlers
+            assert ActionType.PUBLIC_GOODS in sim.interaction_handlers 

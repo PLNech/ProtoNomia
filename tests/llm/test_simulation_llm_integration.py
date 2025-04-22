@@ -6,6 +6,7 @@ import sys
 from datetime import datetime
 
 import pytest
+import logging
 
 from settings import DEFAULT_LM
 
@@ -15,7 +16,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from core.simulation import Simulation
 from models.base import SimulationConfig, EconomicInteractionType, NarrativeEvent
 from agents.llm_agent import LLMAgent
-from narrative.llm_narrator import LLMNarrator
+from narrative.narrator import Narrator
 
 
 @pytest.mark.llm
@@ -56,7 +57,7 @@ class TestSimulationLLMIntegration:
         # Check that LLM components are initialized
         assert sim.llm_agent is not None
         assert isinstance(sim.llm_agent, LLMAgent)
-        assert isinstance(sim.narrator, LLMNarrator)
+        assert isinstance(sim.narrator, Narrator)
         assert sim.narrator.model_name == DEFAULT_LM
 
     def test_simulation_run_with_llm(self):
@@ -98,3 +99,21 @@ class TestSimulationLLMIntegration:
             assert isinstance(event, NarrativeEvent)
             assert event.title is not None and len(event.title) > 0
             assert event.description is not None and len(event.description) > 0
+
+    def test_initialization(self):
+        """Test simulation initialization with LLM components"""
+        config = self._create_test_config()
+        sim = Simulation(config=config, use_llm=True)
+        sim.initialize()
+        
+        # Check that LLM components are initialized
+        assert sim.llm_agent is not None
+        assert sim.narrator is not None
+        assert isinstance(sim.narrator, Narrator)
+        
+        # Even without LLM agent, we still use the LLM-based narrator
+        sim2 = Simulation(config=config, use_llm=False)
+        sim2.initialize()
+        assert sim2.llm_agent is None  # No LLM agent
+        assert sim2.narrator is not None
+        assert isinstance(sim2.narrator, Narrator)  # Still using LLM-based narrator

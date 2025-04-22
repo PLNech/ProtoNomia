@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class JobMarketHandler(InteractionHandler):
     """Handler for job market interactions"""
     
-    interaction_type = ActionType.JOB_APPLICATION
+    interaction_type = ActionType.APPLY
     
     def create_interaction(self, **kwargs) -> EconomicInteraction:
         """Create a new job application interaction

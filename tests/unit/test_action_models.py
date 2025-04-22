@@ -3,8 +3,7 @@ import time
 from typing import Dict, Any, Optional
 from pydantic import ValidationError
 
-from models.actions import ActionType
-from models.base import Agent, AgentFaction, AgentType
+from models.base import Agent, AgentFaction, AgentType, ActionType
 
 # Import the ActionResponse model we'll be working with
 from llm_models import AgentActionResponse

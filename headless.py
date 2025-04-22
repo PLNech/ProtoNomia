@@ -9,8 +9,7 @@ from datetime import datetime
 from core.simulation import Simulation
 # Import ProtoNomia modules
 from models.base import (
-    EconomicInteractionType,
-    SimulationConfig
+    SimulationConfig, ActionType
 )
 from settings import DEFAULT_LM
 
@@ -50,9 +49,9 @@ def parse_args():
     
     # Interaction parameters
     parser.add_argument('--interactions', type=str, nargs='+',
-                        choices=[e.value for e in EconomicInteractionType],
-                        default=['job_application', 'goods_purchase'],
-                        help='Enabled economic interactions (default: job_application goods_purchase)')
+                        choices=[e.value for e in ActionType],
+                        default=['WORK', 'APPLY', 'HIRE', 'LIST_GOODS', 'BUY'],
+                        help='Enabled economic interactions (default: WORK APPLY HIRE LIST_GOODS BUY)')
     
     # Population control parameters
     parser.add_argument('--birth-rate', type=float, default=0.01,
@@ -95,7 +94,7 @@ def run_simulation(args):
     
     # Convert interaction strings to enum values
     enabled_interactions = [
-        EconomicInteractionType(interaction) for interaction in args.interactions
+        ActionType(interaction) for interaction in args.interactions
     ]
     
     # Create simulation configuration

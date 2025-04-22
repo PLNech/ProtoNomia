@@ -7,13 +7,9 @@ import random
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 
-from models.actions import (
-    ActionType, AgentAction, HireAction, FireAction, ApplyAction,
-    ListGoodsAction, RetractAction, PurchaseAction
-)
 from models.base import (
-    Agent, ResourceType, ResourceBalance, EconomicInteraction,
-    EconomicInteractionType, InteractionRole, InteractionOutcome
+    ActionType, AgentAction, Agent, ResourceType, ResourceBalance, EconomicInteraction,
+    InteractionRole, InteractionOutcome
 )
 from models.economy import (
     EconomyState, GoodsMarket, JobMarket, GoodsListing, JobListing,
@@ -69,7 +65,7 @@ class EconomyManager:
         elif action.type == ActionType.RETRACT:
             return self._process_retract_action(action, agent)
             
-        elif action.type == ActionType.PURCHASE:
+        elif action.type == ActionType.BUY:
             return self._process_purchase_action(action, agent, agents)
             
         elif action.type == ActionType.WORK:
@@ -510,7 +506,7 @@ class EconomyManager:
         # Create parameters for the interaction
         parameters = {}
         
-        if interaction_type == EconomicInteractionType.ULTIMATUM:
+        if interaction_type == ActionType.ULTIMATUM:
             parameters = {
                 "resource_type": ResourceType.CREDITS,
                 "total_amount": random.uniform(10, 100),
@@ -518,7 +514,7 @@ class EconomyManager:
                 "stage": "proposal"
             }
         
-        elif interaction_type == EconomicInteractionType.TRUST:
+        elif interaction_type == ActionType.TRUST:
             parameters = {
                 "resource_type": ResourceType.CREDITS,
                 "initial_amount": random.uniform(10, 100),
@@ -527,7 +523,7 @@ class EconomyManager:
                 "stage": "investment"
             }
         
-        elif interaction_type == EconomicInteractionType.PUBLIC_GOODS:
+        elif interaction_type == ActionType.PUBLIC_GOODS:
             parameters = {
                 "resource_type": ResourceType.CREDITS,
                 "pool_multiplier": random.uniform(1.5, 2.5),

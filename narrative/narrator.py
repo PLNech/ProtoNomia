@@ -1,16 +1,18 @@
 """
 Narrator module for ProtoNomia.
-This module handles the generation of narrative events from economic interactions.
+This module uses Ollama to generate narrative events from economic interactions.
 """
 import logging
 import random
 from datetime import datetime
-from typing import List, Dict, Optional, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
+from llm_utils import OllamaClient
 from models.base import (
     Agent, EconomicInteraction, InteractionRole,
     NarrativeEvent, NarrativeArc, ResourceType, ActionType
 )
+from settings import DEFAULT_LM
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -18,27 +20,56 @@ logger = logging.getLogger(__name__)
 
 class Narrator:
     """
-    Narrator class for generating narrative events and arcs from economic interactions.
-    The narrator creates engaging stories from the events in the simulation.
+    LLM-powered Narrator that uses Ollama to generate narrative events and
+    arcs from economic interactions.
     """
-    
-    def __init__(self, verbosity: int = 3):
+
+    def __init__(
+            self,
+            verbosity: int = 3,
+            model_name: str = DEFAULT_LM,
+            ollama_base_url: str = "http://localhost:11434",
+            temperature: float = 0.8,
+            top_p: float = 0.95,
+            top_k: int = 40,
+            timeout: int = 30,
+            max_retries: int = 5
+    ):
         """
-        Initialize the narrator.
-        
-        Args:
-            verbosity: Level of detail in generated narratives (1-5)
+        Initialize the Narrator.
         """
         self.verbosity = max(1, min(5, verbosity))  # Ensure verbosity is between 1 and 5
-        logger.info(f"Initialized narrator with verbosity level {self.verbosity}")
-    
+        self.model_name = model_name
+        self.ollama_base_url = ollama_base_url
+        self.temperature = temperature
+        self.top_p = top_p
+        self.top_k = top_k
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.market_report: Dict[str, Any] = {}  # Store the latest market report
+
+        logger.info(f"Initializing Narrator with model {model_name} and verbosity level {verbosity}")
+
+        # Create the OllamaClient for structured output generation
+        self.ollama_client = OllamaClient(
+            base_url=ollama_base_url,
+            model_name=model_name,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            max_tokens=2**14,
+            max_retries=max_retries,
+            timeout=timeout
+        )
+        logger.info(f"Successfully connected to Ollama with model {model_name}")
+
     def generate_event_from_interaction(
-        self, 
-        interaction: EconomicInteraction,
-        agents: List[Agent]
+            self,
+            interaction: EconomicInteraction,
+            agents: List[Agent]
     ) -> NarrativeEvent:
         """
-        Generate a narrative event from an economic interaction.
+        Generate a narrative event from an economic interaction using LLM.
         
         Args:
             interaction: The economic interaction to generate a narrative from
@@ -47,317 +78,125 @@ class Narrator:
         Returns:
             NarrativeEvent: The generated narrative event
         """
-        # Map agent IDs to agent objects for easier lookup
-        agent_map = {agent.id: agent for agent in agents}
+        try:
+            # Map agent IDs to agent objects for easier lookup
+            agent_map = {agent.id: agent for agent in agents}
+
+            # Get participant agent names
+            participant_names = {}
+            for agent, role in interaction.participants.items():
+                participant_names[role] = agent.name
+
+            # Create a prompt for the LLM
+            prompt = self._create_interaction_prompt(interaction, participant_names, agent_map)
+
+            system_prompt = (
+                "You are a creative narrator for a Mars colony simulation in the year 2993. "
+                "Your role is to transform economic data into memorable character-driven stories that reveal personalities, "
+                "motivations, and the unique challenges of Martian life. Focus on making each interaction feel consequential "
+                "and emotionally resonant, while maintaining scientific plausibility and thematic consistency."
+            )
+
+            # Generate the narrative using structured output
+            narrative_response = self.ollama_client.generate_narrative(
+                prompt=prompt,
+                system_prompt=system_prompt
+            )
+
+            # Create and return the narrative event
+            event = NarrativeEvent(
+                timestamp=datetime.now(),
+                title=narrative_response.title,
+                description=narrative_response.description,
+                agents_involved=list(interaction.participants.keys()),
+                interaction_id=interaction.id,
+                significance=interaction.narrative_significance,
+                tags=narrative_response.tags
+            )
+
+            logger.debug(f"Generated narrative event: {narrative_response.title}")
+            return event
+
+        except Exception as e:
+            logger.error(f"Error generating narrative event: {e}")
+            # Fallback to a simple event in case of error
+            return self._generate_fallback_event(interaction, agent_map)
+
+    def _generate_fallback_event(self, interaction: EconomicInteraction, agent_map: Dict[str, Agent]) -> NarrativeEvent:
+        """Generate a simple fallback event when LLM generation fails"""
+        # Get agent names
+        agent_names = [agent.name for agent in interaction.participants.keys()]
+            
+        title = f"Economic Interaction of type {interaction.interaction_type.value}"
+        if agent_names:
+            title += f" between {' and '.join(agent_names)}"
+            
+        description = f"An economic interaction of type {interaction.interaction_type} occurred."
         
-        # Get participant agent names
-        participant_names = {}
-        for agent, role in interaction.participants.items():
-            participant_names[role] = agent.name
-        
-        # Generate title and description based on interaction type
-        title, description, tags = "", "", []
-        
-        if interaction.interaction_type == ActionType.JOB_APPLICATION:
-            title, description, tags = self._generate_job_application_narrative(
-                interaction, participant_names, agent_map
-            )
-        elif interaction.interaction_type == ActionType.JOB_OFFER:
-            title, description, tags = self._generate_job_offer_narrative(
-                interaction, participant_names, agent_map
-            )
-        elif interaction.interaction_type == ActionType.GOODS_PURCHASE:
-            title, description, tags = self._generate_goods_purchase_narrative(
-                interaction, participant_names, agent_map
-            )
-        elif interaction.interaction_type == ActionType.GOODS_SALE:
-            title, description, tags = self._generate_goods_sale_narrative(
-                interaction, participant_names, agent_map
-            )
-        else:
-            # Generic fallback for other interaction types
-            title, description, tags = self._generate_generic_narrative(
-                interaction, participant_names, agent_map
-            )
-        
-        # Create and return the narrative event
-        event = NarrativeEvent(
+        return NarrativeEvent(
             timestamp=datetime.now(),
             title=title,
             description=description,
-            agents_involved=[agent for agent in interaction.participants.keys()],
+            agents_involved=list(interaction.participants.keys()),
             interaction_id=interaction.id,
             significance=interaction.narrative_significance,
-            tags=tags
+            tags=["fallback", "error_recovery"]
         )
+
+    def generate_daily_summary(self, day: int, events: List[NarrativeEvent], agents: List[Agent]) -> str:
+        """
+        Generate a daily summary of events for the simulation.
         
-        logger.debug(f"Generated narrative event: {title}")
-        return event
-    
-    def _generate_job_application_narrative(
-        self, 
-        interaction: EconomicInteraction,
-        participant_names: Dict[InteractionRole, str],
-        agent_map: Dict[str, Agent]
-    ) -> tuple:
-        """Generate narrative for a job application interaction"""
-        # Extract parameters
-        job_type = interaction.parameters.get("job_type", "Unknown")
-        salary = interaction.parameters.get("salary", 0)
-        successful = interaction.parameters.get("application_successful", False)
-        
-        # Get agent names
-        initiator_name = participant_names.get(InteractionRole.INITIATOR, "Unknown Employer")
-        responder_name = participant_names.get(InteractionRole.RESPONDER, "Unknown Applicant")
-        
-        # Generate title based on the interaction outcome
-        if successful:
-            title = f"{responder_name} Hired by {initiator_name} as {job_type}"
-            tags = ["job_application", "hiring", "employment", "success"]
-        else:
-            title = f"{responder_name}'s Application for {job_type} at {initiator_name} Rejected"
-            tags = ["job_application", "rejection", "unemployment", "failure"]
-        
-        # Generate description with varying detail based on verbosity
-        if self.verbosity >= 4:
-            # High verbosity - detailed description
-            if successful:
-                description = (
-                    f"In a successful job negotiation at {self._get_random_location()}, {responder_name} applied for "
-                    f"the position of {job_type} at {initiator_name}'s company. After reviewing the application "
-                    f"and credentials, {initiator_name} decided to hire {responder_name} at a salary of {salary} "
-                    f"credits per turn. Both parties seemed pleased with the arrangement, with {responder_name} "
-                    f"expressing enthusiasm about the opportunity and {initiator_name} confident in finding a "
-                    f"capable new employee. The position comes with typical Martian employment benefits including "
-                    f"oxygen ration supplements and radiation shielding allowance."
-                )
-            else:
-                description = (
-                    f"At {self._get_random_location()}, {responder_name} applied for a {job_type} position "
-                    f"with {initiator_name}'s company, but was ultimately rejected after consideration. "
-                    f"The position, which offered {salary} credits per turn, attracted multiple qualified "
-                    f"candidates. {initiator_name} expressed that while {responder_name} had impressive "
-                    f"qualifications, they were looking for someone with more specialized experience in Martian "
-                    f"operations. {responder_name} appeared disappointed but determined to continue the job search "
-                    f"elsewhere in the colony."
-                )
-        elif self.verbosity >= 2:
-            # Medium verbosity - moderate description
-            if successful:
-                description = (
-                    f"{responder_name} applied for a {job_type} position with {initiator_name} and was hired at "
-                    f"a salary of {salary} credits per turn. The new employment relationship looks promising "
-                    f"for both parties."
-                )
-            else:
-                description = (
-                    f"{responder_name} applied for a {job_type} position with {initiator_name} offering {salary} "
-                    f"credits per turn, but was rejected. The job search continues."
-                )
-        else:
-            # Low verbosity - minimal description
-            if successful:
-                description = f"{responder_name} hired as {job_type} by {initiator_name} for {salary} credits."
-            else:
-                description = f"{responder_name} rejected for {job_type} position by {initiator_name}."
-        
-        return title, description, tags
-    
-    def _generate_goods_purchase_narrative(
-        self, 
-        interaction: EconomicInteraction,
-        participant_names: Dict[InteractionRole, str],
-        agent_map: Dict[str, Agent]
-    ) -> tuple:
-        """Generate narrative for a goods purchase interaction"""
-        # Extract parameters
-        resource_type = interaction.parameters.get("resource_type", ResourceType.CREDITS)
-        if isinstance(resource_type, ResourceType):
-            resource_name = resource_type.value
-        else:
-            resource_name = str(resource_type)
+        Args:
+            day: The day number
+            events: List of narrative events for the day
+            agents: List of all agents in the simulation
             
-        purchase_amount = interaction.parameters.get("purchase_amount", 0)
-        price_per_unit = interaction.parameters.get("price_per_unit", 0)
-        total_price = interaction.parameters.get("total_price", 0)
-        successful = interaction.parameters.get("purchase_successful", False)
-        
-        # Get agent names
-        initiator_name = participant_names.get(InteractionRole.INITIATOR, "Unknown Seller")
-        responder_name = participant_names.get(InteractionRole.RESPONDER, "Unknown Buyer")
-        
-        # Generate title based on the interaction outcome
-        if successful:
-            title = f"{responder_name} Purchases {resource_name} from {initiator_name}"
-            tags = ["goods_purchase", "transaction", "commerce", "success"]
-        else:
-            failure_reason = interaction.parameters.get("failure_reason", "Unknown reason")
-            title = f"{responder_name} Fails to Purchase {resource_name} from {initiator_name}"
-            tags = ["goods_purchase", "failed_transaction", "commerce", "failure"]
-        
-        # Generate description with varying detail based on verbosity
-        if self.verbosity >= 4:
-            # High verbosity - detailed description
-            if successful:
-                description = (
-                    f"At the bustling {self._get_random_location()}, {responder_name} approached {initiator_name}'s "
-                    f"market stall with interest in acquiring {resource_name}. After examining the quality and "
-                    f"negotiating briefly, they agreed on a price of {price_per_unit} credits per unit. "
-                    f"{responder_name} purchased {purchase_amount} units for a total of {total_price} credits. "
-                    f"Both parties appeared satisfied with the transaction, with {initiator_name} carefully counting "
-                    f"out the credits while {responder_name} inspected their newly acquired goods. A small crowd of "
-                    f"onlookers noted the exchange, with some commenting on the fair market value demonstrated."
-                )
-            else:
-                description = (
-                    f"At {self._get_random_location()}, {responder_name} attempted to purchase {purchase_amount} units "
-                    f"of {resource_name} from {initiator_name} at {price_per_unit} credits per unit. Unfortunately, "
-                    f"the transaction could not be completed due to {failure_reason}. {initiator_name} seemed "
-                    f"disappointed but understanding, while {responder_name} appeared frustrated by the situation. "
-                    f"Other market-goers continued their business around them, such failed transactions being a "
-                    f"common enough sight in the Martian economy where resources can be scarce and credits tight."
-                )
-        elif self.verbosity >= 2:
-            # Medium verbosity - moderate description
-            if successful:
-                description = (
-                    f"{responder_name} purchased {purchase_amount} units of {resource_name} from {initiator_name} for "
-                    f"{total_price} credits ({price_per_unit} per unit). The transaction was completed successfully "
-                    f"at {self._get_random_location()}."
-                )
-            else:
-                description = (
-                    f"{responder_name} attempted to purchase {purchase_amount} units of {resource_name} from "
-                    f"{initiator_name} for {total_price} credits, but the transaction failed due to {failure_reason}."
-                )
-        else:
-            # Low verbosity - minimal description
-            if successful:
-                description = f"{responder_name} bought {purchase_amount} {resource_name} from {initiator_name} for {total_price} credits."
-            else:
-                description = f"{responder_name} failed to buy {resource_name} from {initiator_name}: {failure_reason}."
-        
-        return title, description, tags
-    
-    def _generate_job_offer_narrative(
-        self, 
-        interaction: EconomicInteraction,
-        participant_names: Dict[InteractionRole, str],
-        agent_map: Dict[str, Agent]
-    ) -> tuple:
-        """Generate narrative for a job offer interaction"""
-        # Extract parameters
-        job_type = interaction.parameters.get("job_type", "Unknown")
-        salary = interaction.parameters.get("salary", 0)
-        max_positions = interaction.parameters.get("max_positions", 1)
-        
-        # Get agent names
-        employer_name = participant_names.get(InteractionRole.EMPLOYER, "Unknown Employer")
-        
-        # Generate title
-        title = f"{employer_name} Posts New {job_type} Position"
-        tags = ["job_offer", "employment", "opportunity", "job_market"]
-        
-        # Generate description based on verbosity
-        if self.verbosity >= 4:
-            description = (
-                f"Economic opportunity has emerged at {self._get_random_location()} as {employer_name} announced "
-                f"a new job opening for a {job_type} position. The role offers {salary} credits per turn and "
-                f"seeks up to {max_positions} qualified individuals. According to the job listing, this position "
-                f"requires specialized skills suitable for Mars' unique working conditions. {employer_name} "
-                f"emphasized that candidates should have experience with the colony's systems and be prepared for "
-                f"the challenging environment. The announcement generated buzz among job-seekers in the colony, "
-                f"particularly those with relevant qualifications looking to secure stable employment."
+        Returns:
+            str: A daily summary narrative
+        """
+        try:
+            # Create a prompt for the daily summary
+            prompt = self._create_daily_summary_prompt(day, events, agents)
+
+            system_prompt = (
+                "You are a creative historian chronicling the emerging society on Mars in the year 2993. "
+                "Your daily summaries should not just list events, but trace how individual actions and economic decisions "
+                "are collectively shaping Mars' future. Identify patterns, tensions, and developments that would not be obvious "
+                "from isolated events. Balance factual reporting with evocative prose that captures the challenges and triumphs "
+                "of this frontier society."
             )
-        elif self.verbosity >= 2:
-            description = (
-                f"{employer_name} has posted a job opening for a {job_type} position offering {salary} credits "
-                f"per turn. The employer is looking to hire up to {max_positions} qualified candidate(s) with "
-                f"relevant skills and experience."
+
+            # Generate the daily summary using structured output
+            summary_response = self.ollama_client.generate_daily_summary(
+                prompt=prompt,
+                system_prompt=system_prompt
             )
-        else:
-            description = f"{employer_name} offers {job_type} job: {salary} credits, {max_positions} position(s) available."
+
+            # Format the final summary with the headline as the main title
+            formatted_summary = (f"# {summary_response.headline}\n\n{summary_response.summary}\n\n"
+                                 f"Emerging Trends:{summary_response.emerging_trends or None}")
+
+            return formatted_summary
+
+        except Exception as e:
+            logger.error(f"Error generating daily summary: {e}")
+            # Fallback to a simple summary
+            return self._generate_fallback_summary(day, events, agents)
+
+    def _generate_fallback_summary(self, day: int, events: List[NarrativeEvent], agents: List[Agent]) -> str:
+        """Generate a simple fallback summary when LLM generation fails"""
+        summary = f"# Day {day} on Mars\n\n"
+        summary += f"Day {day} saw {len(events)} events among {len(agents)} colonists.\n\n"
         
-        return title, description, tags
-    
-    def _generate_goods_sale_narrative(
-        self, 
-        interaction: EconomicInteraction,
-        participant_names: Dict[InteractionRole, str],
-        agent_map: Dict[str, Agent]
-    ) -> tuple:
-        """Generate narrative for a goods sale listing interaction"""
-        # Extract parameters
-        resource_type = interaction.parameters.get("resource_type", ResourceType.CREDITS)
-        if isinstance(resource_type, ResourceType):
-            resource_name = resource_type.value
-        else:
-            resource_name = str(resource_type)
-            
-        amount = interaction.parameters.get("amount", 0)
-        price_per_unit = interaction.parameters.get("price_per_unit", 0)
+        if events:
+            summary += "## Notable Events\n\n"
+            for i, event in enumerate(sorted(events, key=lambda e: e.significance, reverse=True)[:5]):
+                summary += f"### {event.title}\n{event.description}\n\n"
         
-        # Get agent names
-        employer_name = participant_names.get(InteractionRole.EMPLOYER, "Unknown Employer")
-        
-        # Generate title
-        title = f"{employer_name} Offers {resource_name} for Sale"
-        tags = ["goods_sale", "market_listing", "commerce", "offer"]
-        
-        # Generate description based on verbosity
-        if self.verbosity >= 4:
-            description = (
-                f"The marketplace at {self._get_random_location()} saw a new addition today as {employer_name} set up "
-                f"a display offering {amount} units of {resource_name} for sale. Priced at {price_per_unit} credits "
-                f"per unit, the goods attracted attention from various potential buyers examining the quality and "
-                f"negotiation potential. {employer_name} appeared confident in the fair pricing, explaining to interested "
-                f"parties that the resource is in particularly good condition. Market observers noted that this offering "
-                f"could impact local prices for {resource_name}, which have been relatively volatile in the colony's "
-                f"developing economy."
-            )
-        elif self.verbosity >= 2:
-            description = (
-                f"{employer_name} has listed {amount} units of {resource_name} for sale at {price_per_unit} credits "
-                f"per unit. The goods are now available for purchase at {self._get_random_location()}."
-            )
-        else:
-            description = f"{employer_name} selling {amount} {resource_name} for {price_per_unit} credits each."
-        
-        return title, description, tags
-    
-    def _generate_generic_narrative(
-        self, 
-        interaction: EconomicInteraction,
-        participant_names: Dict[InteractionRole, str],
-        agent_map: Dict[str, Agent]
-    ) -> tuple:
-        """Generate a generic narrative for any interaction type"""
-        interaction_type = interaction.interaction_type.value.replace('_', ' ').title()
-        agent_names = list(participant_names.values())
-        
-        title = f"{interaction_type} between {' and '.join(agent_names)}"
-        
-        # Simple description based on verbosity
-        if self.verbosity >= 3:
-            description = (
-                f"A {interaction_type} interaction took place involving {', '.join(agent_names)}. "
-                f"This economic exchange occurred at {self._get_random_location()} and had parameters: "
-                f"{', '.join([f'{k}: {v}' for k, v in interaction.parameters.items()])}."
-            )
-        else:
-            description = f"{interaction_type} interaction between {' and '.join(agent_names)}."
-        
-        tags = [interaction.interaction_type.value, "economic_interaction"]
-        
-        return title, description, tags
-    
-    def create_arc(
-        self, 
-        title: str,
-        description: str,
-        events: List[NarrativeEvent],
-        agents: List[Agent]
-    ) -> NarrativeArc:
+        return summary
+
+    def create_arc(self, title: str, description: str, events: List[NarrativeEvent], agents: List[Agent]) -> NarrativeArc:
         """
         Create a narrative arc from a series of related events.
         
@@ -382,77 +221,243 @@ class Narrator:
         
         logger.info(f"Created narrative arc: {title} with {len(events)} events")
         return arc
-    
-    def generate_daily_summary(self, day: int, events: List[NarrativeEvent], agents: List[Agent]) -> str:
+
+    def update_market_report(self, market_report: Dict[str, Any]) -> None:
         """
-        Generate a daily summary of significant events.
+        Update the stored market report data.
         
         Args:
-            day: The day number
-            events: List of narrative events for the day
-            agents: List of all agents in the simulation
+            market_report: The latest market report from the economy manager
+        """
+        self.market_report = market_report
+
+    def _extract_economic_outcomes(self, interaction: EconomicInteraction) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Extract economic outcomes from an interaction for narrative purposes.
+        
+        Args:
+            interaction: The economic interaction
             
         Returns:
-            str: A daily summary narrative
+            A tuple of (resources_exchanged, strategies_used)
         """
-        # Sort events by significance
-        significant_events = sorted(events, key=lambda e: e.significance, reverse=True)
+        resources_exchanged = {}
+        strategies_used = {}
         
-        # Map agent IDs to names
-        agent_map = {agent.id: agent.name for agent in agents}
+        # Process the outcomes if they exist
+        if interaction.outcomes:
+            for outcome in interaction.outcomes:
+                # Extract resource changes
+                resource_change = 0.0
+                resource_type = None
+                
+                # Calculate the net change in resources
+                if outcome.resources_before and outcome.resources_after:
+                    for before in outcome.resources_before:
+                        for after in outcome.resources_after:
+                            if before.resource_type == after.resource_type:
+                                change = after.amount - before.amount
+                                if abs(change) > abs(resource_change):
+                                    resource_change = change
+                                    resource_type = before.resource_type.value
+                
+                if resource_type:
+                    # Format: agent_role -> {resource_type: change}
+                    role_name = outcome.role.value
+                    resources_exchanged[role_name] = {
+                        "resource_type": resource_type,
+                        "change": resource_change,
+                        "utility_change": outcome.utility_change
+                    }
+                
+                # Extract strategy information
+                if outcome.strategy_used:
+                    role_name = outcome.role.value
+                    strategies_used[role_name] = {
+                        "type": outcome.strategy_used.strategy_type,
+                        "parameters": outcome.strategy_used.parameters
+                    }
         
-        # Start with a header
-        summary = f"# Day {day} on Mars\n\n"
+        return resources_exchanged, strategies_used
+
+    def _create_interaction_prompt(
+            self,
+            interaction: EconomicInteraction,
+            participant_names: Dict[InteractionRole, str],
+            agent_map: Dict[str, Agent]
+    ) -> str:
+        """Create a prompt for the interaction narrative generation"""
+        # Get interaction type and parameters
+        interaction_type = interaction.interaction_type.value
+        parameters = interaction.parameters
         
-        # Add a general introduction
-        summary += self._generate_daily_intro(day, len(events), len(agents)) + "\n\n"
+        # Extract economic outcomes for narrative hooks
+        resources_exchanged, strategies_used = self._extract_economic_outcomes(interaction)
+
+        # Create the prompt based on the interaction type
+        prompt = (
+            f"As the narrator for the Mars colony in the year 2993, describe a meaningful economic interaction "
+            f"that reveals character traits and advances relationships through authentic dialogue and vivid details.\n\n"
+            f"Interaction Type: {interaction_type}\n"
+            f"Participants: "
+        )
         
-        # Add significant events
-        if significant_events:
-            summary += "## Notable Events\n\n"
+        # Add participants with their roles
+        participants_list = []
+        for role, name in participant_names.items():
+            participants_list.append(f"{name} ({role.value})")
+        
+        prompt += ", ".join(participants_list) + "\n\n"
+        
+        # Generic prompt for other interaction types
+        prompt += (
+            f"Core Event: An economic exchange with these details: "
+            f"{', '.join([f'{k}: {v}' for k, v in parameters.items()])}\n\n"
+            f"Consider the broader context - is this transaction routine or unusual? "
+            f"What environmental or sociopolitical factors on Mars influenced this exchange?\n"
+        )
+
+        # Add personality traits if available
+        prompt += "\n**Character Background:**\n"
+        for role, name in participant_names.items():
+            agent = next((agent for agent, r in interaction.participants.items() if r == role), None)
+            if agent:
+                if hasattr(agent, 'personality'):
+                    personality = agent.personality
+                    traits = ', '.join([f"{trait}: {getattr(personality, trait, 0)}" for trait in [
+                        'cooperativeness', 'risk_tolerance', 'fairness_preference',
+                        'altruism', 'rationality', 'long_term_orientation'
+                    ] if hasattr(personality, trait)])
+
+                    faction = agent.faction.value if hasattr(agent, 'faction') else "Unknown"
+                    agent_type = agent.agent_type.value if hasattr(agent, 'agent_type') else "Unknown"
+
+                    prompt += f"- {name}: A {faction} {agent_type} with these traits: {traits}\n"
+
+                    # Add specific character interpretation prompts
+                    if hasattr(personality, 'cooperativeness') and getattr(personality, 'cooperativeness', 0) > 0.7:
+                        prompt += f"  {name} typically seeks harmony and collaborative solutions.\n"
+                    elif hasattr(personality, 'cooperativeness') and getattr(personality, 'cooperativeness', 0) < 0.3:
+                        prompt += f"  {name} often acts independently, sometimes at others' expense.\n"
+
+                    if hasattr(personality, 'risk_tolerance') and getattr(personality, 'risk_tolerance', 0) > 0.7:
+                        prompt += f"  {name} embraces uncertainty and bold ventures in this harsh Martian frontier.\n"
+                    elif hasattr(personality, 'risk_tolerance') and getattr(personality, 'risk_tolerance', 0) < 0.3:
+                        prompt += f"  {name} carefully calculates each move in the precarious Martian environment.\n"
+
+                    # Add resource information
+                    if hasattr(agent, 'resources') and agent.resources:
+                        resources_str = ', '.join([f"{r.resource_type.value}: {r.amount}" for r in agent.resources])
+                        prompt += f"  {name}'s current resources: {resources_str}\n"
+
+        # Add setting elements for immersive world-building
+        prompt += "\n**Martian Setting Elements (include at least one):**\n"
+        prompt += "- The thin Martian atmosphere requiring life support systems for outdoor activities\n"
+        prompt += "- The challenges of resource scarcity in the isolated Mars colony\n"
+        prompt += "- The different cultural perspectives between Earth-born (Terra Corp) and Mars-born colonists\n"
+        prompt += "- The advanced technology that enables survival in the harsh Martian environment\n"
+        prompt += "- The psychological effects of living in close quarters far from Earth\n"
+        prompt += "- The unique Martian landscape: rust-colored dust, harsh winds, distant mountains\n"
+
+        return prompt
+
+    def _create_daily_summary_prompt(self, day: int, events: List[NarrativeEvent], agents: List[Agent]) -> str:
+        """Create a prompt for the daily summary generation"""
+        # Basic information
+        prompt = (
+            f"As the narrator chronicling life on Mars in the year 2993, create a compelling daily summary that weaves "
+            f"individual events into a cohesive narrative showing how the colony evolves over time.\n\n"
+            f"Day: {day} of the Mars colony simulation\n"
+            f"Colony Population: {len(agents)} active colonists\n"
+            f"Significant Events: {len(events)} notable interactions occurred today\n\n"
+        )
+
+        # Add economic market report if available
+        if self.market_report:
+            prompt += "**Economic Market Status:**\n"
+            # Add key market metrics
+            if 'active_goods_offers' in self.market_report:
+                prompt += f"- Active goods offerings: {self.market_report['active_goods_offers']}\n"
+            if 'active_goods_requests' in self.market_report:
+                prompt += f"- Active goods requests: {self.market_report['active_goods_requests']}\n"
+            if 'active_job_offers' in self.market_report:
+                prompt += f"- Active job listings: {self.market_report['active_job_offers']}\n"
+            if 'total_employees' in self.market_report:
+                prompt += f"- Employed colonists: {self.market_report['total_employees']}\n"
             
-            for i, event in enumerate(significant_events[:min(5, len(significant_events))]):
-                # Add event to summary
-                summary += f"### {event.title}\n"
-                summary += f"**Protagonists:** {', '.join([agent.name for agent in event.agents_involved])}\n"
-                summary += f"{event.description}\n\n"
-        else:
-            summary += "## A Quiet Day\n\nNo significant events were recorded today.\n\n"
-        
-        # Add a conclusion
-        summary += self._generate_daily_conclusion(day, events)
-        
-        logger.info(f"Generated daily summary for day {day} with {len(events)} events: {summary}")
-        return summary
-    
-    def _generate_daily_intro(self, day: int, event_count: int, agent_count: int) -> str:
-        """Generate an introduction for the daily summary"""
-        intros = [
-            f"Day {day} on Mars saw {event_count} notable interactions among the {agent_count} residents of the colony.",
-            f"The Martian sun rose over the domes of the colony for the {day}th day, as {agent_count} residents went about their business.",
-            f"Life continued in the Mars colony on Day {day}, with {event_count} economic exchanges recorded among the {agent_count} inhabitants.",
-            f"The red dust swirled outside the habitats on Day {day}, while inside, {agent_count} colonists engaged in {event_count} economic interactions."
-        ]
-        return random.choice(intros)
-    
-    def _generate_daily_conclusion(self, day: int, events: List[NarrativeEvent]) -> str:
-        """Generate a conclusion for the daily summary"""
+            # Add resource prices if available
+            if 'avg_resource_prices' in self.market_report and self.market_report['avg_resource_prices']:
+                prompt += "\nAverage Resource Prices:\n"
+                for resource, price in self.market_report['avg_resource_prices'].items():
+                    if price > 0:
+                        prompt += f"- {resource}: {price:.1f} credits\n"
+            
+            # Add job salaries if available
+            if 'avg_job_salaries' in self.market_report and self.market_report['avg_job_salaries']:
+                prompt += "\nAverage Job Salaries:\n"
+                for job_type, salary in self.market_report['avg_job_salaries'].items():
+                    if salary > 0:
+                        prompt += f"- {job_type}: {salary:.1f} credits per turn\n"
+            
+            prompt += "\n"
+
+        # Add event information
         if events:
-            conclusions = [
-                "As the Martian night fell, residents returned to their habitats, contemplating the day's events and planning for tomorrow.",
-                "Another day concluded on the red planet, with economic ripples from today's events sure to be felt in the days to come.",
-                "The colony's economic web grew more complex with today's interactions, shaping the future of Mars society in subtle ways.",
-                "With the day's business concluded, the colony's digital networks hummed with analysis of the changing economic landscape."
-            ]
+            prompt += "**Key Events to Incorporate:**\n\n"
+
+            # Sort events by significance
+            sorted_events = sorted(events, key=lambda e: e.significance, reverse=True)
+
+            # Include the top events based on verbosity
+            max_events = min(len(sorted_events), self.verbosity * 3)
+            for i, event in enumerate(sorted_events[:max_events]):
+                involved_agents = [str(agent) for agent in event.agents_involved] if event.agents_involved else ["Unknown"]
+                prompt += f"Event {i + 1}: {event.title}\n"
+                prompt += f"Description: {event.description}\n"
+                prompt += f"Agents involved: {', '.join(involved_agents)}\n"
+                prompt += f"Tags: {', '.join(event.tags)}\n"
+                prompt += f"Significance level: {event.significance:.1f}/1.0\n\n"
         else:
-            conclusions = [
-                "A peaceful day ended on Mars, with residents enjoying the relative calm before tomorrow's inevitable challenges.",
-                "The quiet day gave residents time to maintain their habitats and prepare for future economic opportunities.",
-                "Despite the lack of significant events, the underlying currents of the Martian economy continued to evolve.",
-                "Sometimes, a day without major upheaval is exactly what a frontier economy needs to build long-term stability."
-            ]
-        return random.choice(conclusions)
-    
+            prompt += ("No significant events occurred today. Focus on the atmospheric conditions, "
+                       "routine maintenance, or contemplative moments in the colony.\n\n")
+
+        # Add basic population statistics
+        agent_types = {}
+        factions = {}
+        for agent in agents:
+            if agent.agent_type.value in agent_types:
+                agent_types[agent.agent_type.value] += 1
+            else:
+                agent_types[agent.agent_type.value] = 1
+
+            if agent.faction.value in factions:
+                factions[agent.faction.value] += 1
+            else:
+                factions[agent.faction.value] = 1
+
+        prompt += "**Population Demographics:**\n"
+        for agent_type, count in agent_types.items():
+            prompt += f"- {agent_type.capitalize()}: {count} ({count / len(agents) * 100:.1f}%)\n"
+        prompt += "\n"
+
+        prompt += "**Political Factions:**\n"
+        for faction, count in factions.items():
+            prompt += f"- {faction.replace('_', ' ').title()}: {count} ({count / len(agents) * 100:.1f}%)\n"
+        prompt += "\n"
+
+        # Add narrative guidance
+        prompt += (
+            "**Narrative Guidance:**\n"
+            "- Connect individual events to show how they contribute to larger patterns and emerging dynamics\n"
+            "- Reflect on how economic conditions affect social relations among different factions\n"
+            "- Consider if political alliances or tensions are forming based on faction demographics\n"
+            "- Notice how resource distributions are affecting different agent types and social classes\n"
+            "- Include atmospheric details that give a sense of what daily life feels like on Mars\n"
+            "- Identify 2-3 emerging trends that may shape future colony developments\n"
+        )
+
+        return prompt
+
     def _get_random_location(self) -> str:
         """Generate a random location in the Mars colony"""
         locations = [
@@ -472,4 +477,4 @@ class Narrator:
             "Amazonis Trade Center",
             "Isidis Commerce Zone"
         ]
-        return random.choice(locations)
+        return random.choice(locations) 
