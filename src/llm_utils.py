@@ -1,12 +1,11 @@
-from openai import OpenAI
-from pydantic import BaseModel, Field
-from typing import List, Type, TypeVar, Optional
-import time
+import logging
+from typing import Type, TypeVar, Optional
 
 import instructor
-import logging
 import requests
 from instructor.exceptions import IncompleteOutputException
+from openai import OpenAI
+from pydantic import BaseModel, ValidationError
 
 from src.llm_models import NarrativeResponse, DailySummaryResponse, example_daily_summary_1, example_daily_summary_2
 from src.settings import DEFAULT_LM
@@ -14,6 +13,7 @@ from src.settings import DEFAULT_LM
 # Create TypeVar for the response model
 T = TypeVar('T', bound=BaseModel)
 logger = logging.getLogger(__name__)
+
 
 class OllamaClient:
     """
@@ -27,7 +27,7 @@ class OllamaClient:
             temperature: float = 0.8,
             top_p: float = 0.95,
             top_k: int = 40,
-            max_tokens: int = 2**14,
+            max_tokens: int = 2 ** 14,
             max_retries: int = 3,
             timeout: int = 30,
             system_prompt: str = ""
@@ -61,7 +61,7 @@ class OllamaClient:
                 base_url=f"{base_url}/v1",
                 api_key="required_but_unused",
             ),
-            mode=instructor.Mode.JSON,
+            mode=instructor.Mode.MD_JSON,
         )
 
         # Check connection to Ollama
@@ -76,23 +76,23 @@ class OllamaClient:
             self.logger.warning(f"Failed to connect to Ollama: {e}")
             return False
 
-    def _retry_with_backoff(self, func, *args, **kwargs):
-        """Helper method to retry API calls with a simple retry mechanism"""
-        retries = self.max_retries
-        last_exception = None
-        
-        while retries > 0:
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                last_exception = e
-                self.logger.warning(f"API call failed, {retries} retries left: {e}")
-                retries -= 1
-                if retries > 0:
-                    time.sleep(2)  # Simple fixed delay
-        
-        # If we've exhausted retries, raise the last exception
-        raise last_exception if last_exception else Exception("API call failed after retries")
+    # def _retry_with_backoff(self, func, *args, **kwargs):
+    #     """Helper method to retry API calls with a simple retry mechanism"""
+    #     retries = self.max_retries
+    #     last_exception = None
+
+    #     while retries > 0:
+    #         try:
+    #             return func(*args, **kwargs)
+    #         except Exception as e:
+    #             last_exception = e
+    #             self.logger.warning(f"API call failed, {retries} retries left: {e}")
+    #             retries -= 1
+    #             if retries > 0:
+    #                 time.sleep(2)  # Simple fixed delay
+
+    #     # If we've exhausted retries, raise the last exception
+    #     raise last_exception if last_exception else Exception("API call failed after retries")
 
     def generate_structured(
             self,
@@ -120,9 +120,6 @@ class OllamaClient:
             An instance of the response_model
         """
         try:
-            # Check if we're dealing with agent action response - which may need special handling
-            is_agent_action = response_model.__name__ == 'AgentActionResponse'
-            
             # Use defaults if parameters not provided
             system = system_prompt if system_prompt is not None else self.system_prompt
             temp = temperature if temperature is not None else self.temperature
@@ -139,70 +136,48 @@ class OllamaClient:
             else:
                 examples_str = ""
 
-            # For smaller models, use a simplified schema for agent actions
-            if is_agent_action and self.model_name in ["gemma3:4b", "gemma3:1b", "gemma:1b", "phi:latest", "gemma3:2b"]:
-                format_guidance = """Your response must be only valid JSON conforming to this simplified schema:
-                {
-                  "type": "ACTION_TYPE",  # e.g., "BUY", "SELL", "SEARCH_JOB", "REST", etc.
-                  "extra": {
-                    # Action-specific details here as a JSON object
-                    # For BUY: "desired_item": "item name"
-                    # For WORK: "job_id": "job123"
-                    # etc.
-                  },
-                  "reasoning": "brief explanation of why this action was chosen"
-                }
-                
-                IMPORTANT: 'extra' MUST be a JSON object/dictionary, not a string or other type.
-                If you have no extra data, use an empty object: "extra": {}
-                """
-            else:
-                format_guidance = f"""Your response must be only valid JSON conforming to this response schema: 
-                {response_model.model_json_schema()}
-                {examples_str}
-                
-                IMPORTANT: Make sure all fields have the correct type according to the schema.
-                """
-                
+            format_guidance = f"""Your response must be only valid JSON conforming to this response schema: 
+            {response_model.model_json_schema()}
+            {examples_str}
+            
+            IMPORTANT: Make sure all fields have the correct type according to the schema.
+            """
+
             messages.append({"role": "system", "content": format_guidance})
             messages.append({"role": "user", "content": prompt})
 
-            # Use Instructor's create method with structured response
-            def _generate():
-                return self.client.chat.completions.create(
+            from instructor.exceptions import InstructorRetryException
+
+            try:
+                # Use Instructor's create method with structured response and retry mechanism
+                response = self.client.chat.completions.create(
                     model=self.model_name,
                     messages=messages,
                     response_model=response_model,
                     temperature=temp,
-                    max_tokens=tokens
+                    max_tokens=tokens,
+                    max_retries=self.max_retries
                 )
-            
-            # Use retry mechanism with backoff
-            response = self._retry_with_backoff(_generate)
-            logger.debug(f"generate_structured({response_model.__name__}): {response}")
-            return response
-                
+
+                logger.debug(f"generate_structured({response_model.__name__}): {response}")
+                return response
+            except ValidationError as validation_error:
+                logger.error(f"ValidationError: {validation_error.errors()}")
+                raise
+
+        except InstructorRetryException as e:
+                self.logger.error(f"Retry failed after {e.n_attempts} attempts")
+                self.logger.error(f"Last completion: {e.last_completion}")
+                raise
+
         except IncompleteOutputException as e:
             self.logger.error(f"Failed to generate structured output: {e}")
             self.logger.error(f"Last output: {e}")
-            
-            # For agent actions, try to recover from partial responses
-            if is_agent_action:
-                recovered_response = self._recover_agent_action(e)
-                if recovered_response:
-                    return recovered_response
-            
+
             raise
         except Exception as e:
             self.logger.error(f"Error in generate_structured: {e}")
             raise
-
-    def _recover_agent_action(self, exception):
-        """Attempt to recover a partial agent action response"""
-        # This is a placeholder for potential recovery logic
-        # In a real implementation, we might parse the partial response
-        # and try to construct a valid AgentActionResponse
-        return None
 
     def generate_narrative(
             self,

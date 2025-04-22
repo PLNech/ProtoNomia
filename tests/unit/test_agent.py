@@ -51,7 +51,7 @@ class TestAgentModule(unittest.TestCase):
         # Setup mock response
         mock_action_response = AgentActionResponse(
             type=ActionType.REST,
-            extra={},
+            extras={},
             reasoning="Test reasoning"
         )
         self.mock_ollama_client.generate_structured.return_value = mock_action_response

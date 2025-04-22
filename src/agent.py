@@ -87,13 +87,13 @@ class LLMAgent:
         
         try:
             # Generate structured action response
-            action = self.ollama_client.generate_structured(
+            action: AgentActionResponse = self.ollama_client.generate_structured(
                 prompt=prompt,
                 response_model=AgentActionResponse,
                 system_prompt=system_prompt
             )
             
-            logger.info(f"Generated action for {agent.name}: {action.type}")
+            logger.info(f"[{simulation_state.day}] Generated action for {agent.name}: {action.type}")
             return action
             
         except Exception as e:
@@ -120,44 +120,44 @@ class LLMAgent:
         if random_type == ActionType.REST:
             return AgentActionResponse(
                 type=random_type,
-                extra={},
+                extras={},
                 reasoning="[FALLBACK ACTION] Taking a rest to recover energy"
             )
         elif random_type == ActionType.WORK:
             return AgentActionResponse(
                 type=random_type,
-                extra={},
+                extras={},
                 reasoning="[FALLBACK ACTION] Working to earn credits for survival"
             )
         elif random_type == ActionType.HARVEST:
             return AgentActionResponse(
                 type=random_type,
-                extra={},
+                extras={},
                 reasoning="[FALLBACK ACTION] Harvesting mushrooms for food"
             )
         elif random_type == ActionType.CRAFT:
             return AgentActionResponse(
                 type=random_type,
-                extra={"materials": random.randint(10, 50)},
+                extras={"materials": random.randint(10, 50)},
                 reasoning="[FALLBACK ACTION] Crafting an item"
             )
         elif random_type == ActionType.BUY:
             return AgentActionResponse(
                 type=random_type,
-                extra={"listing_id": "random"},
+                extras={"listing_id": "random"},
                 reasoning="[FALLBACK ACTION] Buying something from the market"
             )
         elif random_type == ActionType.SELL:
             return AgentActionResponse(
                 type=random_type,
-                extra={"good_index": 0, "price": random.randint(50, 150)},
+                extras={"good_index": 0, "price": random.randint(50, 150)},
                 reasoning="[FALLBACK ACTION] Selling an item"
             )
         
         # Default fallback is REST
         return AgentActionResponse(
             type=ActionType.REST,
-            extra={},
+            extras={},
             reasoning="[FALLBACK ACTION] Default fallback - resting"
         )
 

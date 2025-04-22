@@ -11,9 +11,11 @@ import uuid
 from typing import List, Optional, Dict
 
 import click
+from pydantic import ValidationError
 
 from src.agent import LLMAgent
-from src.models import (Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, AgentAction, SimulationState)
+from src.models import (Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, SimulationState,
+                        AgentActionResponse, AgentAction)
 from src.narrator import Narrator
 from src.settings import DEFAULT_LM, PERSONALITIES
 
@@ -86,13 +88,16 @@ class Simulation:
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Initialized simulation with {num_agents} agents for {max_days} days using model {model_name}")
 
-    def _create_agent(self, name: str = f"Colonist", id=f"{uuid.uuid4()}", age_days=random.randint(30, 100),
+    def _create_agent(self, name: str = None, id=f"{uuid.uuid4()}", age_days=random.randint(30, 100),
                       personality_str: str = random.choice(PERSONALITIES),
                       needs: AgentNeeds = AgentNeeds(food=random.uniform(0.6, 0.9), rest=random.uniform(0.6, 0.9),
                                                      fun=random.uniform(0.5, 0.8)), credits=random.randint(200, 500),
-                      goods=None, location="Habitat") -> Agent:
+                      goods=None) -> Agent:
         if not goods:
             goods = self._generate_starting_goods()
+        if not name:
+            name = self.generate_name()
+
         new_agent = Agent(id=id, name=name, age_days=age_days,
                           personality=AgentPersonality(personality=personality_str), credits=credits, needs=needs,
                           goods=goods)
@@ -113,7 +118,7 @@ class Simulation:
 
         for i in range(self.num_agents):
             # Create agent with random personality and starting credits
-            self._create_agent()
+            agents.append(self._create_agent())
 
         # Create initial simulation state
         state = SimulationState(
@@ -182,7 +187,7 @@ class Simulation:
             self._process_day()
 
             # Save the current state
-            self._save_state()
+            # self._save_state()
 
             # Move to the next day
             self.state.day += 1
@@ -244,16 +249,20 @@ class Simulation:
                     logger.info(f"Generating action for {agent.name}")
 
                     # Get LLM response for agent action
-                    response = self.llm_agent.generate_action(agent, self.state)
+                    response: AgentActionResponse = self.llm_agent.generate_action(agent, self.state)
+                    logger.debug(f"Got a response: {type(response)} -> {response}")
 
                     # Execute the action
                     action = self._execute_agent_action(agent, response)
+                    logger.debug(f"Executed action: {type(action)} -> {action}")
 
                     # If successful, add to list of actions
                     if action:
                         agent_actions.append((agent, action))
-                        logger.info(f"{agent.name} performed action: {action.action_type}")
-
+                        logger.info(f"{agent.name} performed action: {action.type}")
+                except ValidationError as validation_error:
+                    logger.error(f"ValidationError: {validation_error.errors()}")
+                    raise
                 except Exception as e:
                     retries += 1
                     logger.error(
@@ -271,13 +280,13 @@ class Simulation:
                             action = self._execute_agent_action(agent, fallback_response)
                             if action:
                                 agent_actions.append((agent, action))
-                                logger.info(f"{agent.name} performed fallback action: {action.action_type}")
+                                logger.info(f"{agent.name} performed fallback action: {action.type}")
                         except Exception as fallback_error:
                             logger.error(f"Even fallback action failed for {agent.name}: {fallback_error}")
 
         return agent_actions
 
-    def _execute_agent_action(self, agent: Agent, action_response) -> Optional[AgentAction]:
+    def _execute_agent_action(self, agent: Agent, action_response: AgentActionResponse) -> AgentAction:
         """
         Execute an agent action and update the simulation state.
 
@@ -289,7 +298,7 @@ class Simulation:
             Optional[AgentAction]: The executed action or None if failed
         """
         action_type = action_response.type
-        extra = action_response.extra or {}
+        extras = action_response.extras or {}
         reasoning = action_response.reasoning
 
         logger.info(f"Agent {agent.name} chose action {action_type} with reasoning: {reasoning}")
@@ -297,9 +306,9 @@ class Simulation:
         # Create a record of this action
         agent_action = AgentAction(
             agent_id=agent.id,
-            agent_name=agent.name,
-            action_type=action_type,
-            details=extra,
+            day=self.state.day,
+            type=action_type,
+            extras=extras,
             reasoning=reasoning
         )
 
@@ -311,27 +320,24 @@ class Simulation:
         elif action_type == ActionType.HARVEST:
             self._execute_harvest(agent)
         elif action_type == ActionType.CRAFT:
-            self._execute_craft(agent, extra.get("materials", 0))
+            self._execute_craft(agent, extras.get("materials", 0))
         elif action_type == ActionType.SELL:
             # Check if extra contains the required fields
-            if "good_index" in extra and "price" in extra:
-                good_index = extra.get("good_index", 0)
-                price = extra.get("price", 100)
+            if "good_index" in extras and "price" in extras:
+                good_index = extras.get("good_index", 0)
+                price = extras.get("price", 100)
                 self._execute_sell(agent, good_index, price)
             else:
-                logger.error(f"Missing required fields for SELL action: {extra}")
-                return None
+                logger.error(f"Missing required fields for SELL action: {extras}")
         elif action_type == ActionType.BUY:
             # Check if extra contains the required fields
-            if "listing_id" in extra:
-                listing_id = extra.get("listing_id")
+            if "listing_id" in extras:
+                listing_id = extras.get("listing_id")
                 self._execute_buy(agent, listing_id)
             else:
-                logger.error(f"Missing required fields for BUY action: {extra}")
-                return None
+                logger.error(f"Missing required fields for BUY action: {extras}")
         else:
             logger.error(f"Unknown action type: {action_type}")
-            return None
 
         return agent_action
 
@@ -374,7 +380,6 @@ class Simulation:
         # Create a food item with random quality
         quality = random.uniform(0.3, 0.9)
         food = Good(
-            id=str(uuid.uuid4()),
             name="Martian Mushrooms",
             type=GoodType.FOOD,
             quality=quality
@@ -416,18 +421,17 @@ class Simulation:
         # Create a random item type with a probability distribution
         item_type_roll = random.random()
         if item_type_roll < 0.4:  # 40% chance for tool
-            item_type = GoodType.TOOL
-            name = random.choice(["Basic Tool", "Repair Kit", "Utility Device"])
-        elif item_type_roll < 0.8:  # 40% chance for luxury
-            item_type = GoodType.LUXURY
-            name = random.choice(["Decorative Item", "Colony Souvenir", "Martian Artifact"])
-        else:  # 20% chance for food
             item_type = GoodType.FOOD
-            name = random.choice(["Processed Food", "Nutrient Pack", "Flavor Enhancer"])
+            name = random.choice(["Basic Food", "Space Omelette", "Martian Mushrooms"])
+        elif item_type_roll < 0.8:  # 40% chance for luxury
+            item_type = GoodType.FUN
+            name = random.choice(["Basic TV", "Colony Souvenir", "Martian Artifact"])
+        else:  # 20% chance for food
+            item_type = GoodType.REST
+            name = random.choice(["Pillow", "Bedroom Sunray Curtains", "Sleeping Pills"])
 
         # Create and add the item
         item = Good(
-            id=str(uuid.uuid4()),
             name=name,
             type=item_type,
             quality=quality
@@ -554,7 +558,7 @@ class Simulation:
         if good_type == GoodType.FOOD:
             # Consuming some of the food
             agent.needs.food = min(1.0, agent.needs.food + 0.2)
-        elif good_type == GoodType.LUXURY:
+        elif good_type == GoodType.FUN:
             # Luxury increases fun
             agent.needs.fun = min(1.0, agent.needs.fun + 0.25)
 
@@ -575,7 +579,7 @@ class Simulation:
         """
         # Generate the narrative using the Narrator
         try:
-            narrative = self.narrator.generate_narrative(self.state, agent_actions)
+            narrative = self.narrator.generate_daily_summary(self.state)
             logger.info(f"Day {self.state.day} Narrative: {narrative.title}")
 
             # Save narrative to file
@@ -586,7 +590,7 @@ class Simulation:
 
             # Try to generate a daily summary
             try:
-                summary = self.narrator.generate_daily_summary(self.state, agent_actions)
+                summary = self.narrator.generate_daily_summary(self.state)
                 logger.info(f"Generated daily summary for day {self.state.day}")
 
                 # Save summary to file
@@ -639,10 +643,8 @@ class Simulation:
         # Convert state to JSON-serializable format
         state_dict = {
             "day": self.state.day,
-            "time": self.state.time,
             "agents": [agent.dict() for agent in self.state.agents],
-            "market": self.state.market,
-            "events": self.state.events
+            "market": self.state.market
         }
 
         # Save to file
@@ -652,6 +654,52 @@ class Simulation:
 
         logger.info(f"Saved simulation state for day {self.state.day}")
 
+    def generate_name(self) -> str:
+        """
+        Generates a new, unique name.
+        Combines diverse, global, and futuristic names representing human and transhuman identities.
+        """
+        # Diverse first names from various cultural backgrounds, including futuristic and AI-inspired names
+        first_names = [
+            # Human names from different cultures
+            "Aisha", "Carlos", "Elena", "Hiroshi", "Kwame", "Maria", "Nikolai", "Priya", "Sanjay", "Zara", 
+            # Futuristic/Sci-fi inspired names
+            "Nova", "Orion", "Aria", "Zephyr", "Kai", "Luna", "Phoenix", "Stellar", "Cosmo", "Nebula",
+            # AI/Transhuman inspired names
+            "Cipher", "Echo", "Nexus", "Quantum", "Synth", "Vector", "Pixel", "Cipher", "Datastream", "Neuron"
+        ]
+
+        # Last names with a mix of cultural, scientific, and futuristic themes
+        last_names = [
+            # Traditional surnames
+            "Rodriguez", "Chen", "Okonkwo", "Singh", "Kim", "Petrov", "Martinez", "Hassan", "Mueller", "Nakamura",
+            # Scientific/Technological surnames
+            "Quantum", "Starr", "Nova", "Circuit", "Fusion", "Horizon", "Neutron", "Cosmos", "Binary", "Pulse",
+            # Mars/Space-themed surnames
+            "Armstrong", "Aldrin", "Bradbury", "Clarke", "Sagan", "Musk", "Tsiolkovsky", "Glenn", "Gagarin", "Kepler"
+        ]
+
+        # Try to generate a unique name
+        all_names = []
+        for first_name in first_names:
+            for last_name in last_names:
+                name = f"{first_name} {last_name}"
+                all_names.append(name)
+
+        # Shuffle the names
+        random.shuffle(all_names)
+
+        # Try to generate a unique name
+        for name in all_names:
+            if not hasattr(self, 'state') or name not in [a.name for a in self.state.agents]:
+                return name
+        
+        # Fallback with a numbered colonist name if all combinations are used
+        base_name = "Colonist"
+        counter = 1
+        while any(a.name == f"{base_name} {counter}" for a in self.state.agents):
+            counter += 1
+        return f"{base_name} {counter}"
 
 @click.command()
 @click.option('--agents', default=5, help='Number of agents in the simulation')
@@ -681,7 +729,7 @@ def main(agents, days, model, output, temperature, log_level):
         output_dir=output,
         temperature=temperature,
         max_retries=3,
-        retry_delay=30
+        retry_delay=5
     )
     sim.run()
 

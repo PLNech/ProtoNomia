@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Dict, Optional, Literal, Any
 
-from pydantic import BaseModel, Field, validator, field_validator
+from pydantic import BaseModel, Field, validator, field_validator, ConfigDict
 
 
 # ========== Resource Models ==========
@@ -152,24 +152,21 @@ class NarrativeResponse(BaseModel):
     )
 
 
-valid_action_types = [t.value for t in ActionType]
-
 
 class AgentActionResponse(BaseModel):
     """Structured response for agent action generation"""
 
+    model_config = ConfigDict(extra='allow')
+
     type: ActionType = Field(
-        description=f"The type of action the agent will take. Must be one of {valid_action_types}"
+        description=f"The type of action the agent will take. Must be one of {[a.value for a in ActionType]}"
     )
 
-    extra: Dict[str, Any] = Field(
-        description="Extra information specific to the action type",
-        default_factory=dict
-    )
+    extras: Dict[str, Any] = Field(description="Extra information specific to the action type", default_factory=dict)
 
     reasoning: Optional[str] = Field(
         default=None,
-        description="The reasoning behind the agent's choice",
+        description="The reasoning behind your choice. First person",
         max_length=500
     )
 

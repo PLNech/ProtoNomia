@@ -5,12 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cd0a6fa9-59ac-4f67-a548-a6ea9a9a0846" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/llm_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/llm_models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/llm_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/llm_utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/narrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/narrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/simulation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/unit/test_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_agent.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -33,11 +34,35 @@
     "Python tests.pytest in llm.executor": "Run",
     "Python tests.pytest in tests.executor": "Run",
     "Python tests.pytest in unit.executor": "Run",
+    "Python.simulation.executor": "Debug",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/pln/Work/ProtoNomia/src"
+    "last_opened_file_path": "/home/pln/Work/ProtoNomia/src",
+    "settings.editor.selected.configurable": "reference.settingsdialog.project.grazie"
   }
 }]]></component>
-  <component name="RunManager" selected="Python tests.pytest for tests.unit.test_simulation.TestSimulation">
+  <component name="RunManager" selected="Python.simulation">
+    <configuration name="simulation" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="ProtoNomia" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/simulation.py" />
+      <option name="PARAMETERS" value="--log-level=DEBUG" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="Python tests for tests" type="tests" factoryName="Autodetect" nameIsGenerated="true">
       <module name="ProtoNomia" />
       <option name="ENV_FILES" value="" />
@@ -105,6 +130,7 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.simulation" />
       <item itemvalue="Python tests.Python tests for tests" />
       <item itemvalue="Python tests.UNIT" />
       <item itemvalue="Python tests.pytest for tests.unit.test_narrator.TestNarrator.test_format_summary_prompt" />
@@ -112,6 +138,7 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.simulation" />
         <item itemvalue="Python tests.pytest for tests.unit.test_simulation.TestSimulation" />
         <item itemvalue="Python tests.pytest for tests.unit.test_narrator.TestNarrator.test_format_summary_prompt" />
       </list>
@@ -124,39 +151,19 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/agent.py</url>
-          <line>96</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/narrator.py</url>
-          <line>116</line>
-          <option name="timeStamp" value="5" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/narrator.py</url>
-          <line>121</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/narrator.py</url>
-          <line>124</line>
-          <option name="timeStamp" value="7" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/narrator.py</url>
-          <line>123</line>
-          <option name="timeStamp" value="8" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>86</line>
-          <option name="timeStamp" value="9" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/tests/unit/test_simulation.py</url>
           <line>23</line>
           <option name="timeStamp" value="13" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/simulation.py</url>
+          <line>264</line>
+          <option name="timeStamp" value="17" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/llm_utils.py</url>
+          <line>165</line>
+          <option name="timeStamp" value="18" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
