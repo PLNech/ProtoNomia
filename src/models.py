@@ -181,7 +181,7 @@ class DailySummaryResponse(BaseModel):
     )
 
     content: str = Field(
-        description="A narrative summary of the day's events in the colony. MIN 10 WORDS MAX 30."
+        description="A narrative summary of the day's events in the colony. You can use light markdown highlighting in bold/italics/inlinecode. MIN 10 WORDS MAX 30."
     )
 
 # Example Daily Summaries for LLM guidance
