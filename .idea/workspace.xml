@@ -5,8 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cd0a6fa9-59ac-4f67-a548-a6ea9a9a0846" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/generators.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/llm_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/llm_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/narrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/narrator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/scribe.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/scribe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/simulation.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -16,26 +22,37 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python tests.Python tests for tests.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.UNIT.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for llm.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for llm.test_ollama_integration.TestOllamaIntegration.test_agent_action_generation.executor&quot;: &quot;Debug&quot;,
-    &quot;Python tests.pytest for test_ollama_integration.TestOllamaIntegration.test_agent_100_actions.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for test_ollama_integration.TestOllamaIntegration.test_agent_action_generation.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for tests.unit.test_narrator.TestNarrator.test_format_summary_prompt.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest for tests.unit.test_simulation.TestSimulation.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest in llm.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest in tests.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest in unit.executor&quot;: &quot;Run&quot;,
-    &quot;Python.models.executor&quot;: &quot;Run&quot;,
-    &quot;Python.simulation.executor&quot;: &quot;Debug&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/pln/Work/ProtoNomia/src&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settingsdialog.project.grazie&quot;
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 0
+}]]></component>
+  <component name="ProjectId" id="2w8Yxdv7TRihDHgR1rRaUzHwKuP" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python tests.Python tests for tests.executor": "Run",
+    "Python tests.UNIT.executor": "Run",
+    "Python tests.pytest for llm.executor": "Run",
+    "Python tests.pytest for llm.test_ollama_integration.TestOllamaIntegration.test_agent_action_generation.executor": "Debug",
+    "Python tests.pytest for test_ollama_integration.TestOllamaIntegration.test_agent_100_actions.executor": "Run",
+    "Python tests.pytest for test_ollama_integration.TestOllamaIntegration.test_agent_action_generation.executor": "Run",
+    "Python tests.pytest for tests.unit.test_narrator.TestNarrator.test_format_summary_prompt.executor": "Run",
+    "Python tests.pytest for tests.unit.test_simulation.TestSimulation.executor": "Run",
+    "Python tests.pytest in llm.executor": "Run",
+    "Python tests.pytest in tests.executor": "Run",
+    "Python tests.pytest in unit.executor": "Run",
+    "Python.models.executor": "Run",
+    "Python.simulation.executor": "Debug",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/pln/Work/ProtoNomia/src",
+    "settings.editor.selected.configurable": "reference.settingsdialog.project.grazie"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Python.simulation">
     <configuration name="models" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="ProtoNomia" />
@@ -164,7 +181,22 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-4ce43fa16dc8-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.21565.33" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="cd0a6fa9-59ac-4f67-a548-a6ea9a9a0846" name="Changes" comment="" />
+      <created>1745424941176</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1745424941176</updated>
+    </task>
     <servers />
   </component>
   <component name="XDebuggerManager">
@@ -177,7 +209,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>343</line>
+          <line>282</line>
           <option name="timeStamp" value="17" />
         </line-breakpoint>
       </breakpoints>

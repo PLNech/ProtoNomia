@@ -14,6 +14,7 @@ from src.models import SimulationState, Agent, AgentAction, AgentActionResponse
 
 from rich.text import Text
 
+
 def rich_replace(text: str, old: str, new: Text) -> Text:
     parts = text.split(old)
     result = Text()
@@ -23,8 +24,10 @@ def rich_replace(text: str, old: str, new: Text) -> Text:
             result.append(new)
     return result
 
+
 # Initialize rich console
 console = Console()
+
 
 # Cyberpunk color scheme
 class Colors:
@@ -65,7 +68,7 @@ class Scribe:
             return Text(f"{action.type}", style=Colors.ACTION) \
                 + Text(" (", style=Colors.NARRATIVE) \
                 + Text(f"{action.extras}", style=Colors.ACTION_EXTRA) \
-                    + Text(")", style=Colors.NARRATIVE)
+                + Text(")", style=Colors.NARRATIVE)
         return Text(action.type, style=Colors.ACTION)
 
     @staticmethod
@@ -132,6 +135,16 @@ class Scribe:
         text.append(f"{updated - amount:.2f}", style=Colors.NEED_LOW)
         text.append(" -> ", style="white")
         text.append(f"{updated:.2f}", style=Colors.NEED)
+        console.print(text)
+
+    @staticmethod
+    def agent_think(agent_name: str, thoughts: str, extras: dict[str, Any]) -> None:
+        """Print agent rest action"""
+        text = Text()
+        text.append("► ", style="bright_white")
+        text.append(agent_name, style=Colors.AGENT)
+        text.append(" spent the day thinking: ", style="white")
+        text.append(f"{thoughts}", style=Colors.HIGHLIGHT)
         console.print(text)
 
     @staticmethod
@@ -233,7 +246,7 @@ class Scribe:
             max_length = 200
             if len(action.reasoning) > max_length:
                 reasoning = action.reasoning[:max_length] + "..."
-            
+
             text.append("\n  Reasoning: ", style="dim white")
             text.append(reasoning, style="dim white")
 
@@ -293,4 +306,4 @@ class Scribe:
     def print_markdown(content: str) -> None:
         """Print content as markdown"""
         from rich.markdown import Markdown
-        console.print(Markdown(content)) 
+        console.print(Markdown(content))

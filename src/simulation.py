@@ -8,12 +8,13 @@ import os
 import random
 import time
 import uuid
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
 import click
 from pydantic import ValidationError
 
 from src.agent import LLMAgent
+from src.generators import generate_personality
 from src.models import (Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, SimulationState,
                         AgentActionResponse, AgentAction)
 from src.narrator import Narrator
@@ -22,68 +23,6 @@ from src.settings import DEFAULT_LM
 
 # Initialize logger
 logger = logging.getLogger(__name__)
-
-
-def generate_personality() -> str:
-    """
-    Generates a 10-word personality string with:
-    - 1-2 descriptor per OCEAN trait (low/mid/high)
-    - fillers with additional benign non-OCEAN qualifiers
-    """
-    # Big Five trait descriptors (evidence-based)
-    ocean_traits = {
-        'openness': {
-            'low': ['conventional', 'practical', 'traditional', 'literal'],
-            'mid': ['balanced', 'moderately curious', 'flexible', 'neutral'],
-            'high': ['inventive', 'philosophical', 'artistic', 'visionary']
-        },
-        'conscientiousness': {
-            'low': ['spontaneous', 'carefree', 'impulsive', 'flexible'],
-            'mid': ['balanced', 'situationally-organized', 'adaptable', 'middling'],
-            'high': ['disciplined', 'systematic', 'precise', 'deliberate']
-        },
-        'extraversion': {
-            'low': ['reserved', 'contemplative', 'solitary', 'quiet'],
-            'mid': ['ambivert', 'situationally-social', 'moderate', 'balanced'],
-            'high': ['gregarious', 'enthusiastic', 'assertive', 'talkative']
-        },
-        'agreeableness': {
-            'low': ['skeptical', 'direct', 'self-focused', 'competitive'],
-            'mid': ['fair', 'situationally-kind', 'neutral', 'balanced'],
-            'high': ['empathetic', 'altruistic', 'compromising', 'softhearted']
-        },
-        'neuroticism': {
-            'low': ['resilient', 'unflappable', 'steady', 'composed'],
-            'mid': ['situationally-sensitive', 'middling', 'balanced', 'variable'],
-            'high': ['worrying', 'self-doubting', 'reactive', 'moody']
-        }
-    }
-
-    # Other predictive, non-OCEAN qualifiers (VIA Inventory of Strengths + other research)
-    benign_qualifiers = [
-        'humorous', 'punctual', 'adventurous', 'health-conscious', 'tech-savvy',
-        'patriotic', 'environmentally-conscious', 'family-oriented', 'sporty',
-        'bookish', 'handy', 'musical', 'outdoorsy', 'foodie', 'travel-lover',
-        'quirky', 'history-buff', 'animal-lover', 'DIY-enthusiast', 'gardener',
-        'night-owl', 'early-riser', 'collector', 'philanthropic', 'volunteer',
-        'tech-enthusiast', 'coffee-lover', 'tea-enthusiast', 'minimalist', 'maximalist'
-    ]
-
-    # Generate OCEAN descriptors (choose a level, then sample 2 per trait)
-    personality = []
-    for trait in ocean_traits.values():
-        level = random.choice(['low', 'mid', 'high'])
-        personality.extend(random.sample(trait[level], random.randint(1, 2)))
-
-    # shuffle but keep OCEAN traits at the front
-    random.shuffle(personality)
-
-    # Add benign qualifiers (ensuring no duplicates)
-    unique_benign = [q for q in benign_qualifiers if q not in personality]
-    personality += random.sample(unique_benign, 10)
-
-    # Final formatting
-    return ', '.join(personality[:10])
 
 
 class Simulation:
@@ -360,7 +299,7 @@ class Simulation:
                             if action:
                                 agent_actions.append((agent, action))
                                 # Use rich output for user-facing log
-                                self.scribe.agent_action(agent.name, action.type.value, action.reasoning)
+                                self.scribe.agent_action(agent, action)
                                 logger.info(f"{agent.name} performed fallback action: {action.type}")
                         except Exception as fallback_error:
                             logger.error(f"Even fallback action failed for {agent.name}: {fallback_error}")
@@ -417,6 +356,8 @@ class Simulation:
                 self._execute_buy(agent, listing_id)
             else:
                 logger.error(f"Missing required fields for BUY action: {extras}")
+        elif action_type == ActionType.THINK:
+            self._execute_think(agent, reasoning, extras)
         else:
             logger.error(f"Unknown action type: {action_type}")
 
@@ -436,6 +377,21 @@ class Simulation:
         agent.needs.fun = min(1.0, agent.needs.fun + 0.05)
         self.scribe.agent_rest(agent.name, agent.needs.rest, rest_amount)
         logger.info(f"{agent.name} rested and recovered energy. New rest: {agent.needs.rest:.2f}")
+
+    def _execute_think(self, agent: Agent, thoughts: str, extras: dict[str, Any]) -> None:
+        """
+        Execute REST action for an agent.
+
+        Args:
+            agent: The agent resting
+        """
+        # Increase rest by a small amount
+        rest_amount = 0.1
+        agent.needs.rest = min(1.0, agent.needs.rest + rest_amount)
+        # Increase fun by random amount
+        agent.needs.fun = min(1.0, agent.needs.fun + random.uniform(0.05, 0.5))
+        self.scribe.agent_think(agent.name, thoughts, extras)
+        logger.info(f"{agent.name} spent the day thinking: {thoughts}{extras}")
 
     def _execute_work(self, agent: Agent) -> None:
         """

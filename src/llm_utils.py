@@ -8,7 +8,7 @@ from instructor.exceptions import InstructorRetryException
 from openai import OpenAI
 from pydantic import BaseModel, ValidationError
 
-from src.models import DailySummaryResponse, example_daily_summary_1, example_daily_summary_2
+from src.models import DailySummaryResponse
 from src.settings import DEFAULT_LM
 
 # Create TypeVar for the response model
@@ -193,13 +193,15 @@ class OllamaClient:
         Returns:
             A DailySummaryResponse object
         """
+        example = DailySummaryResponse(title="example title", content="Example content with **highlights**.")
+
         try:
             return self.generate_structured(
                 prompt=prompt,
                 response_model=DailySummaryResponse,
-                examples=[example_daily_summary_1, example_daily_summary_2],
+                examples=[example],
                 system_prompt=system_prompt,
-                max_retries=10,
+                max_retries=3,
             )
         except Exception as e:
             self.logger.error(f"Error generating daily summary: {e}")

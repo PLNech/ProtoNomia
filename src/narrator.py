@@ -75,7 +75,7 @@ class Narrator:
         system_prompt = (
             "You are a talented storyteller on Mars, chronicling the daily lives of colonists. "
             "Create engaging, vivid 50-100 words day summaries that highlight economic interactions, conflicts, "
-            "and character development. Focus on how the colonists' needs, desires, and actions that shape "
+            "and character development. Focus on how the colonists' needs, desires, thoughts, and actions shape "
             "the emerging Martian economy and culture. Use crisp language and evocative science fiction imagery. "
             "NEVER INVENT CHARACTERS NOT IN THE AGENTS LIST: when you have only 1 or 0 agent, make it contemplative."
         )
@@ -190,6 +190,13 @@ class Narrator:
         elif action.type == ActionType.BUY:
             listing_id = action.extras.get("listing_id", "")
             return f"attempted to buy item {listing_id} from the market"
+
+        elif action.type == ActionType.THINK:
+            thoughts = action.get("reasoning", "")
+            extras = action.get("extras", "")
+            if len(extras):
+                extras = f"({extras})"
+            return f"spent the day thinking: {thoughts}{extras}"
 
         return f"performed an unknown action ({action.type})"
 

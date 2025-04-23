@@ -5,7 +5,9 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Dict, Optional, Literal, Any
 
-from pydantic import BaseModel, Field, validator, field_validator, ConfigDict
+from pydantic import BaseModel, Field, validator, field_validator, ConfigDict, model_validator
+
+from src.generators import generate_thoughts
 
 
 # noinspection PyDataclass
@@ -118,7 +120,17 @@ class ActionType(str, Enum):
     SELL = "SELL"  # Offer a goods for sale as a new listing.
     HARVEST = "HARVEST"  # Harvest shrooms from a colony farm, get food for your time
     CRAFT = "CRAFT"  # Invent a new item
+    THINK = "THINK"  # Spend the day thinking
 
+ACTION_DESCRIPTIONS = {ActionType.REST: "Rest to recover energy",
+                       ActionType.WORK: "Work at a colony-provided job, get credits for your time",
+                       ActionType.BUY: "Purchase from a goods listing.",
+                       ActionType.SELL: "Offer a goods for sale as a new listing.",
+                       ActionType.HARVEST: "Harvest shrooms from a colony farm, get food for your time",
+                       ActionType.CRAFT: "Invent an item which could improve your conditions or be sold for credits.",
+                       ActionType.THINK: "Spend the day creatively thinking about inventions, culture, philosophy, "
+                                         "etc. YOU MUST PUT YOUR THOUGHTS INSIDE YOUR REASONING FIELD"
+                       }
 
 class MarketListing(BaseModel):
     """A listing on the global market"""
@@ -197,7 +209,10 @@ class AgentActionResponse(BaseModel):
 
     reasoning: Optional[str] = Field(
         default=None,
-        description="Your short step-by-step reasoning for choosing this Action Type. You must talk first person as the agent, don't break character, don't mention validation. MAX 20 words. Use abbrevs and Mars 2993 slang. Keep it short and concise. e.g \"I'm low on food, gotta harvest some shrooms 2day\""
+        description="Your short step-by-step reasoning for choosing this Action Type. "
+                    "You must talk first person as the agent, don't break character, don't mention validation. "
+                    "MAX 20 words. Use abbrevs and Mars 2993-setting appropriate urban slang. "
+                    "Keep it EXTRA SHORT and concise. e.g \"I'm low on food, gotta harvest some shrooms 2day\""
     )
 
     type: ActionType = Field(
@@ -207,35 +222,29 @@ class AgentActionResponse(BaseModel):
     extras: Dict[str, Any] = Field(description="Extra information specific to the action type", default_factory=dict)
 
 
+    @model_validator(mode="after")
+    def default_reasoning_for_think(cls, model):
+        if (
+            model.type == ActionType.THINK and
+            (model.reasoning is None or model.reasoning.strip() == "")
+        ):
+            model.reasoning = generate_thoughts()
+        return model
+
+
+
 class DailySummaryResponse(BaseModel):
     """Structured response for daily simulation summary"""
 
     title: str = Field(
-        description="A catchy title for the day's events. MAXIMUM 8 WORDS"
+        description="A catchy title for today's events. REQUIRED. MAXIMUM 8 WORDS"
     )
 
     content: str = Field(
-        description="A narrative summary of the day's events in the colony. You can use light markdown highlighting in bold/italics/inlinecode. MIN 10 WORDS MAX 30."
+        description="A narrative summary of the day's events in the colony. "
+                    "You can use light markdown highlighting in bold/italics/inlinecode. "
+                    "REQUIRED. MIN 10 WORDS MAX 30."
     )
-
-
-# Example Daily Summaries for LLM guidance
-example_daily_summary_1 = DailySummaryResponse(
-    title="Dusty Deals and Shroom Dreams",
-    content="Day 3 on Mars brought economic stirrings as colonists began establishing trade. "
-            "Sarah crafted a makeshift air filter, while Malik harvested the first batch of Martian mushrooms. "
-            "Despite fatigue, colonists showed remarkable resilience, "
-            "with jokes about 'getting rich in red dirt' echoing through the habitation units.",
-)
-
-example_daily_summary_2 = DailySummaryResponse(
-    title="Fungal Fortune, Colonial Crisis",
-    content="Day 7 marked contrasts in the colony's development. "
-            "The mushroom trade flourished with Dave's discovery of a premium growth technique, "
-            "while resource scarcity led to the first heated market disputes. "
-            "Meanwhile, Elena's critical rest levels resulted in the colony's first medical emergency, "
-            "prompting discussions about work-life balance in the harsh Martian environment.",
-)
 
 
 class ActionLog(BaseModel):

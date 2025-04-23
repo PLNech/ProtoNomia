@@ -6,7 +6,7 @@ import logging
 import random
 
 from src.llm_utils import OllamaClient
-from src.models import Agent, ActionType, AgentActionResponse, SimulationState
+from src.models import Agent, ActionType, AgentActionResponse, SimulationState, ACTION_DESCRIPTIONS
 from src.settings import DEFAULT_LM
 
 # Initialize logger
@@ -78,9 +78,10 @@ class LLMAgent:
         system_prompt = (
             "You are an AI assistant helping Mars colonists make economic decisions. "
             "Based on the agent's personality and context, choose the most appropriate action. "
+            f"Action descriptions: {', '.join([f'{x.value}: {y}' for (x, y) in ACTION_DESCRIPTIONS.items()])}"
             "Consider the agent's needs, resources, and available options when making your decision. "
             "10 credits is enough to survive a day. 100 credits you're fine. 1000 you're good. "
-            "10000 choosing to WORK would be seen as obscene. " 
+            "10000 you almost never need to WORK and can just HARVEST and CRAFT/BUY/SELL for fun. "
             "1_000_000 you are a rare oligarch and practically control the colony. "
             "Assess your needs: e.g. rest=0.2 I MUST REST OR DIE, rest=0.4 I should REST, "
             "rest=0.6 don't really need to rest, rest>=0.8 it's pretty useless to rest I'd not win much,"
@@ -90,7 +91,7 @@ class LLMAgent:
             "IMPORTANT: Make sure 'extras' is a JSON object/dictionary, not a string or any other type. "
             "If you have no extras data, use an empty object: 'extras': {}"
         )
-        
+
         try:
             # Generate structured action response
             action: AgentActionResponse = self.ollama_client.generate_structured(
@@ -98,21 +99,21 @@ class LLMAgent:
                 response_model=AgentActionResponse,
                 system_prompt=system_prompt
             )
-            
+
             logger.info(f"[{simulation_state.day}] Generated action for {agent.name}: {action.type}")
             return action
-            
+
         except Exception as e:
             logger.error(f"Error generating action for {agent.name}: {e}")
             # Fallback to a random action if LLM fails
             return self._fallback_action(agent)
-            
+
     def _fallback_action(self, agent: Agent = None) -> AgentActionResponse:
         """Generate a fallback random action when LLM fails"""
         # The actions with the highest priority for survival are REST, WORK, and HARVEST
         # We prioritize these in our fallback to help agents survive
         action_types = [ActionType.REST, ActionType.WORK, ActionType.HARVEST]
-        
+
         # If the agent has extremely low food, prioritize HARVEST
         if agent and agent.needs.food < 0.3:
             random_type = ActionType.HARVEST
@@ -122,7 +123,7 @@ class LLMAgent:
         # Otherwise choose from the survival actions
         else:
             random_type = random.choice(action_types)
-        
+
         if random_type == ActionType.REST:
             return AgentActionResponse(
                 type=random_type,
@@ -159,7 +160,12 @@ class LLMAgent:
                 extras={"good_index": 0, "price": random.randint(50, 150)},
                 reasoning="[FALLBACK ACTION] Selling an item"
             )
-        
+        elif random_type == ActionType.THINK:
+            return AgentActionResponse(
+                type=random_type,
+                reasoning="[FALLBACK ACTION] Pondering about civilization..."
+            )
+
         # Default fallback is REST
         return AgentActionResponse(
             type=ActionType.REST,
@@ -167,11 +173,12 @@ class LLMAgent:
             reasoning="[FALLBACK ACTION] Default fallback - resting"
         )
 
+
 def format_credits(net_worth: float) -> str:
     """Format net worth as a number with commas and analysis of urgency."""
-        #             "10 credits is enough to survive a day. 100 credits you're fine. 1000 you're good. "
-            # "10000 choosing to WORK would be seen as obscene. " 
-            # "1_000_000 you are a rare oligarch and practically control the colony. "
+    #             "10 credits is enough to survive a day. 100 credits you're fine. 1000 you're good. "
+    # "10000 choosing to WORK would be seen as obscene. "
+    # "1_000_000 you are a rare oligarch and practically control the colony. "
     if net_worth < 10:
         return f"{net_worth:,} - starving if you don't WORK"
     elif net_worth < 100:
@@ -180,7 +187,8 @@ def format_credits(net_worth: float) -> str:
         return f"{net_worth:,} - you're doing fine, no need to WORK anytime soon"
     else:
         return f"{net_worth:,} - you're very rich, all needs can be met with credits!"
-    
+
+
 def format_need(need: float) -> str:
     """Format a need value as a percentage and analysis of urgency."""
     if need < 0.2:
@@ -195,7 +203,7 @@ def format_need(need: float) -> str:
         return f"{need:.2%} - you're doing great."
     else:
         return f"{need:.2%} - amazing!"
-        
+
 
 def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     """
@@ -216,14 +224,14 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     prompt += f"Age: {agent.age_days} days\n"
     prompt += f"Personality: {agent.personality.personality}\n"
     prompt += f"Credits: {format_credits(agent.credits)}\n\n"
-    
+
     # Format agent needs
     prompt += f"## YOUR NEEDS\n"
     # percentage would help agent better understand their needs.
     prompt += f"Food: {format_need(agent.needs.food)}%\n"
     prompt += f"Rest: {format_need(agent.needs.rest)}%\n"
     prompt += f"Fun: {format_need(agent.needs.fun)}%\n\n"
-    
+
     # Format inventory
     prompt += f"## YOUR INVENTORY\n"
     if not agent.goods:
@@ -232,32 +240,34 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         for i, good in enumerate(agent.goods):
             prompt += f"{i}. {good.name} ({good.type.value}, quality: {good.quality:.2f})\n"
         prompt += "\n"
-    
+
     # Format market information
     prompt += f"## MARKET\n"
     market_listings = simulation_state.market.listings
     if not market_listings:
-        prompt += "The market has no listings at the moment.\n\n"
+        prompt += "The market has no listings at the moment. You may make big bucks if you CRAFT & SELL something!\n\n"
     else:
         for listing in market_listings:
             seller = next((a for a in simulation_state.agents if a.id == listing.seller_id), None)
             seller_name = seller.name if seller else "Unknown"
             prompt += f"- {listing.good.name} ({listing.good.type.value}, quality: {listing.good.quality:.2f}) for {listing.price} credits from {seller_name}\n"
         prompt += "\n"
-    
+
     # Format available actions
     prompt += f"## AVAILABLE ACTIONS\n"
     prompt += f"1. REST - Recover some rest (0.2)\n"
     prompt += f"2. WORK - Earn 100 credits at the colony job\n"
     prompt += f"3. HARVEST - Gather mushrooms from the colony farm\n"
     prompt += f"4. CRAFT - Create a new item (can spend credits on materials to improve quality)\n"
-    
+
     if agent.goods:
         prompt += f"5. SELL - Sell one of your items on the market\n"
-    
+
     if market_listings:
         prompt += f"6. BUY - Purchase an item from the market\n"
-    
+
+    prompt += f"7. THINK - Spend the day creatively thinking about inventions, culture, philosophy, etc.\n"
+
     # Task description
     prompt += (
         f"\n## TASK\n"
@@ -265,17 +275,18 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         f"Think step by step about what would be the most beneficial course of action considering your personality traits and current situation.\n"
         f"Return your choice in this format:\n\n"
     )
-    
+
     # Add more explicit formatting instructions, reasoning always first
     prompt += (
         f"```json\n"
         f"{{\n"
         f'  "reasoning": "Why you chose this action",\n'
-        f'  "type": "ACTION_TYPE", // REST, WORK, HARVEST, CRAFT, SELL, or BUY\n'
+        # TODO: Add unit test ensuring this type comment stays in sync with list of ActionTypes
+        f'  "type": "ACTION_TYPE", // REST, WORK, HARVEST, CRAFT, SELL, BUY, or THINK\n'
         f'  "extra": {{}} // An object with extra information, may be empty {{}}\n'
         f"}}\n```\n\n"
     )
-    
+
     # Add examples based on action type
     prompt += (
         f"## EXAMPLES\n"
@@ -283,18 +294,20 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         f'For WORK: {{ "reasoning": "I need to earn credits", "type": "WORK", "extra": {{}} }}\n\n'
         f'For HARVEST: {{ "reasoning": "I need food", "type": "HARVEST", "extra": {{}} }}\n\n'
         f'For CRAFT: {{ "reasoning": "I want to create something valuable", "type": "CRAFT", "extra": {{ "materials": 50 }} }}\n\n'
+        f'For THINK: {{ "reasoning": "I wonder if I\'m alive or just feel like it.", "type": "THINK", "extra": {{ "theme": "existentialism" }} }}\n\n'
     )
-    
+    # TODO: Add unit test ensuring the examples stay in sync with list of ActionTypes
+
     if agent.goods:
         prompt += f'For SELL: {{ "reasoning": "I want to sell my TV, to use credits for materials and craft something better.", "type": "SELL", "extra": {{ "good_index": 0, "price": 100 }} }}\n\n'
-    
+
     if market_listings:
         prompt += f'For BUY: {{ "reasoning": "I need this item and can afford it.", "type": "BUY", "extra": {{ "listing_id": "{market_listings[0].id}" }} }}\n\n'
-    
+
     # Add a critical reminder
     prompt += (
         f"IMPORTANT: Your response must be valid JSON with 'reasoning', 'type', and 'extra' fields.\n"
         f"The 'extra' field MUST be a JSON object (not a string or other type), even if empty: {{}}\n"
     )
-    
+
     return prompt
