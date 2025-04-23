@@ -328,6 +328,8 @@ class Simulation:
                     # Get LLM response for agent action
                     response: AgentActionResponse = self.llm_agent.generate_action(agent, self.state)
                     logger.debug(f"Got a response: {type(response)} -> {response}")
+                    self.scribe.agent_action(agent.name, response.type.value, response.reasoning)
+                    logger.info(f"{agent.name} performed action: {response.type}")
 
                     # Execute the action
                     action = self._execute_agent_action(agent, response)
@@ -337,8 +339,6 @@ class Simulation:
                     if action:
                         agent_actions.append((agent, action))
                         # Use rich output for user-facing log
-                        self.scribe.agent_action(agent.name, action.type.value, action.reasoning)
-                        logger.info(f"{agent.name} performed action: {action.type}")
                 except ValidationError as validation_error:
                     logger.error(f"ValidationError: {validation_error.errors()}")
                     raise
@@ -430,11 +430,11 @@ class Simulation:
             agent: The agent resting
         """
         # Increase rest by a fixed amount
-        agent.needs.rest = min(1.0, agent.needs.rest + 0.2)
+        rest_amount = 0.2
+        agent.needs.rest = min(1.0, agent.needs.rest + rest_amount)
         # Slightly increase fun
         agent.needs.fun = min(1.0, agent.needs.fun + 0.05)
-        # Use rich output for user-facing log
-        self.scribe.agent_rest(agent.name, agent.needs.rest)
+        self.scribe.agent_rest(agent.name, agent.needs.rest, rest_amount)
         logger.info(f"{agent.name} rested and recovered energy. New rest: {agent.needs.rest:.2f}")
 
     def _execute_work(self, agent: Agent) -> None:
@@ -683,7 +683,7 @@ class Simulation:
             narrative = self.narrator.generate_daily_summary(self.state)
             # Use rich markdown formatting for the narrative
             self.scribe.narrative_title(narrative.title)
-            self.scribe.narrative_content(narrative.content)
+            self.scribe.narrative_content(narrative.content, self.state)
             
             logger.info(f"Day {self.state.day} Narrative: {narrative.title}\n{narrative.content}")
 
@@ -753,7 +753,7 @@ class Simulation:
         state_dict = {
             "day": self.state.day,
             "agents": [agent.model_dump() for agent in self.state.agents],
-            "market": self.state.market
+            "market": self.state.market.model_dump()
         }
 
         # Save to file
@@ -811,14 +811,14 @@ class Simulation:
         return f"{base_name} {counter}"
 
 
-@click.command()
-@click.option('--agents', default=5, help='Number of agents in the simulation')
-@click.option('--days', default=30, help='Number of days to run the simulation')
-@click.option('--credits', default=None, help='Number of credits each agent starts with (default: random wealth)')
-@click.option('--model', default=DEFAULT_LM, help='LLM model to use')
-@click.option('--output', default='output', help='Output directory')
-@click.option('--temperature', default=0.7, help='LLM temperature')
-@click.option('--log-level', default='INFO', help='Logging level (DEBUG, INFO, WARNING, ERROR)')
+@click.command(context_settings=dict(help_option_names=["-h", "--help"]))
+@click.option('-n', '--agents', default=5, help='Number of agents in the simulation')
+@click.option('-d', '--days', default=30, help='Number of days to run the simulation')
+@click.option('-c', '--credits', default=None, help='Number of credits each agent starts with (default: random wealth)')
+@click.option('-m', '--model', default=DEFAULT_LM, help='LLM model to use')
+@click.option('-o', '--output', default='output', help='Output directory')
+@click.option('-t', '--temperature', default=0.7, help='LLM temperature')
+@click.option('-l', '--log-level', default='ERROR', help='Logging level (DEBUG, INFO, WARNING, ERROR)')
 def main(agents, days, credits, model, output, temperature, log_level):
     """Run the ProtoNomia economic simulation."""
     # Configure logging

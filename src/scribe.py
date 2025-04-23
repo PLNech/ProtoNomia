@@ -7,6 +7,8 @@ from typing import Dict, Any
 from rich.console import Console
 from rich.text import Text
 
+from src.models import SimulationState
+
 # Initialize rich console
 console = Console()
 
@@ -15,9 +17,10 @@ class Colors:
     """Cyberpunk color scheme for rich text output"""
     AGENT = "bright_magenta"  # Neon Pink for agent names
     CREDITS = "bright_green"  # Neon Green for credits
-    ACTION = "bright_yellow"  # Neon Orange for actions
+    ACTION = "dark_orange"  # Neon Orange for actions
     GOOD = "bright_blue"  # Neon Blue for goods
-    NEED = "bright_cyan"  # Neon Purple for needs
+    NEED = "purple"  # Neon Purple for needs
+    NEED_LOW = "purple4"  # Darker Purple for needs
     HIGHLIGHT = "bright_white"  # White for highlights
     DAY = "bright_red"  # Red for day markers
     NARRATIVE = "white"  # Default for narrative text
@@ -97,7 +100,7 @@ class Scribe:
         console.print(text)
 
     @staticmethod
-    def agent_rest(agent_name: str, rest_value: float) -> None:
+    def agent_rest(agent_name: str, updated: float, amount: float) -> None:
         """Print agent rest action"""
         text = Text()
         text.append("► ", style="bright_white")
@@ -105,7 +108,9 @@ class Scribe:
         text.append(" rested and recovered energy. ", style="white")
         text.append(f"Rest", style=Colors.NEED)
         text.append(": ", style="white")
-        text.append(f"{rest_value:.2f}", style=Colors.NEED)
+        text.append(f"{updated - amount:.2f}", style=Colors.NEED_LOW)
+        text.append(" -> ", style="white")
+        text.append(f"{updated:.2f}", style=Colors.NEED)
         console.print(text)
 
     @staticmethod
@@ -192,20 +197,20 @@ class Scribe:
     def agent_action(agent_name: str, action_type: str, reasoning: str = None) -> None:
         """Print agent action choice with reasoning"""
         text = Text()
-        text.append("▶ ", style="bright_white")
+        text.append("\n▶ ", style="bright_white")
         text.append(agent_name, style=Colors.AGENT)
         text.append(" chose action ", style="white")
         text.append(action_type, style=Colors.ACTION)
         
         if reasoning and len(reasoning) > 2:
             # Truncate reasoning if too long
-            max_length = 100
+            max_length = 200
             if len(reasoning) > max_length:
                 reasoning = reasoning[:max_length] + "..."
             
             text.append("\n  Reasoning: ", style="dim white")
             text.append(reasoning, style="dim white")
-        
+
         console.print(text)
 
     @staticmethod
@@ -218,10 +223,16 @@ class Scribe:
         console.print(text)
 
     @staticmethod
-    def narrative_content(content: str) -> None:
+    def narrative_content(content: str, state: SimulationState) -> None:
         """Print narrative content with markdown rendering"""
         from rich.markdown import Markdown
-        console.print(Markdown(content))
+        # Let's postprocess the content to recognize and format:
+        # Agent names
+        final_content = content
+        for agent in state.agents:
+            final_content = final_content.replace(agent.name, Scribe.format_agent(agent.name))
+
+        console.print(Markdown(final_content))
 
     @staticmethod
     def agent_death(agent_name: str, reason: str) -> None:

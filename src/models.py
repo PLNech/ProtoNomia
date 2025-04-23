@@ -6,6 +6,8 @@ from enum import Enum
 from typing import List, Dict, Optional, Literal, Any
 
 from pydantic import BaseModel, Field, validator, field_validator, ConfigDict
+
+
 # noinspection PyDataclass
 # The above error seems a false-positive
 
@@ -154,7 +156,6 @@ class NarrativeResponse(BaseModel):
     )
 
 
-
 class AgentActionResponse(BaseModel):
     """Structured response for agent action generation"""
 
@@ -172,7 +173,6 @@ class AgentActionResponse(BaseModel):
     extras: Dict[str, Any] = Field(description="Extra information specific to the action type", default_factory=dict)
 
 
-
 class DailySummaryResponse(BaseModel):
     """Structured response for daily simulation summary"""
 
@@ -183,6 +183,7 @@ class DailySummaryResponse(BaseModel):
     content: str = Field(
         description="A narrative summary of the day's events in the colony. You can use light markdown highlighting in bold/italics/inlinecode. MIN 10 WORDS MAX 30."
     )
+
 
 # Example Daily Summaries for LLM guidance
 example_daily_summary_1 = DailySummaryResponse(
