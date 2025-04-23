@@ -17,10 +17,72 @@ from src.agent import LLMAgent
 from src.models import (Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, SimulationState,
                         AgentActionResponse, AgentAction)
 from src.narrator import Narrator
-from src.settings import DEFAULT_LM, PERSONALITIES
+from src.settings import DEFAULT_LM
 
 # Initialize logger
 logger = logging.getLogger(__name__)
+
+
+def generate_personality() -> str:
+    """
+    Generates a 20-word personality string with:
+    - 2 descriptors per OCEAN trait (low/mid/high)
+    - 10 additional benign non-OCEAN qualifiers
+    """
+    # Big Five trait descriptors (evidence-based)
+    ocean_traits = {
+        'openness': {
+            'low': ['conventional', 'practical', 'traditional', 'literal'],
+            'mid': ['balanced', 'moderately curious', 'flexible', 'neutral'],
+            'high': ['inventive', 'philosophical', 'artistic', 'visionary']
+        },
+        'conscientiousness': {
+            'low': ['spontaneous', 'carefree', 'impulsive', 'flexible'],
+            'mid': ['balanced', 'situationally-organized', 'adaptable', 'middling'],
+            'high': ['disciplined', 'systematic', 'precise', 'deliberate']
+        },
+        'extraversion': {
+            'low': ['reserved', 'contemplative', 'solitary', 'quiet'],
+            'mid': ['ambivert', 'situationally-social', 'moderate', 'balanced'],
+            'high': ['gregarious', 'enthusiastic', 'assertive', 'talkative']
+        },
+        'agreeableness': {
+            'low': ['skeptical', 'direct', 'self-focused', 'competitive'],
+            'mid': ['fair', 'situationally-kind', 'neutral', 'balanced'],
+            'high': ['empathetic', 'altruistic', 'compromising', 'softhearted']
+        },
+        'neuroticism': {
+            'low': ['resilient', 'unflappable', 'steady', 'composed'],
+            'mid': ['situationally-sensitive', 'middling', 'balanced', 'variable'],
+            'high': ['worrying', 'self-doubting', 'reactive', 'moody']
+        }
+    }
+
+    # Other predictive, non-OCEAN qualifiers (VIA Inventory of Strengths + other research)
+    benign_qualifiers = [
+        'humorous', 'punctual', 'adventurous', 'health-conscious', 'tech-savvy',
+        'patriotic', 'environmentally-conscious', 'family-oriented', 'sporty',
+        'bookish', 'handy', 'musical', 'outdoorsy', 'foodie', 'travel-lover',
+        'quirky', 'history-buff', 'animal-lover', 'DIY-enthusiast', 'gardener',
+        'night-owl', 'early-riser', 'collector', 'philanthropic', 'volunteer',
+        'tech-enthusiast', 'coffee-lover', 'tea-enthusiast', 'minimalist', 'maximalist'
+    ]
+
+    # Generate OCEAN descriptors (choose a level, then sample 2 per trait)
+    personality = []
+    for trait in ocean_traits.values():
+        level = random.choice(['low', 'mid', 'high'])
+        personality.extend(random.sample(trait[level], 2))
+
+    # shuffle but keep OCEAN traits at the front
+    random.shuffle(personality)
+
+    # Add benign qualifiers (ensuring no duplicates)
+    unique_benign = [q for q in benign_qualifiers if q not in personality]
+    personality += random.sample(unique_benign, 10)
+
+    # Final formatting
+    return ', '.join(personality[:20])
 
 
 class Simulation:
@@ -89,7 +151,7 @@ class Simulation:
         logger.info(f"Initialized simulation with {num_agents} agents for {max_days} days using model {model_name}")
 
     def _create_agent(self, name: str = None, id=f"{uuid.uuid4()}", age_days=random.randint(30, 100),
-                      personality_str: str = random.choice(PERSONALITIES),
+                      personality_str: str = None,
                       needs: AgentNeeds = AgentNeeds(food=random.uniform(0.6, 0.9), rest=random.uniform(0.6, 0.9),
                                                      fun=random.uniform(0.5, 0.8)), credits=random.randint(200, 500),
                       goods=None) -> Agent:
@@ -97,6 +159,8 @@ class Simulation:
             goods = self._generate_starting_goods()
         if not name:
             name = self.generate_name()
+        if not personality_str:
+            personality_str = generate_personality()
 
         new_agent = Agent(id=id, name=name, age_days=age_days,
                           personality=AgentPersonality(personality=personality_str), credits=credits, needs=needs,
