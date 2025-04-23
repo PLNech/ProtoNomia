@@ -61,6 +61,40 @@ class AgentNeeds(BaseModel):
         """Automatically clamp needs between 0 and 1"""
         return max(0.0, min(1.0, v))
 
+    def __repr__(self):
+        return f"Food: {100 * self.food:.2%}|Rest: {100 * self.rest:.2%}|Fun: {100 * self.fun:.2%}"
+
+    def __str__(self):
+        if self.food < 0.2:
+            food_str = "Starving"
+        elif self.food < 0.4:
+            food_str = "Hungry"
+        elif self.food < 0.6:
+            food_str = "Somewhat hungry"
+        elif self.food < 0.8:
+            food_str = "Ate well"
+        else:
+            food_str = "Overfed"
+        if self.rest < 0.2:
+            rest_str = "Exhausted"
+        elif self.rest < 0.4:
+            rest_str = "Tired"
+        elif self.rest < 0.6:
+            rest_str = "Average energy"
+        elif self.rest < 0.8:
+            rest_str = "Energetic"
+        else:
+            rest_str = "Supercharged"
+        if self.fun < 0.2:
+            fun_str = "Bored to death"
+        elif self.fun < 0.4:
+            fun_str = "Pretty bored"
+        elif self.fun < 0.6:
+            fun_str = "Kinda bored"
+        else:
+            fun_str = "Having fun"
+        return f"{food_str}, {rest_str}, {fun_str}"
+
 
 class Agent(BaseModel):
     """Economic agent in the simulation"""

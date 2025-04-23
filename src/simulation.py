@@ -328,7 +328,7 @@ class Simulation:
                     # Get LLM response for agent action
                     response: AgentActionResponse = self.llm_agent.generate_action(agent, self.state)
                     logger.debug(f"Got a response: {type(response)} -> {response}")
-                    self.scribe.agent_action(agent.name, response.type.value, response.reasoning)
+                    self.scribe.agent_action(agent, response)
                     logger.info(f"{agent.name} performed action: {response.type}")
 
                     # Execute the action

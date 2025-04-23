@@ -116,12 +116,11 @@ class Narrator:
         # Day's actions
         if state.actions:
             prompt += f"## TODAY'S ACTIONS\n"
-            action: AgentActionResponse
-            agent: Agent
             log: ActionLog
             for log in state.today_actions:
                 action_desc = self._describe_action(log.action, log.agent)
-                prompt += f"- {log.agent.name}: {action_desc}\n"
+                reasoning = log.action.reasoning or ""
+                prompt += f"- {log.agent.name}: {action_desc}{reasoning}\n"
             prompt += "\n"
 
         # Market activity
@@ -162,7 +161,7 @@ class Narrator:
 
         return prompt
 
-    def _describe_action(self, action: AgentAction, agent: Agent) -> str:
+    def _describe_action(self, action: (AgentAction | AgentActionResponse), agent: Agent) -> str:
         """Create a human-readable description of an agent action"""
         if action.type == ActionType.REST:
             return "took time to rest and recover"
@@ -190,7 +189,7 @@ class Narrator:
 
         elif action.type == ActionType.BUY:
             listing_id = action.extras.get("listing_id", "")
-            return f"attempted to buy an item from the market"
+            return f"attempted to buy item {listing_id} from the market"
 
         return f"performed an unknown action ({action.type})"
 
