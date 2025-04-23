@@ -26,9 +26,9 @@ logger = logging.getLogger(__name__)
 
 def generate_personality() -> str:
     """
-    Generates a 20-word personality string with:
-    - 2 descriptors per OCEAN trait (low/mid/high)
-    - 10 additional benign non-OCEAN qualifiers
+    Generates a 10-word personality string with:
+    - 1-2 descriptor per OCEAN trait (low/mid/high)
+    - fillers with additional benign non-OCEAN qualifiers
     """
     # Big Five trait descriptors (evidence-based)
     ocean_traits = {
@@ -73,7 +73,7 @@ def generate_personality() -> str:
     personality = []
     for trait in ocean_traits.values():
         level = random.choice(['low', 'mid', 'high'])
-        personality.extend(random.sample(trait[level], 2))
+        personality.extend(random.sample(trait[level], random.randint(1, 2)))
 
     # shuffle but keep OCEAN traits at the front
     random.shuffle(personality)
@@ -83,7 +83,7 @@ def generate_personality() -> str:
     personality += random.sample(unique_benign, 10)
 
     # Final formatting
-    return ', '.join(personality[:20])
+    return ', '.join(personality[:10])
 
 
 class Simulation:
