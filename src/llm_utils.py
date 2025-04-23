@@ -125,7 +125,7 @@ class OllamaClient:
             system = system_prompt if system_prompt is not None else self.system_prompt
             temp = temperature if temperature is not None else self.temperature
             tokens = max_tokens if max_tokens is not None else self.max_tokens
-            retries = max_retries if max_retries is not None else self.max_retries
+            max_retries = max_retries if max_retries is not None else self.max_retries
 
             # Prepare messages
             messages = []
@@ -155,7 +155,7 @@ class OllamaClient:
                     response_model=response_model,
                     temperature=temp,
                     max_tokens=tokens,
-                    max_retries=self.max_retries
+                    max_retries=max_retries
                 )
 
                 logger.debug(f"generate_structured({response_model.__name__}): {response}")
@@ -198,7 +198,8 @@ class OllamaClient:
                 prompt=prompt,
                 response_model=DailySummaryResponse,
                 examples=[example_daily_summary_1, example_daily_summary_2],
-                system_prompt=system_prompt
+                system_prompt=system_prompt,
+                max_retries=10,
             )
         except Exception as e:
             self.logger.error(f"Error generating daily summary: {e}")
