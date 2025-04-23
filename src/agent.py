@@ -79,6 +79,11 @@ class LLMAgent:
             "You are an AI assistant helping Mars colonists make economic decisions. "
             "Based on the agent's personality and context, choose the most appropriate action. "
             "Consider the agent's needs, resources, and available options when making your decision. "
+            "10 credits is enough to survive a day. 100 credits you're fine. 1000 you're good. "
+            "10000 choosing to WORK would be seen as obscene. " 
+            "1_000_000 you are a rare oligarch and practically control the colony. "
+            "You MUST rest if you're below 0.2 it's SUPER RISKY YOU MIGHT DIE IF REACHING 0!!!  "
+            "if all your needs are met, try to craft something cool, or to buy and sell smart. "
             "Your response MUST be valid JSON with a 'type' field for the action type and an 'extra' field "
             "containing any additional information needed for the action in a proper JSON object format. "
             "IMPORTANT: Make sure 'extra' is a JSON object/dictionary, not a string or any other type. "
@@ -230,34 +235,34 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         f"Return your choice in this format:\n\n"
     )
     
-    # Add more explicit formatting instructions
+    # Add more explicit formatting instructions, reasoning always first
     prompt += (
         f"```json\n"
         f"{{\n"
+        f'  "reasoning": "Why you chose this action",\n'
         f'  "type": "ACTION_TYPE", // REST, WORK, HARVEST, CRAFT, SELL, or BUY\n'
-        f'  "extra": {{}}, // An object with extra information, may be empty {{}}\n'
-        f'  "reasoning": "Why you chose this action"\n'
+        f'  "extra": {{}} // An object with extra information, may be empty {{}}\n'
         f"}}\n```\n\n"
     )
     
     # Add examples based on action type
     prompt += (
         f"## EXAMPLES\n"
-        f'For REST: {{ "type": "REST", "extra": {{}}, "reasoning": "I need to recover my energy" }}\n\n'
-        f'For WORK: {{ "type": "WORK", "extra": {{}}, "reasoning": "I need to earn credits" }}\n\n'
-        f'For HARVEST: {{ "type": "HARVEST", "extra": {{}}, "reasoning": "I need food" }}\n\n'
-        f'For CRAFT: {{ "type": "CRAFT", "extra": {{ "materials": 50 }}, "reasoning": "I want to create something valuable" }}\n\n'
+        f'For REST: {{ "reasoning": "I need to recover my energy", "type": "REST", "extra": {{}} }}\n\n'
+        f'For WORK: {{ "reasoning": "I need to earn credits", "type": "WORK", "extra": {{}} }}\n\n'
+        f'For HARVEST: {{ "reasoning": "I need food", "type": "HARVEST", "extra": {{}} }}\n\n'
+        f'For CRAFT: {{ "reasoning": "I want to create something valuable", "type": "CRAFT", "extra": {{ "materials": 50 }} }}\n\n'
     )
     
     if agent.goods:
-        prompt += f'For SELL: {{ "type": "SELL", "extra": {{ "good_index": 0, "price": 100 }}, "reasoning": "I want to earn credits from my goods" }}\n\n'
+        prompt += f'For SELL: {{ "reasoning": "I want to sell my TV, to use credits for materials and craft something better.", "type": "SELL", "extra": {{ "good_index": 0, "price": 100 }} }}\n\n'
     
     if market_listings:
-        prompt += f'For BUY: {{ "type": "BUY", "extra": {{ "listing_id": "{market_listings[0].id}" }}, "reasoning": "I need this item" }}\n\n'
+        prompt += f'For BUY: {{ "reasoning": "I need this item and can afford it.", "type": "BUY", "extra": {{ "listing_id": "{market_listings[0].id}" }} }}\n\n'
     
     # Add a critical reminder
     prompt += (
-        f"IMPORTANT: Your response must be valid JSON with 'type', 'extra', and 'reasoning' fields.\n"
+        f"IMPORTANT: Your response must be valid JSON with 'reasoning', 'type', and 'extra' fields.\n"
         f"The 'extra' field MUST be a JSON object (not a string or other type), even if empty: {{}}\n"
     )
     

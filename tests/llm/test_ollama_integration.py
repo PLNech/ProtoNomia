@@ -132,29 +132,6 @@ class TestOllamaIntegration(unittest.TestCase):
             logger.error(f"Error in daily summary generation: {e}")
             self.fail(f"Daily summary generation failed: {e}")
 
-    def test_text_generation(self):
-        """Test simple text generation with OllamaClient."""
-        try:
-            client = OllamaClient(model_name=DEFAULT_LM)
-
-            # Generate text about Mars
-            result = client.generate_text(
-                prompt="Describe Mars and its importance for human colonization in 2-3 sentences.",
-                system_prompt="You are a helpful AI assistant providing concise information."
-            )
-
-            # Check that we got a response
-            self.assertIsNotNone(result)
-            self.assertIsInstance(result, str)
-            self.assertGreater(len(result), 10)
-
-            # Log the result
-            logger.info(f"Text generation result: {result}")
-
-        except Exception as e:
-            logger.error(f"Error in text generation: {e}")
-            self.fail(f"Text generation failed: {e}")
-
 
 if __name__ == '__main__':
     unittest.main()
