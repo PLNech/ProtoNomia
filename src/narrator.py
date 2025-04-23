@@ -75,9 +75,9 @@ class Narrator:
         system_prompt = (
             "You are a talented storyteller on Mars, chronicling the daily lives of colonists. "
             "Create engaging, vivid 50-100 words day summaries that highlight economic interactions, conflicts, "
-            "and character development. Focus on how the colonists' needs, desires, and actions "
-            "shape the emerging Martian economy and culture. Use crisp language "
-            "and evocative science fiction imagery."
+            "and character development. Focus on how the colonists' needs, desires, and actions that shape "
+            "the emerging Martian economy and culture. Use crisp language and evocative science fiction imagery. "
+            "NEVER INVENT CHARACTERS NOT IN THE AGENTS LIST: when you have only 1 or 0 agent, make it contemplative."
         )
 
         try:
@@ -153,10 +153,11 @@ class Narrator:
 
         # Task description
         prompt += (
-            f"## TASK\n"
-            f"Based on this information, create a narrative summary of Day {state.day} on Mars. "
-            f"Focus on character interactions, economic decisions, and how needs influence behavior. "
-            f"Highlight interesting moments, conflicts, and insights into the colony's development.\n"
+            "## TASK\n"
+            "Based on this information, create a narrative summary of Day {state.day} on Mars. "
+            "Focus on agent character interactions, economic decisions, and how needs influence behavior. "
+            "Highlight interesting moments, conflicts, and insights into the colony's development.\n"
+            "Be careful to only mention events/interactions/motivations that are really in agent action/reasoning logs."
         )
 
         return prompt

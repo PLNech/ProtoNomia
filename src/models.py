@@ -150,7 +150,7 @@ class NarrativeResponse(BaseModel):
     )
 
     description: str = Field(
-        description="A detailed scene with dialogue showing this interaction through character actions and reactions, "
+        description="A detailed scene with dialogue (always inside double quotes) showing this interaction through character actions and reactions, "
                     "including environmental details that ground this exchange in the Martian setting",
         max_length=100
     )
