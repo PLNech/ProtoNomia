@@ -62,7 +62,7 @@ class AgentNeeds(BaseModel):
         return max(0.0, min(1.0, v))
 
     def __repr__(self):
-        return f"Food: {100 * self.food:.2%}|Rest: {100 * self.rest:.2%}|Fun: {100 * self.fun:.2%}"
+        return f"Food: {self.food:.2%}|Rest: {self.rest:.2%}|Fun: {self.fun:.2%}"
 
     def __str__(self):
         if self.food < 0.2:
