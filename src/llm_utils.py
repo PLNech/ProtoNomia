@@ -4,10 +4,11 @@ from typing import Type, TypeVar, Optional
 import instructor
 import requests
 from instructor.exceptions import IncompleteOutputException
+from instructor.exceptions import InstructorRetryException
 from openai import OpenAI
 from pydantic import BaseModel, ValidationError
 
-from src.llm_models import NarrativeResponse, DailySummaryResponse, example_daily_summary_1, example_daily_summary_2
+from src.models import DailySummaryResponse, example_daily_summary_1, example_daily_summary_2
 from src.settings import DEFAULT_LM
 
 # Create TypeVar for the response model
@@ -61,7 +62,7 @@ class OllamaClient:
                 base_url=f"{base_url}/v1",
                 api_key="required_but_unused",
             ),
-            mode=instructor.Mode.MD_JSON,
+            mode=instructor.Mode.JSON,
         )
 
         # Check connection to Ollama
@@ -146,8 +147,6 @@ class OllamaClient:
             messages.append({"role": "system", "content": format_guidance})
             messages.append({"role": "user", "content": prompt})
 
-            from instructor.exceptions import InstructorRetryException
-
             try:
                 # Use Instructor's create method with structured response and retry mechanism
                 response = self.client.chat.completions.create(
@@ -166,9 +165,9 @@ class OllamaClient:
                 raise
 
         except InstructorRetryException as e:
-                self.logger.error(f"Retry failed after {e.n_attempts} attempts")
-                self.logger.error(f"Last completion: {e.last_completion}")
-                raise
+            self.logger.error(f"Retry failed after {e.n_attempts} attempts")
+            self.logger.error(f"Last completion: {e.last_completion}")
+            raise
 
         except IncompleteOutputException as e:
             self.logger.error(f"Failed to generate structured output: {e}")
@@ -178,27 +177,6 @@ class OllamaClient:
         except Exception as e:
             self.logger.error(f"Error in generate_structured: {e}")
             raise
-
-    def generate_narrative(
-            self,
-            prompt: str,
-            system_prompt: str
-    ) -> NarrativeResponse:
-        """
-        Generate a narrative response for an interaction.
-        
-        Args:
-            prompt: The prompt for narrative generation
-            system_prompt: System prompt for the model
-            
-        Returns:
-            A NarrativeResponse object
-        """
-        return self.generate_structured(
-            prompt=prompt,
-            response_model=NarrativeResponse,
-            system_prompt=system_prompt
-        )
 
     def generate_daily_summary(
             self,
@@ -225,47 +203,3 @@ class OllamaClient:
         except Exception as e:
             self.logger.error(f"Error generating daily summary: {e}")
             raise
-
-    def generate_text(
-            self,
-            prompt: str,
-            system_prompt: Optional[str] = None
-    ) -> str:
-        """
-        Generate simple text output (fallback method).
-        
-        Args:
-            prompt: The user prompt
-            system_prompt: Optional system prompt
-            
-        Returns:
-            Generated text as string
-        """
-        try:
-            # Use default system prompt if none provided
-            system = system_prompt if system_prompt is not None else self.system_prompt
-
-            # Prepare messages
-            messages = []
-            if system:
-                messages.append({"role": "system", "content": system})
-            messages.append({"role": "user", "content": prompt})
-
-            # Define the function to call
-            def _generate():
-                # Use Instructor's create method
-                response = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=messages,
-                    response_model=None,  # No structured model for plain text
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens
-                )
-                return response.choices[0].message.content or ""
-
-            # Use retry mechanism
-            return self._retry_with_backoff(_generate)
-
-        except Exception as e:
-            self.logger.error(f"Error generating text: {e}")
-            return f"Error generating text: {str(e)}"

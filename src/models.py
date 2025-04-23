@@ -6,6 +6,8 @@ from enum import Enum
 from typing import List, Dict, Optional, Literal, Any
 
 from pydantic import BaseModel, Field, validator, field_validator, ConfigDict
+# noinspection PyDataclass
+# The above error seems a false-positive
 
 
 # ========== Resource Models ==========
