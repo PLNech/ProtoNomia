@@ -254,7 +254,7 @@ class Simulation:
             self._process_day()
 
             # Save the current state
-            # self._save_state()
+            self._save_state()
 
             # Move to the next day
             self.state.day += 1
@@ -710,7 +710,7 @@ class Simulation:
         # Convert state to JSON-serializable format
         state_dict = {
             "day": self.state.day,
-            "agents": [agent.dict() for agent in self.state.agents],
+            "agents": [agent.model_dump() for agent in self.state.agents],
             "market": self.state.market
         }
 
