@@ -95,6 +95,7 @@ class Simulation:
             self,
             num_agents: int = 5,
             max_days: int = 30,
+            starting_credits: Optional[int] = None,
             model_name: str = DEFAULT_LM,
             output_dir: str = "output",
             temperature: float = 0.7,
@@ -124,7 +125,7 @@ class Simulation:
         self.temperature = temperature
         self.top_p = top_p
         self.top_k = top_k
-        self.state = self._setup_initial_state()
+        self.state = self._setup_initial_state(starting_credits=starting_credits)
         self.max_retries = max_retries
         self.retry_delay = retry_delay
 
@@ -153,8 +154,10 @@ class Simulation:
     def _create_agent(self, name: str = None, id=f"{uuid.uuid4()}", age_days=random.randint(30, 100),
                       personality_str: str = None,
                       needs: AgentNeeds = AgentNeeds(food=random.uniform(0.6, 0.9), rest=random.uniform(0.6, 0.9),
-                                                     fun=random.uniform(0.5, 0.8)), credits=random.randint(200, 500),
+                                                     fun=random.uniform(0.5, 0.8)), starting_credits=None,
                       goods=None) -> Agent:
+        if starting_credits is None:
+            starting_credits = random.randint(20, 50000)
         if not goods:
             goods = self._generate_starting_goods()
         if not name:
@@ -163,14 +166,14 @@ class Simulation:
             personality_str = generate_personality()
 
         new_agent = Agent(id=id, name=name, age_days=age_days,
-                          personality=AgentPersonality(personality=personality_str), credits=credits, needs=needs,
+                          personality=AgentPersonality(personality=personality_str), credits=starting_credits, needs=needs,
                           goods=goods)
         return new_agent
 
     def _add_agent(self, agent: Agent):
         self.state.agents.append(agent)
 
-    def _setup_initial_state(self) -> SimulationState:
+    def _setup_initial_state(self, starting_credits: Optional[int] = None) -> SimulationState:
         """
         Set up the initial simulation state with agents and market.
 
@@ -182,7 +185,7 @@ class Simulation:
 
         for i in range(self.num_agents):
             # Create agent with random personality and starting credits
-            agents.append(self._create_agent())
+            agents.append(self._create_agent(starting_credits=starting_credits))
 
         # Create initial simulation state
         state = SimulationState(
@@ -765,14 +768,16 @@ class Simulation:
             counter += 1
         return f"{base_name} {counter}"
 
+
 @click.command()
 @click.option('--agents', default=5, help='Number of agents in the simulation')
 @click.option('--days', default=30, help='Number of days to run the simulation')
+@click.option('--credits', default=None, help='Number of credits each agent starts with (default: random wealth)')
 @click.option('--model', default=DEFAULT_LM, help='LLM model to use')
 @click.option('--output', default='output', help='Output directory')
 @click.option('--temperature', default=0.7, help='LLM temperature')
 @click.option('--log-level', default='INFO', help='Logging level (DEBUG, INFO, WARNING, ERROR)')
-def main(agents, days, model, output, temperature, log_level):
+def main(agents, days, credits, model, output, temperature, log_level):
     """Run the ProtoNomia economic simulation."""
     # Configure logging
     log_level = getattr(logging, log_level.upper())
@@ -789,6 +794,7 @@ def main(agents, days, model, output, temperature, log_level):
     sim = Simulation(
         num_agents=agents,
         max_days=days,
+        starting_credits=credits,
         model_name=model,
         output_dir=output,
         temperature=temperature,
