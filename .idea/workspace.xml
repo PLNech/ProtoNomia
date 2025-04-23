@@ -5,6 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cd0a6fa9-59ac-4f67-a548-a6ea9a9a0846" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/llm_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/llm_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/narrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/narrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scribe.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/scribe.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/simulation.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -35,7 +41,7 @@
     "settings.editor.selected.configurable": "reference.settingsdialog.project.grazie"
   }
 }]]></component>
-  <component name="RunManager" selected="Python.models">
+  <component name="RunManager" selected="Python.simulation">
     <configuration name="models" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="ProtoNomia" />
       <option name="ENV_FILES" value="" />
@@ -156,8 +162,8 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.models" />
         <item itemvalue="Python.simulation" />
+        <item itemvalue="Python.models" />
         <item itemvalue="Python tests.pytest for tests.unit.test_simulation.TestSimulation" />
         <item itemvalue="Python tests.pytest for tests.unit.test_narrator.TestNarrator.test_format_summary_prompt" />
       </list>

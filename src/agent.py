@@ -85,10 +85,10 @@ class LLMAgent:
             "Assess your needs: e.g. rest=0.2 I MUST REST OR DIE, rest=0.4 I should REST, "
             "rest=0.6 don't really need to rest, rest>=0.8 it's pretty useless to rest I'd not win much,"
             "if all your needs are met, try to craft something cool, or to buy and sell smart. "
-            "Your response MUST be valid JSON with a 'type' field for the action type and an 'extra' field "
+            "Your response MUST be valid JSON with a 'type' field for the action type and an 'extras' field "
             "containing any additional information needed for the action in a proper JSON object format. "
-            "IMPORTANT: Make sure 'extra' is a JSON object/dictionary, not a string or any other type. "
-            "If you have no extra data, use an empty object: 'extra': {}"
+            "IMPORTANT: Make sure 'extras' is a JSON object/dictionary, not a string or any other type. "
+            "If you have no extras data, use an empty object: 'extras': {}"
         )
         
         try:
