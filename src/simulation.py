@@ -17,6 +17,7 @@ from src.agent import LLMAgent
 from src.models import (Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, SimulationState,
                         AgentActionResponse, AgentAction)
 from src.narrator import Narrator
+from src.scribe import Scribe
 from src.settings import DEFAULT_LM
 
 # Initialize logger
@@ -128,6 +129,9 @@ class Simulation:
         self.state = self._setup_initial_state(starting_credits=starting_credits)
         self.max_retries = max_retries
         self.retry_delay = retry_delay
+        
+        # Initialize the scribe for rich text output
+        self.scribe = Scribe()
 
         # Initialize the LLM agent for all agent decision making
         self.llm_agent = LLMAgent(
@@ -247,6 +251,8 @@ class Simulation:
         This is the main loop that advances time and processes agent actions.
         """
         logger.info(f"Starting simulation with {len(self.state.agents)} agents")
+        # Display rich welcome message
+        self.scribe.simulation_start(len(self.state.agents), self.max_days)
 
         # Main simulation loop
         while self.state.day <= self.max_days:
@@ -260,6 +266,8 @@ class Simulation:
             self.state.day += 1
 
         logger.info(f"Simulation completed after {self.max_days} days")
+        # Display rich completion message
+        self.scribe.simulation_end(self.max_days)
 
     def _process_day(self) -> None:
         """
@@ -267,6 +275,8 @@ class Simulation:
         This includes agent actions, market updates, and narratives.
         """
         logger.info(f"===== Day {self.state.day} =====")
+        # Display rich day header
+        self.scribe.day_header(self.state.day)
 
         # Decay agent needs at the start of the day
         self._decay_agent_needs()
@@ -326,6 +336,8 @@ class Simulation:
                     # If successful, add to list of actions
                     if action:
                         agent_actions.append((agent, action))
+                        # Use rich output for user-facing log
+                        self.scribe.agent_action(agent.name, action.type.value, action.reasoning)
                         logger.info(f"{agent.name} performed action: {action.type}")
                 except ValidationError as validation_error:
                     logger.error(f"ValidationError: {validation_error.errors()}")
@@ -347,6 +359,8 @@ class Simulation:
                             action = self._execute_agent_action(agent, fallback_response)
                             if action:
                                 agent_actions.append((agent, action))
+                                # Use rich output for user-facing log
+                                self.scribe.agent_action(agent.name, action.type.value, action.reasoning)
                                 logger.info(f"{agent.name} performed fallback action: {action.type}")
                         except Exception as fallback_error:
                             logger.error(f"Even fallback action failed for {agent.name}: {fallback_error}")
@@ -419,6 +433,8 @@ class Simulation:
         agent.needs.rest = min(1.0, agent.needs.rest + 0.2)
         # Slightly increase fun
         agent.needs.fun = min(1.0, agent.needs.fun + 0.05)
+        # Use rich output for user-facing log
+        self.scribe.agent_rest(agent.name, agent.needs.rest)
         logger.info(f"{agent.name} rested and recovered energy. New rest: {agent.needs.rest:.2f}")
 
     def _execute_work(self, agent: Agent) -> None:
@@ -435,6 +451,8 @@ class Simulation:
         agent.needs.rest = max(0, agent.needs.rest - 0.1)
         # Slightly decrease fun from working
         agent.needs.fun = max(0, agent.needs.fun - 0.05)
+        # Use rich output for user-facing log
+        self.scribe.agent_work(agent.name, income, agent.credits)
         logger.info(f"{agent.name} worked and earned {income} credits. New credits: {agent.credits}")
 
     def _execute_harvest(self, agent: Agent) -> None:
@@ -457,6 +475,8 @@ class Simulation:
         agent.needs.food = min(1.0, agent.needs.food + 0.15)
         # Decrease rest due to physical activity
         agent.needs.rest = max(0, agent.needs.rest - 0.1)
+        # Use rich output for user-facing log
+        self.scribe.agent_harvest(agent.name, food.name, quality, agent.needs.food)
         logger.info(
             f"{agent.name} harvested mushrooms (quality: {quality:.2f}). "
             f"New food level: {agent.needs.food:.2f}"
@@ -510,6 +530,8 @@ class Simulation:
         agent.needs.food = max(0, agent.needs.food - 0.05)
         agent.needs.fun = min(1.0, agent.needs.fun + 0.1)
 
+        # Use rich output for user-facing log
+        self.scribe.agent_craft(agent.name, item.name, item.type.value, quality, materials_cost)
         logger.info(
             f"{agent.name} crafted {item.name} ({item.type.value}, quality: {quality:.2f}) "
             f"using {materials_cost} credits worth of materials."
@@ -552,6 +574,8 @@ class Simulation:
         agent.needs.rest = max(0, agent.needs.rest - 0.05)
         agent.needs.fun = min(1.0, agent.needs.fun + 0.1)
 
+        # Use rich output for user-facing log
+        self.scribe.agent_sell(agent.name, good.name, good.type.value, good.quality, price)
         logger.info(
             f"{agent.name} listed {good.name} ({good.type.value}, quality: {good.quality:.2f}) "
             f"for sale at {price} credits"
@@ -614,6 +638,8 @@ class Simulation:
         for seller in self.state.agents:
             if seller.id == listing["seller_id"]:
                 seller.credits += listing["price"]
+                # Use rich output for user-facing log
+                self.scribe.agent_sale(seller.name, listing["price"])
                 logger.info(f"{seller.name} received {listing['price']} credits from sale")
                 break
 
@@ -632,6 +658,14 @@ class Simulation:
         # Slightly decrease rest from shopping
         agent.needs.rest = max(0, agent.needs.rest - 0.05)
 
+        # Use rich output for user-facing log
+        self.scribe.agent_buy(
+            agent.name, 
+            listing["good"].name, 
+            listing["good"].type.value, 
+            listing["good"].quality, 
+            listing["price"]
+        )
         logger.info(
             f"{agent.name} bought {listing['good'].name} ({listing['good'].type.value}, "
             f"quality: {listing['good'].quality:.2f}) for {listing['price']} credits"
@@ -647,6 +681,10 @@ class Simulation:
         # Generate the narrative using the Narrator
         try:
             narrative = self.narrator.generate_daily_summary(self.state)
+            # Use rich markdown formatting for the narrative
+            self.scribe.narrative_title(narrative.title)
+            self.scribe.narrative_content(narrative.content)
+            
             logger.info(f"Day {self.state.day} Narrative: {narrative.title}\n{narrative.content}")
 
             # Save narrative to file
@@ -681,6 +719,8 @@ class Simulation:
         for agent in self.state.agents:
             # Agent is dead if food reaches 0
             if agent.needs.food <= 0:
+                # Use rich output for user-facing log
+                self.scribe.agent_death(agent.name, "starvation")
                 logger.warning(f"{agent.name} has died due to starvation")
                 agents_to_remove.append(agent)
 
@@ -701,6 +741,8 @@ class Simulation:
                     "created_at": time.time()
                 }
                 self.state.market["listings"].append(listing)
+                # Use rich output for user-facing log
+                self.scribe.deceased_good_added(good.name, agent.name, discounted_price)
                 logger.info(f"Added {good.name} from deceased {agent.name} to market for {discounted_price} credits")
 
     def _save_state(self) -> None:

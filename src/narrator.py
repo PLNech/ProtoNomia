@@ -74,7 +74,7 @@ class Narrator:
 
         system_prompt = (
             "You are a talented storyteller on Mars, chronicling the daily lives of colonists. "
-            "Create engaging, vivid summaries that highlight economic interactions, conflicts, "
+            "Create engaging, vivid 50-100 words day summaries that highlight economic interactions, conflicts, "
             "and character development. Focus on how the colonists' needs, desires, and actions "
             "shape the emerging Martian economy and culture. Use crisp language "
             "and evocative science fiction imagery."
@@ -235,42 +235,7 @@ class Narrator:
             death_names = [a.name for a in today_deaths]
             summary_text += f"Tragically, {', '.join(death_names)} did not survive the day. "
 
-        # Generate highlights
-        highlights = []
-
-        # Market highlight
-        if market_size > 0:
-            try:
-                highest_price = max(state.market.listings, key=lambda l: l.price)
-                seller = next((a for a in state.agents if a.id == highest_price.seller_id), None)
-                seller_name = seller.name if seller else "Unknown"
-                highlights.append(
-                    f"{seller_name} listed {highest_price.good.name} for {highest_price.price} credits - the highest priced item")
-            except Exception:
-                highlights.append(f"The market had {market_size} active listings")
-
-        # Need-based highlight
-        if struggling_agent:
-            highlights.append(f"{struggling_agent.name}'s {need_type} level dropped to critical {lowest_need:.2f}")
-
-        # Wealth highlight
-        if wealthy_agent:
-            highlights.append(f"{wealthy_agent.name} leads in wealth with {wealthy_agent.credits} credits")
-
-        # Death highlight
-        if today_deaths:
-            for agent in today_deaths:
-                needs_desc = []
-                if agent.needs.food <= 0:
-                    needs_desc.append("starvation")
-                if agent.needs.rest <= 0:
-                    needs_desc.append("exhaustion")
-
-                cause = " and ".join(needs_desc) if needs_desc else "unknown causes"
-                highlights.append(f"{agent.name} perished from {cause}")
-
         return DailySummaryResponse(
             title=random.choice(day_titles),
             content=summary_text,
-            highlights=highlights[:3]  # Limit to 3 highlights
         )

@@ -160,17 +160,17 @@ class AgentActionResponse(BaseModel):
 
     model_config = ConfigDict(extra='allow')
 
+    reasoning: Optional[str] = Field(
+        default=None,
+        description="Your short step-by-step reasoning for choosing this Action Type. You must talk first person as the agent, don't break character, don't mention validation. MAX 20 words. Use abbrevs and Mars 2993 slang. Keep it short and concise. e.g \"I'm low on food, gotta harvest some shrooms 2day\""
+    )
+
     type: ActionType = Field(
         description=f"The type of action the agent will take. Must be one of {[a.value for a in ActionType]}"
     )
 
     extras: Dict[str, Any] = Field(description="Extra information specific to the action type", default_factory=dict)
 
-    reasoning: Optional[str] = Field(
-        default=None,
-        description="The reasoning behind your choice. First person",
-        max_length=500
-    )
 
 
 class DailySummaryResponse(BaseModel):
