@@ -167,6 +167,35 @@ class LLMAgent:
             reasoning="[FALLBACK ACTION] Default fallback - resting"
         )
 
+def format_credits(net_worth: float) -> str:
+    """Format net worth as a number with commas and analysis of urgency."""
+        #             "10 credits is enough to survive a day. 100 credits you're fine. 1000 you're good. "
+            # "10000 choosing to WORK would be seen as obscene. " 
+            # "1_000_000 you are a rare oligarch and practically control the colony. "
+    if net_worth < 10:
+        return f"{net_worth:,} - starving if you don't WORK"
+    elif net_worth < 100:
+        return f"{net_worth:,} - you'll have to WORK in the next few days"
+    elif net_worth < 1000:
+        return f"{net_worth:,} - you're doing fine, no need to WORK anytime soon"
+    else:
+        return f"{net_worth:,} - you're very rich, all needs can be met with credits!"
+    
+def format_need(need: float) -> str:
+    """Format a need value as a percentage and analysis of urgency."""
+    if need < 0.2:
+        return f"{need:.2%} - MUST BE ADDRESSED IMMEDIATELY!"
+    elif need < 0.4:
+        return f"{need:.2%} - SHOULD BE ADDRESSED SOON!"
+    elif need < 0.6:
+        return f"{need:.2%} - you're good for today."
+    elif need < 0.8:
+        return f"{need:.2%} - you're doing well."
+    elif need < 0.9:
+        return f"{need:.2%} - you're doing great."
+    else:
+        return f"{need:.2%} - amazing!"
+        
 
 def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     """
@@ -186,13 +215,14 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     prompt += f"Name: {agent.name}\n"
     prompt += f"Age: {agent.age_days} days\n"
     prompt += f"Personality: {agent.personality.personality}\n"
-    prompt += f"Credits: {agent.credits}\n\n"
+    prompt += f"Credits: {format_credits(agent.credits)}\n\n"
     
     # Format agent needs
     prompt += f"## YOUR NEEDS\n"
-    prompt += f"Food: {agent.needs.food:.2f}/1.00\n"
-    prompt += f"Rest: {agent.needs.rest:.2f}/1.00\n"
-    prompt += f"Fun: {agent.needs.fun:.2f}/1.00\n\n"
+    # percentage would help agent better understand their needs.
+    prompt += f"Food: {format_need(agent.needs.food)}%\n"
+    prompt += f"Rest: {format_need(agent.needs.rest)}%\n"
+    prompt += f"Fun: {format_need(agent.needs.fun)}%\n\n"
     
     # Format inventory
     prompt += f"## YOUR INVENTORY\n"
