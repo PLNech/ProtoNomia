@@ -2,12 +2,26 @@
 ProtoNomia Scribe
 A utility class for rich console output formatting using cyberpunk colors.
 """
+import re
+
+from copy import deepcopy
 from typing import Dict, Any
 
 from rich.console import Console
 from rich.text import Text
 
-from src.models import SimulationState
+from src.models import SimulationState, Agent, AgentAction, AgentActionResponse
+
+from rich.text import Text
+
+def rich_replace(text: str, old: str, new: Text) -> Text:
+    parts = text.split(old)
+    result = Text()
+    for i, part in enumerate(parts):
+        result.append(part)
+        if i < len(parts) - 1:
+            result.append(new)
+    return result
 
 # Initialize rich console
 console = Console()
@@ -18,6 +32,7 @@ class Colors:
     AGENT = "bright_magenta"  # Neon Pink for agent names
     CREDITS = "bright_green"  # Neon Green for credits
     ACTION = "dark_orange"  # Neon Orange for actions
+    ACTION_EXTRA = "gold3"  # Brighter Orange for extras
     GOOD = "bright_blue"  # Neon Blue for goods
     NEED = "purple"  # Neon Purple for needs
     NEED_LOW = "purple4"  # Darker Purple for needs
@@ -43,9 +58,15 @@ class Scribe:
         return Text(f"{amount:.0f}", style=Colors.CREDITS)
 
     @staticmethod
-    def format_action(action_name: str) -> Text:
+    def format_action(action: AgentAction) -> Text:
         """Format action name with appropriate styling"""
-        return Text(action_name, style=Colors.ACTION)
+        # Let's add the extras when present in a separate color
+        if action.extras:
+            return Text(f"{action.type}", style=Colors.ACTION) \
+                + Text(" (", style=Colors.NARRATIVE) \
+                + Text(f"{action.extras}", style=Colors.ACTION_EXTRA) \
+                    + Text(")", style=Colors.NARRATIVE)
+        return Text(action.type, style=Colors.ACTION)
 
     @staticmethod
     def format_good(good_name: str, quality: float = None) -> Text:
@@ -194,19 +215,22 @@ class Scribe:
         console.print(text)
 
     @staticmethod
-    def agent_action(agent_name: str, action_type: str, reasoning: str = None) -> None:
+    def agent_action(agent: Agent, action: (AgentAction, AgentActionResponse)) -> None:
         """Print agent action choice with reasoning"""
         text = Text()
         text.append("\n▶ ", style="bright_white")
-        text.append(agent_name, style=Colors.AGENT)
+        text.append(agent.name, style=Colors.AGENT)
+        text.append("(", style="bright_white")
+        text.append(repr(agent.needs), style=Colors.NEED)
+        text.append(")", style="bright_white")
         text.append(" chose action ", style="white")
-        text.append(action_type, style=Colors.ACTION)
-        
-        if reasoning and len(reasoning) > 2:
-            # Truncate reasoning if too long
+        text.append(Scribe.format_action(action))
+
+        if action.reasoning and len(action.reasoning) > 2:
+            reasoning = deepcopy(action.reasoning)
             max_length = 200
-            if len(reasoning) > max_length:
-                reasoning = reasoning[:max_length] + "..."
+            if len(action.reasoning) > max_length:
+                reasoning = action.reasoning[:max_length] + "..."
             
             text.append("\n  Reasoning: ", style="dim white")
             text.append(reasoning, style="dim white")
@@ -225,14 +249,20 @@ class Scribe:
     @staticmethod
     def narrative_content(content: str, state: SimulationState) -> None:
         """Print narrative content with markdown rendering"""
-        from rich.markdown import Markdown
-        # Let's postprocess the content to recognize and format:
-        # Agent names
-        final_content = content
+        lines = content.split('\n')
+        all_agent_names = []
         for agent in state.agents:
-            final_content = final_content.replace(agent.name, Scribe.format_agent(agent.name))
-
-        console.print(Markdown(final_content))
+            all_agent_names.append(agent.name)
+            if len(agent.name.split(' ')) == 2:
+                all_agent_names.append(agent.name.split(' ')[0])
+                all_agent_names.append(agent.name.split(' ')[1])
+        for line in lines:
+            expression_any_agent_name = r'\b(' + '|'.join(re.escape(name) for name in all_agent_names) + r')\b'
+            matches = re.findall(expression_any_agent_name, line)
+            if matches:
+                for match in matches:
+                    line = line.replace(match, f"[{Colors.AGENT}]{match}[/{Colors.AGENT}]")
+            console.print(line, style=Colors.NARRATIVE)
 
     @staticmethod
     def agent_death(agent_name: str, reason: str) -> None:
