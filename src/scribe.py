@@ -223,7 +223,7 @@ class Scribe:
         text.append("(", style="bright_white")
         text.append(repr(agent.needs), style=Colors.NEED)
         text.append(")[", style="bright_white")
-        text.append(agent.credits, style=Colors.CREDITS)
+        text.append(f"{agent.credits}", style=Colors.CREDITS)
         text.append(" credits]", style="bright_white")
         text.append(" chose action ", style="white")
         text.append(Scribe.format_action(action))
