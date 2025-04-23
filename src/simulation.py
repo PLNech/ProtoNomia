@@ -14,12 +14,12 @@ import click
 from pydantic import ValidationError
 
 from src.agent import LLMAgent
-from src.generators import generate_personality
+from src.generators import generate_personality, generate_mars_craft_options
 from src.models import (Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, SimulationState,
                         AgentActionResponse, AgentAction)
 from src.narrator import Narrator
 from src.scribe import Scribe
-from src.settings import DEFAULT_LM
+from src.settings import DEFAULT_LM, LLM_MAX_RETRIES
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -89,6 +89,9 @@ class Simulation:
             top_k=top_k,
             max_retries=max_retries
         )
+
+        self._craft_options = generate_mars_craft_options()
+
 
         # Ensure output directory exists
         os.makedirs(output_dir, exist_ok=True)
@@ -357,7 +360,7 @@ class Simulation:
             else:
                 logger.error(f"Missing required fields for BUY action: {extras}")
         elif action_type == ActionType.THINK:
-            self._execute_think(agent, reasoning, extras)
+            self._execute_think(agent, extras)
         else:
             logger.error(f"Unknown action type: {action_type}")
 
@@ -378,7 +381,7 @@ class Simulation:
         self.scribe.agent_rest(agent.name, agent.needs.rest, rest_amount)
         logger.info(f"{agent.name} rested and recovered energy. New rest: {agent.needs.rest:.2f}")
 
-    def _execute_think(self, agent: Agent, thoughts: str, extras: dict[str, Any]) -> None:
+    def _execute_think(self, agent: Agent, extras: dict[str, Any]) -> None:
         """
         Execute REST action for an agent.
 
@@ -390,6 +393,8 @@ class Simulation:
         agent.needs.rest = min(1.0, agent.needs.rest + rest_amount)
         # Increase fun by random amount
         agent.needs.fun = min(1.0, agent.needs.fun + random.uniform(0.05, 0.5))
+
+        thoughts: str = extras.get("thoughts", extras.get("thinking", json.dumps(extras) if extras else ""))
         self.scribe.agent_think(agent.name, thoughts, extras)
         logger.info(f"{agent.name} spent the day thinking: {thoughts}{extras}")
 
@@ -465,13 +470,13 @@ class Simulation:
         item_type_roll = random.random()
         if item_type_roll < 0.4:  # 40% chance for tool
             item_type = GoodType.FOOD
-            name = random.choice(["Basic Food", "Space Omelette", "Martian Mushrooms"])
+            name = random.choice(self._craft_options["FOOD"])
         elif item_type_roll < 0.8:  # 40% chance for luxury
             item_type = GoodType.FUN
-            name = random.choice(["Basic TV", "Colony Souvenir", "Martian Artifact"])
+            name = random.choice(self._craft_options["FUN"])
         else:  # 20% chance for food
             item_type = GoodType.REST
-            name = random.choice(["Pillow", "Bedroom Sunray Curtains", "Sleeping Pills"])
+            name = random.choice(self._craft_options["REST"])
 
         # Create and add the item
         item = Good(
@@ -796,7 +801,7 @@ def main(agents, days, credits, model, output, temperature, log_level):
         model_name=model,
         output_dir=output,
         temperature=temperature,
-        max_retries=3,
+        max_retries=LLM_MAX_RETRIES,
         retry_delay=5
     )
     sim.run()

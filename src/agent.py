@@ -5,9 +5,10 @@ This module handles the integration with language models for agent decision maki
 import logging
 import random
 
+from src.generators import generate_thoughts
 from src.llm_utils import OllamaClient
 from src.models import Agent, ActionType, AgentActionResponse, SimulationState, ACTION_DESCRIPTIONS
-from src.settings import DEFAULT_LM
+from src.settings import DEFAULT_LM, LLM_MAX_RETRIES
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ class LLMAgent:
             top_p: float = 0.9,
             top_k: int = 40,
             max_tokens: int = 2048,
-            max_retries: int = 3,
+            max_retries: int = LLM_MAX_RETRIES,
             timeout: int = 30
     ):
         """
@@ -163,7 +164,8 @@ class LLMAgent:
         elif random_type == ActionType.THINK:
             return AgentActionResponse(
                 type=random_type,
-                reasoning="[FALLBACK ACTION] Pondering about civilization..."
+                reasoning="[FALLBACK ACTION] Pondering about civilization...",
+                extras={"thoughts": generate_thoughts()}
             )
 
         # Default fallback is REST
@@ -294,7 +296,8 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         f'For WORK: {{ "reasoning": "I need to earn credits", "type": "WORK", "extra": {{}} }}\n\n'
         f'For HARVEST: {{ "reasoning": "I need food", "type": "HARVEST", "extra": {{}} }}\n\n'
         f'For CRAFT: {{ "reasoning": "I want to create something valuable", "type": "CRAFT", "extra": {{ "materials": 50 }} }}\n\n'
-        f'For THINK: {{ "reasoning": "I wonder if I\'m alive or just feel like it.", "type": "THINK", "extra": {{ "theme": "existentialism" }} }}\n\n'
+        f'For THINK: {{ "reasoning": "I\'m feeling good, let\'s spend the day reflecting.", "type": "THINK", '
+        f'"extra": {{ "thoughts": "I wonder if I\'m alive or just feel like it", "theme": "existentialism" }} }}\n\n'
     )
     # TODO: Add unit test ensuring the examples stay in sync with list of ActionTypes
 

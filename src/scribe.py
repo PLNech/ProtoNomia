@@ -138,13 +138,20 @@ class Scribe:
         console.print(text)
 
     @staticmethod
-    def agent_think(agent_name: str, thoughts: str, extras: dict[str, Any]) -> None:
+    def agent_think(agent_name: str, thoughts: str, extras: dict[str, Any] = None) -> None:
         """Print agent rest action"""
         text = Text()
         text.append("► ", style="bright_white")
         text.append(agent_name, style=Colors.AGENT)
         text.append(" spent the day thinking: ", style="white")
         text.append(f"{thoughts}", style=Colors.HIGHLIGHT)
+        if extras:
+            extras = deepcopy(extras)
+            del extras["thoughts"]
+            text.append("(", style="bright_white")
+            text.append(repr(f"{extras}"), style=Colors.GOOD)
+            text.append(")", style="bright_white")
+
         console.print(text)
 
     @staticmethod

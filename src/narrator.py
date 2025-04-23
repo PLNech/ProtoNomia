@@ -4,6 +4,7 @@ This module uses Ollama to generate narrative events from economic interactions.
 """
 import logging
 import random
+from copy import deepcopy
 
 from src.llm_utils import OllamaClient
 from src.models import (
@@ -192,11 +193,11 @@ class Narrator:
             return f"attempted to buy item {listing_id} from the market"
 
         elif action.type == ActionType.THINK:
-            thoughts = action.get("reasoning", "")
-            extras = action.get("extras", "")
-            if len(extras):
-                extras = f"({extras})"
-            return f"spent the day thinking: {thoughts}{extras}"
+            thoughts = action.get("thoughts", "")
+            extras = deepcopy(action.get("extras", ""))
+            del extras["thoughts"]
+            extras = f"({extras}" if extras else ""
+            return f"spent the day thinking: \"_{thoughts}_{extras}\""
 
         return f"performed an unknown action ({action.type})"
 

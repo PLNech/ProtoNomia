@@ -122,6 +122,7 @@ class ActionType(str, Enum):
     CRAFT = "CRAFT"  # Invent a new item
     THINK = "THINK"  # Spend the day thinking
 
+
 ACTION_DESCRIPTIONS = {ActionType.REST: "Rest to recover energy",
                        ActionType.WORK: "Work at a colony-provided job, get credits for your time",
                        ActionType.BUY: "Purchase from a goods listing.",
@@ -129,8 +130,9 @@ ACTION_DESCRIPTIONS = {ActionType.REST: "Rest to recover energy",
                        ActionType.HARVEST: "Harvest shrooms from a colony farm, get food for your time",
                        ActionType.CRAFT: "Invent an item which could improve your conditions or be sold for credits.",
                        ActionType.THINK: "Spend the day creatively thinking about inventions, culture, philosophy, "
-                                         "etc. YOU MUST PUT YOUR THOUGHTS INSIDE YOUR REASONING FIELD"
+                                         "etc. PUT THOSE THOUGHTS IN extras[\"thoughts\"] "
                        }
+
 
 class MarketListing(BaseModel):
     """A listing on the global market"""
@@ -221,16 +223,17 @@ class AgentActionResponse(BaseModel):
 
     extras: Dict[str, Any] = Field(description="Extra information specific to the action type", default_factory=dict)
 
-
     @model_validator(mode="after")
     def default_reasoning_for_think(cls, model):
-        if (
-            model.type == ActionType.THINK and
-            (model.reasoning is None or model.reasoning.strip() == "")
-        ):
-            model.reasoning = generate_thoughts()
+        thoughts = model.extras.get("thoughts", model.extras.get("thinking", ""))
+        if thoughts:
+            print(f"Observed agent thinking: {thoughts}")
+        if model.type == ActionType.THINK and thoughts.strip() == "":
+            print(f"Observed no thinking... (extras={model.extras})", end="")
+            thoughts = generate_thoughts()
+            model.extras["thoughts"] = thoughts
+            print(f"default thoughts now: {thoughts}")
         return model
-
 
 
 class DailySummaryResponse(BaseModel):

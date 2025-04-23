@@ -8,7 +8,7 @@ DEFAULT_LM = "gemma3:1b"  # Can be changed to gemma:7b or other available Ollama
 # LLM API settings
 OLLAMA_BASE_URL = "http://localhost:11434"
 LLM_TIMEOUT = 30  # seconds
-LLM_MAX_RETRIES = 3
+LLM_MAX_RETRIES = 10
 
 # Simulation settings
 DEFAULT_MAX_DAYS = 10

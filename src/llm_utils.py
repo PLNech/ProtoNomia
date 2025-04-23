@@ -9,7 +9,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ValidationError
 
 from src.models import DailySummaryResponse
-from src.settings import DEFAULT_LM
+from src.settings import DEFAULT_LM, LLM_MAX_RETRIES
 
 # Create TypeVar for the response model
 T = TypeVar('T', bound=BaseModel)
@@ -201,7 +201,7 @@ class OllamaClient:
                 response_model=DailySummaryResponse,
                 examples=[example],
                 system_prompt=system_prompt,
-                max_retries=3,
+                max_retries=LLM_MAX_RETRIES,
             )
         except Exception as e:
             self.logger.error(f"Error generating daily summary: {e}")
