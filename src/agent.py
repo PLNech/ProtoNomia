@@ -7,7 +7,7 @@ import random
 
 from src.generators import generate_thoughts
 from src.llm_utils import OllamaClient
-from src.models import Agent, ActionType, AgentActionResponse, SimulationState, ACTION_DESCRIPTIONS
+from src.models import Agent, ActionType, AgentActionResponse, SimulationState, ACTION_DESCRIPTIONS, GoodType
 from src.settings import DEFAULT_LM, LLM_MAX_RETRIES
 
 # Initialize logger
@@ -275,7 +275,7 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     prompt += f"2. WORK - Earn 100 credits at the colony job\n"
     prompt += f"3. HARVEST - Gather mushrooms from the colony farm\n"
     prompt += (f"4. CRAFT - Create a new item (you can give it a 'name', "
-               f"choose 1 'goodType' else will be at random, "
+               f"choose 1 'goodType' within {GoodType.all()} else will be at random, "
                f"and optional 'materials' amount in credits to improve quality. Adding even few credits will make your craft better!)\n")
 
     if agent.goods:

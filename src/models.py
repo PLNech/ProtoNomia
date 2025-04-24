@@ -33,6 +33,10 @@ class GoodType(str, enum.Enum):
     def is_valid(self, key: str) -> bool:
         return key in [v.value for v in GoodType]
 
+    @staticmethod
+    def all()-> str:
+        return f"{','.join([v.value for v in GoodType])}"
+
 class Good(BaseModel):
     type: GoodType
     quality: float = Field(0.1)
@@ -281,12 +285,10 @@ class AgentActionResponse(BaseModel):
                 del model.extras["good_type"]
 
             existing_materials = model.extras.get("materials", model.extras.get("materials"))
-            if "materialsCost" in model.extras:
-                model.extras["materials"] = model.extras["materialsCost"]
-                del model.extras["materialsCost"]
-            elif "materials_cost" in model.extras:
-                model.extras["materials"] = model.extras["materials_cost"]
-                del model.extras["materials_cost"]
+            if existing_materials:
+                model.extras["materials"] = existing_materials
+            else:
+                model.extras["materials"] = 0
 
         return model
 

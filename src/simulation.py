@@ -205,8 +205,8 @@ class Simulation:
 
             # Save the current state
             self._save_state()
-            self._save_history()
             self.history.add(self.state)
+            self._save_history()
 
             # Move to the next day
             self.state.day += 1
