@@ -1,22 +1,19 @@
 import enum
 import hashlib
 import logging
-import time
 import uuid
-from collections import defaultdict
 from copy import deepcopy
-from datetime import datetime
 from enum import Enum
-from typing import List, Dict, Optional, Literal, Any, DefaultDict, Annotated
+from typing import List, Dict, Optional, Any
 
-from pydantic import BaseModel, Field, validator, field_validator, ConfigDict, model_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 
 from src.generators import generate_thoughts
-
 
 # noinspection PyDataclass
 # The above error seems a false-positive
 logger = logging.getLogger(__name__)
+
 
 # ========== Resource Models ==========
 
@@ -34,8 +31,9 @@ class GoodType(str, enum.Enum):
         return key in [v.value for v in GoodType]
 
     @staticmethod
-    def all()-> str:
+    def all() -> str:
         return f"{','.join([v.value for v in GoodType])}"
+
 
 class Good(BaseModel):
     type: GoodType
@@ -50,7 +48,7 @@ class Good(BaseModel):
 
     def __hash__(self) -> int:
         # Convert None to empty string for consistent hashing
-        str_part = f"{self.name or '' } - {self.type}"
+        str_part = f"{self.name or ''} - {self.type}"
         # Convert float to string with fixed precision
         float_str = f"{self.quality:.6f}"
 
@@ -148,19 +146,19 @@ class ActionType(str, Enum):
     """Types of actions and interactions an agent can take in the Mars economy"""
     # Basic individual actions
     REST = "REST"  # Rest to recover energy
-    WORK = "WORK"  # Work at a colony-provided job, get credits for your time
+    WORK = "WORK"  # Work at a settlement-provided job, get credits for your time
     BUY = "BUY"  # Purchase from a goods listing.
     SELL = "SELL"  # Offer a goods for sale as a new listing.
-    HARVEST = "HARVEST"  # Harvest shrooms from a colony farm, get food for your time
+    HARVEST = "HARVEST"  # Harvest shrooms from a settlement farm, get food for your time
     CRAFT = "CRAFT"  # Invent a new item
     THINK = "THINK"  # Spend the day thinking
 
 
 ACTION_DESCRIPTIONS = {ActionType.REST: "Rest to recover energy",
-                       ActionType.WORK: "Work at a colony-provided job, get credits for your time",
+                       ActionType.WORK: "Work at a settlement-provided job, get credits for your time",
                        ActionType.BUY: "Purchase from a goods listing.",
                        ActionType.SELL: "Offer a goods for sale as a new listing.",
-                       ActionType.HARVEST: "Harvest shrooms from a colony farm, get food for your time",
+                       ActionType.HARVEST: "Harvest shrooms from a settlement farm, get food for your time",
                        ActionType.CRAFT: "Invent an item which could improve your conditions or be sold for credits.",
                        ActionType.THINK: "Spend the day creatively thinking about inventions, culture, philosophy, "
                                          "etc. PUT THOSE THOUGHTS IN extras[\"thoughts\"] "
@@ -279,7 +277,8 @@ class AgentActionResponse(BaseModel):
                     model.extras["goodType"] = existing_type
                 else:
                     model.extras["goodType"] = GoodType.random()
-                    logger.error(f"Invalid good type: {existing_type}. Defaulting to random={model.extras.get('goodType')}.")
+                    logger.error(
+                        f"Invalid good type: {existing_type}. Defaulting to random={model.extras.get('goodType')}.")
             else:
                 model.extras["goodType"] = GoodType.random()
             if hasattr(model.extras, "good_type"):
@@ -302,7 +301,7 @@ class DailySummaryResponse(BaseModel):
     )
 
     content: str = Field(
-        description="A narrative summary of the day's events in the colony. "
+        description="A narrative summary of the day's events in the settlement. "
                     "You can use light markdown highlighting in bold/italics/inlinecode. "
                     "REQUIRED. MIN 10 WORDS MAX 30."
     )
@@ -338,6 +337,7 @@ class SimulationState(BaseModel):
             return len(set([g for (_, g) in only_day]))
         else:
             return len(set([g for inventions in self.inventions.values() for (_, g) in inventions]))
+
 
 class History(BaseModel):
     steps: List[SimulationState] = Field(default_factory=list)

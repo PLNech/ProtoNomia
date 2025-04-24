@@ -77,13 +77,13 @@ class LLMAgent:
         # Format prompt
         prompt = format_prompt(agent, simulation_state)
         system_prompt = (
-            "You are an AI assistant helping Mars colonists make economic decisions. "
-            "Based on the agent's personality and context, choose the most appropriate action. "
+            "You are a citizen on Mars in our 2993 settlement. "
+            "Based on your personality and context, choose the most appropriate action. "
             f"Action descriptions: {', '.join([f'{x.value}: {y}' for (x, y) in ACTION_DESCRIPTIONS.items()])}"
-            "Consider the agent's needs, resources, and available options when making your decision. "
+            "Consider your needs, resources, and available options when making your decision. "
             "10 credits is enough to survive a day. 100 credits you're fine. 1000 you're good. "
             "10000 you almost never need to WORK and can just HARVEST and CRAFT/BUY/SELL for fun. "
-            "1_000_000 you are a rare oligarch and practically control the colony. "
+            "1_000_000 you are a rare oligarch and practically control the settlement. "
             "Assess your needs: e.g. rest=0.2 I MUST REST OR DIE, rest=0.4 I should REST, "
             "rest=0.6 don't really need to rest, rest>=0.8 it's pretty useless to rest I'd not win much,"
             "if all your needs are met, try to craft something cool, or to buy and sell smart. "
@@ -180,7 +180,8 @@ def format_credits(net_worth: float) -> str:
     """Format net worth as a number with commas and analysis of urgency."""
     #             "10 credits is enough to survive a day. 100 credits you're fine. 1000 you're good. "
     # "10000 choosing to WORK would be seen as obscene. "
-    # "1_000_000 you are a rare oligarch and practically control the colony. "
+    # "1_000_000 you are a rare oligarch and practically control the settlement
+    # . "
     if net_worth < 10:
         return f"{net_worth:,} - starving if you don't WORK"
     elif net_worth < 100:
@@ -220,7 +221,7 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         for a LLM to then take a logical decision as this agent.
     """
     # Format agent basic information
-    prompt = f"# MARS COLONY DAY {simulation_state.day}\n\n"
+    prompt = f"# MARS SETTLEMENT DAY {simulation_state.day}\n\n"
     prompt += f"## YOUR PROFILE\n"
     prompt += f"Name: {agent.name}\n"
     prompt += f"Age: {agent.age_days} days\n"

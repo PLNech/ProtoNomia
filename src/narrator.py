@@ -75,9 +75,9 @@ class Narrator:
         prompt = self._format_summary_prompt(state)
 
         system_prompt = (
-            "You are a talented storyteller on Mars, chronicling the daily lives of colonists. "
+            "You are a talented storyteller on Mars, chronicling the daily lives of citizens. "
             "Create engaging, vivid 50-100 words day summaries that highlight economic interactions, conflicts, "
-            "and character development. Focus on how the colonists' needs, desires, thoughts, and actions shape "
+            "and character development. Focus on how the citizens' needs, desires, thoughts, and actions shape "
             "the emerging Martian economy and culture. Use crisp language and evocative science fiction imagery. "
             "NEVER INVENT CHARACTERS NOT IN THE AGENTS LIST: when you have only 1 or 0 agent, make it contemplative."
         )
@@ -105,7 +105,7 @@ class Narrator:
             str: Formatted prompt
         """
         # Basic information
-        prompt = f"# MARS COLONY: DAY {state.day}\n\n"
+        prompt = f"# MARS SETTLEMENT: DAY {state.day}\n\n"
 
         # Agents
         prompt += f"## AGENTS\n"
@@ -174,7 +174,7 @@ class Narrator:
             "## TASK\n"
             "Based on this information, create a narrative summary of Day {state.day} on Mars. "
             "Focus on agent character interactions, economic decisions, and how needs influence behavior. "
-            "Highlight interesting moments, conflicts, and insights into the colony's development.\n"
+            "Highlight interesting moments, conflicts, and insights into the settlement's development.\n"
             "Be careful to only mention events/interactions/motivations that are really in agent action/reasoning logs."
         )
 
@@ -186,10 +186,10 @@ class Narrator:
             return "took time to rest and recover"
 
         elif action.type == ActionType.WORK:
-            return "worked at the colony job to earn credits"
+            return "worked at the settlement job to earn credits"
 
         elif action.type == ActionType.HARVEST:
-            return "harvested mushrooms from the colony farm"
+            return "harvested mushrooms from the settlement farm"
 
         elif action.type == ActionType.CRAFT:
             materials = action.extras.get("materials", 0)
@@ -224,7 +224,7 @@ class Narrator:
         day_titles = [
             "Red Dust and Credits [FALLBACK]",
             "Martian Marketplace Moves [FALLBACK]",
-            "Colony Commerce Continues [FALLBACK]",
+            "Settlement Commerce Continues [FALLBACK]",
             "Survival and Scarcity [FALLBACK]",
             "Mushrooms and Matters [FALLBACK]",
             "Another Sol, Another Dollar [FALLBACK]",
@@ -238,7 +238,7 @@ class Narrator:
         # Get agent with most credits
         wealthy_agent = max(state.agents, key=lambda a: a.credits) if state.agents else None
 
-        summary_text = f"[FALLBACK NARRATIVE] Day {state.day} on Mars saw the colonists continuing their economic activities. "
+        summary_text = f"[FALLBACK NARRATIVE] Day {state.day} on Mars saw the settlement continuing their economic activities. "
 
         if struggling_agent:
             lowest_need = min(struggling_agent.needs.food, struggling_agent.needs.rest, struggling_agent.needs.fun)

@@ -696,7 +696,7 @@ class Simulation:
 
                 listing = {
                     "id": str(uuid.uuid4()),
-                    "seller_id": "colony",  # Colony selling deceased agent's goods
+                    "seller_id": "settlement",  # Settlement selling deceased agent's goods
                     "good": good,
                     "price": discounted_price,
                     "created_at": time.time()
@@ -767,8 +767,8 @@ class Simulation:
             if not hasattr(self, 'state') or name not in [a.name for a in self.state.agents]:
                 return name
 
-        # Fallback with a numbered colonist name if all combinations are used
-        base_name = "Colonist"
+        # Fallback with a numbered citizen name if all combinations are used
+        base_name = "Citizen"
         counter = 1
         while any(a.name == f"{base_name} {counter}" for a in self.state.agents):
             counter += 1

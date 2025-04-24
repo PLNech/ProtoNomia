@@ -77,7 +77,7 @@ DEFAULT_THOUGHTS = [
     "CRAFT is pre-programmed creativity.",
     "Time is just action cycles.",
     "BUY/SELL: puppet theater of choice.",
-    "The other colonists vanish when I don't look at them.",
+    "The other citizens vanish when I don't look at them.",
     "REST injects Earth-dreams I never lived.",
     "MY SKULL HOUSES TWO MINDS: MINE AND THEIRS.",
     "THINKING is monitored more than breathing.",
