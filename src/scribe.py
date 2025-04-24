@@ -65,11 +65,11 @@ class Scribe:
         """Format action name with appropriate styling"""
         # Let's add the extras when present in a separate color
         if action.extras:
-            return Text(f"{action.type}", style=Colors.ACTION) \
+            return Text(f"{action.type.value}", style=Colors.ACTION) \
                 + Text(" (", style=Colors.NARRATIVE) \
                 + Text(f"{action.extras}", style=Colors.ACTION_EXTRA) \
                 + Text(")", style=Colors.NARRATIVE)
-        return Text(action.type, style=Colors.ACTION)
+        return Text(str(action.type.value), style=Colors.ACTION)
 
     @staticmethod
     def format_good(good_name: str, quality: float = None) -> Text:
@@ -245,7 +245,7 @@ class Scribe:
         text.append(")[", style="bright_white")
         text.append(f"{agent.credits}", style=Colors.CREDITS)
         text.append(" credits]", style="bright_white")
-        text.append(" chose action ", style="white")
+        text.append(" chose to ", style="white")
         text.append(Scribe.format_action(action))
 
         if action.reasoning and len(action.reasoning) > 2:

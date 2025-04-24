@@ -260,11 +260,12 @@ class AgentActionResponse(BaseModel):
     def default_action_extras(cls, model):
         # Normalize thoughts and default to cached thoughts otherwise
         thoughts = model.extras.get("thoughts", model.extras.get("thinking", ""))
-        if model.type == ActionType.THINK and thoughts.strip() == "":
+        if model.type == ActionType.THINK:
             if thoughts and thoughts.strip() != "":
-                print(f"Observed agent thinking: {thoughts}")
+                # print(f"Observed agent thinking: {thoughts}")
+                pass
             else:
-                print(f"Observed no thinking... (extras={model.extras})", end="")
+                # print(f"Observed no thinking... (extras={model.extras})", end="")
                 thoughts = generate_thoughts()
                 model.extras["thoughts"] = thoughts
                 model.extras["theme"] = "cached"

@@ -279,10 +279,13 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
                f"and optional 'materials' amount in credits to improve quality. Adding even few credits will make your craft better!)\n")
 
     if agent.goods:
-        prompt += f"5. SELL - Sell one of your items on the market\n"
+        prompt += (f"5. SELL - Sell one of your goods ({','.join([str(g) for g in agent.goods])}) on the market. "
+                   f"When you have several FUN or REST items, it's a great idea to SELL the worst one."
+                   f"If there's no market\n")
 
     if market_listings:
-        prompt += f"6. BUY - Purchase an item from the market\n"
+        prompt += (f"6. BUY - Purchase an item from the market, "
+                   f"current listings: {','.join(str(l) for l in market_listings)}\n")
 
     prompt += f"7. THINK - Spend the day creatively thinking about inventions, culture, philosophy, etc.\n"
 

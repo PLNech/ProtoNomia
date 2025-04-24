@@ -354,19 +354,19 @@ class Simulation:
             self._execute_craft(agent, extras.get("goodType"), extras.get("name"), extras.get("materials"))
         elif action_type == ActionType.SELL:
             # Check if extras contains the required fields
-            if "good_index" in extras and "price" in extras:
-                good_index = extras.get("goodIndex", 0)
+            if "goodIndex" in extras and "price" in extras:
+                good_index = extras.get("goodIndex")
                 price = extras.get("price", 100)
                 self._execute_sell(agent, good_index, price)
             else:
-                logger.error(f"Missing required fields for SELL action: {extras}")
+                logger.error(f"Missing required 'goodIndex' and 'price' fields for SELL action: {extras}")
         elif action_type == ActionType.BUY:
             # Check if extras contains the required fields
             if "listing_id" in extras:
                 listing_id = extras.get("listing_id")
                 self._execute_buy(agent, listing_id)
             else:
-                logger.error(f"Missing required fields for BUY action: {extras}")
+                logger.error(f"Missing required field 'listing_id' for BUY action: {extras}")
         elif action_type == ActionType.THINK:
             self._execute_think(agent, extras)
         else:
