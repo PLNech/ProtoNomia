@@ -1,9 +1,11 @@
 import enum
 import time
 import uuid
+from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime
 from enum import Enum
-from typing import List, Dict, Optional, Literal, Any
+from typing import List, Dict, Optional, Literal, Any, DefaultDict, Annotated
 
 from pydantic import BaseModel, Field, validator, field_validator, ConfigDict, model_validator
 
@@ -259,14 +261,22 @@ class ActionLog(BaseModel):
 class SimulationState(BaseModel):
     """State of the simulation"""
     market: GlobalMarket = Field(default_factory=GlobalMarket)
-    agents: List[Agent] = Field(default_factory=list)
+    agents: list[Agent] = Field(default_factory=list)
     day: int = 0
-    dead_agents: List[Agent] = Field(default_factory=list)
-    actions: List[ActionLog] = Field(default_factory=list)
+    dead_agents: list[Agent] = Field(default_factory=list)
+    actions: list[ActionLog] = Field(default_factory=list)
+    inventions: DefaultDict[int, Annotated[list[Good], Field(default_factory=list)]] = Field(default_factory=list)
+    ideas: DefaultDict[int, Annotated[list[tuple[Agent, str]], Field(default_factory=list)]] = Field(default_factory=list)
 
     def add_action(self, agent: Agent, action: AgentActionResponse) -> None:
         self.actions.append(ActionLog(action=action, agent=agent, day=self.day))
 
     @property
-    def today_actions(self) -> List[ActionLog]:
+    def today_actions(self) -> list[ActionLog]:
         return [a for a in self.actions if a.day is self.day]
+
+class History(BaseModel):
+    steps: List[SimulationState] = Field(default_factory=list)
+
+    def add(self, step: SimulationState):
+        self.steps.append(deepcopy(step))

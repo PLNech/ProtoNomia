@@ -9,7 +9,7 @@ from copy import deepcopy
 from src.llm_utils import OllamaClient
 from src.models import (
     ActionType, SimulationState,
-    DailySummaryResponse, AgentActionResponse, AgentAction
+    DailySummaryResponse, AgentActionResponse, AgentAction, Good
 )
 from src.settings import DEFAULT_LM
 from src.models import Agent, ActionLog
@@ -124,6 +124,15 @@ class Narrator:
                 prompt += f"- {log.agent.name}: {action_desc}{reasoning}\n"
             prompt += "\n"
 
+        # Day's actions
+        today_crafts = state.inventions[state.day]
+        if len(today_crafts):
+            prompt += f"## TODAY'S {len(today_crafts)} INVENTION{'S' if len(today_crafts) > 1 else ''}\n"
+            good: Good
+            for good in today_crafts:
+                prompt += f"- {good.name} ({good.type} of quality {good.quality}\n"
+            prompt += "\n"
+
         # Market activity
         prompt += f"## MARKET ACTIVITY\n"
         if state.market.listings:
@@ -134,6 +143,13 @@ class Narrator:
         else:
             prompt += "The market had no active listings today.\n"
         prompt += "\n"
+
+        # Day's ideas
+        today_thoughts = state.ideas[state.day]
+        if len(today_thoughts):
+            prompt += f"## TODAY'S {len(today_thoughts)} IDEA{'S' if len(today_thoughts) > 1 else ''}\n"
+            prompt += "\n".join(f"{agent.name}: \"{idea}\"" for (agent, idea) in today_thoughts)
+
 
         # Deaths or critical events
         if state.dead_agents:

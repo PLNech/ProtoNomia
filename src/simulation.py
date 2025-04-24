@@ -8,6 +8,7 @@ import os
 import random
 import time
 import uuid
+from copy import deepcopy
 from typing import List, Optional, Dict, Any
 
 import click
@@ -16,7 +17,7 @@ from pydantic import ValidationError
 from src.agent import LLMAgent
 from src.generators import generate_personality, generate_mars_craft_options
 from src.models import (Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, SimulationState,
-                        AgentActionResponse, AgentAction)
+                        AgentActionResponse, AgentAction, History)
 from src.narrator import Narrator
 from src.scribe import Scribe
 from src.settings import DEFAULT_LM, LLM_MAX_RETRIES
@@ -65,7 +66,8 @@ class Simulation:
         self.temperature = temperature
         self.top_p = top_p
         self.top_k = top_k
-        self.state = self._setup_initial_state(starting_credits=starting_credits)
+        self.state: SimulationState = self._setup_initial_state(starting_credits=starting_credits)
+        self.history: History = History()
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         
@@ -203,6 +205,8 @@ class Simulation:
 
             # Save the current state
             self._save_state()
+            self._save_history()
+            self.history.add(self.state)
 
             # Move to the next day
             self.state.day += 1
@@ -395,6 +399,7 @@ class Simulation:
         agent.needs.fun = min(1.0, agent.needs.fun + random.uniform(0.05, 0.5))
 
         thoughts: str = extras.get("thoughts", extras.get("thinking", json.dumps(extras) if extras else ""))
+        self.state.ideas[self.state.day].append((agent, thoughts))
         self.scribe.agent_think(agent.name, thoughts, extras)
         logger.info(f"{agent.name} spent the day thinking: {thoughts}{extras}")
 
@@ -485,6 +490,7 @@ class Simulation:
             quality=quality
         )
         agent.goods.append(item)
+        self.state.inventions[self.state.day].append(item)
 
         # Decrease rest and food, increase fun slightly
         agent.needs.rest = max(0, agent.needs.rest - 0.1)
@@ -706,21 +712,24 @@ class Simulation:
                 self.scribe.deceased_good_added(good.name, agent.name, discounted_price)
                 logger.info(f"Added {good.name} from deceased {agent.name} to market for {discounted_price} credits")
 
+    def _save_history(self) -> None:
+        """
+        Save the current simulation state to a file.
+        """
+        # Save to file
+        history_file = os.path.join(self.output_dir, f"history.json")
+        with open(history_file, 'w') as f:
+            json.dump(self.history.model_dump_json(), f, indent=2)
+
+        logger.info(f"Saved simulation state for day {self.state.day}")
+
     def _save_state(self) -> None:
         """
         Save the current simulation state to a file.
         """
-        # Convert state to JSON-serializable format
-        state_dict = {
-            "day": self.state.day,
-            "agents": [agent.model_dump() for agent in self.state.agents],
-            "market": self.state.market.model_dump()
-        }
-
-        # Save to file
         state_file = os.path.join(self.output_dir, f"day_{self.state.day}_state.json")
         with open(state_file, 'w') as f:
-            json.dump(state_dict, f, indent=2)
+            json.dump(self.state.model_dump_json(), f, indent=2)
 
         logger.info(f"Saved simulation state for day {self.state.day}")
 
