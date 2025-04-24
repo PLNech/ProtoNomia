@@ -6,5 +6,5 @@ click>=8.0.0
 rich>=13.0.0  # For rich text formatting in terminal
 
 # LLM integration
-ollama>=0.0.5
-httpx>=0.23.0 
+instructor==1.7.9
+httpx>=0.23.0
