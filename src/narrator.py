@@ -9,7 +9,7 @@ from copy import deepcopy
 from src.llm_utils import OllamaClient
 from src.models import (
     ActionType, SimulationState,
-    DailySummaryResponse, AgentActionResponse, AgentAction, Good
+    DailySummaryResponse, AgentActionResponse, AgentAction, Good, GoodType
 )
 from src.settings import DEFAULT_LM
 from src.models import Agent, ActionLog
@@ -129,8 +129,9 @@ class Narrator:
         if len(today_crafts):
             prompt += f"## TODAY'S {len(today_crafts)} INVENTION{'S' if len(today_crafts) > 1 else ''}\n"
             good: Good
-            for good in today_crafts:
-                prompt += f"- {good.name} ({good.type} of quality {good.quality}\n"
+            agent: Agent
+            for agent, good in today_crafts:
+                prompt += f"- {good.name} ({good.type} of quality {good.quality}) invented by {agent.name}\n"
             prompt += "\n"
 
         # Market activity
@@ -196,7 +197,7 @@ class Narrator:
             return "crafted a new item"
 
         elif action.type == ActionType.SELL:
-            good_index = action.extras.get("good_index", 0)
+            good_index = action.extras.get("goodIndex", 0)
             price = action.extras.get("price", 0)
 
             if 0 <= good_index < len(agent.goods):
@@ -205,14 +206,14 @@ class Narrator:
             return f"tried to sell an item for {price} credits"
 
         elif action.type == ActionType.BUY:
-            listing_id = action.extras.get("listing_id", "")
+            listing_id = action.extras.get("listingId", "")
             return f"attempted to buy item {listing_id} from the market"
 
         elif action.type == ActionType.THINK:
             thoughts = action.get("thoughts", "")
             extras = deepcopy(action.get("extras", ""))
             del extras["thoughts"]
-            extras = f"({extras}" if extras else ""
+            extras = f"({extras}" if len(extras) else ""
             return f"spent the day thinking: \"_{thoughts}_{extras}\""
 
         return f"performed an unknown action ({action.type})"

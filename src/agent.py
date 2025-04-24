@@ -152,20 +152,20 @@ class LLMAgent:
         elif random_type == ActionType.BUY:
             return AgentActionResponse(
                 type=random_type,
-                extras={"listing_id": "random"},
+                extras={"listingId": "random"},
                 reasoning="[FALLBACK ACTION] Buying something from the market"
             )
         elif random_type == ActionType.SELL:
             return AgentActionResponse(
                 type=random_type,
-                extras={"good_index": 0, "price": random.randint(50, 150)},
+                extras={"goodIndex": 0, "price": random.randint(50, 150)},
                 reasoning="[FALLBACK ACTION] Selling an item"
             )
         elif random_type == ActionType.THINK:
             return AgentActionResponse(
                 type=random_type,
                 reasoning="[FALLBACK ACTION] Pondering about civilization...",
-                extras={"thoughts": generate_thoughts()}
+                extras={"thoughts": generate_thoughts(), "themes": "cached"}
             )
 
         # Default fallback is REST
@@ -255,12 +255,28 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
             prompt += f"- {listing.good.name} ({listing.good.type.value}, quality: {listing.good.quality:.2f}) for {listing.price} credits from {seller_name}\n"
         prompt += "\n"
 
+    # Format inventions
+    prompt += f"## EXISTING INVENTIONS\n"
+    if not simulation_state.inventions:
+        prompt += "Nobody CRAFTED anything yet! Great times for innovators!\n\n"
+    else:
+        for i, inventions in enumerate(simulation_state.inventions.values()):
+            day_count = simulation_state.count_inventions(i)
+            prompt += f"Day {i}: {day_count} inventions:\n"
+            if day_count:
+                for j, invention in enumerate(inventions):
+                    agent, good = invention
+                    prompt += f"{i}. {good.name} ({good.type.value}, quality: {good.quality:.2f}) by {agent.name}\n"
+        prompt += "\n"
+
     # Format available actions
     prompt += f"## AVAILABLE ACTIONS\n"
     prompt += f"1. REST - Recover some rest (0.2)\n"
     prompt += f"2. WORK - Earn 100 credits at the colony job\n"
     prompt += f"3. HARVEST - Gather mushrooms from the colony farm\n"
-    prompt += f"4. CRAFT - Create a new item (can spend credits on materials to improve quality)\n"
+    prompt += (f"4. CRAFT - Create a new item (you can give it a 'name', "
+               f"choose 1 'goodType' else will be at random, "
+               f"and optional 'materials' amount in credits to improve quality. Adding even few credits will make your craft better!)\n")
 
     if agent.goods:
         prompt += f"5. SELL - Sell one of your items on the market\n"
@@ -274,7 +290,8 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     prompt += (
         f"\n## TASK\n"
         f"Based on your profile, resources, needs, and available actions, decide what to do next.\n"
-        f"Think step by step about what would be the most beneficial course of action considering your personality traits and current situation.\n"
+        f"Think step by step about what would be the most beneficial course of action "
+        f"considering your personality traits and current situation.\n"
         f"Return your choice in this format:\n\n"
     )
 
@@ -285,32 +302,35 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         f'  "reasoning": "Why you chose this action",\n'
         # TODO: Add unit test ensuring this type comment stays in sync with list of ActionTypes
         f'  "type": "ACTION_TYPE", // REST, WORK, HARVEST, CRAFT, SELL, BUY, or THINK\n'
-        f'  "extra": {{}} // An object with extra information, may be empty {{}}\n'
+        f'  "extras": {{}} // An object with extra information, may be empty {{}}\n'
         f"}}\n```\n\n"
     )
 
     # Add examples based on action type
     prompt += (
         f"## EXAMPLES\n"
-        f'For REST: {{ "reasoning": "I need to recover my energy", "type": "REST", "extra": {{}} }}\n\n'
-        f'For WORK: {{ "reasoning": "I need to earn credits", "type": "WORK", "extra": {{}} }}\n\n'
-        f'For HARVEST: {{ "reasoning": "I need food", "type": "HARVEST", "extra": {{}} }}\n\n'
-        f'For CRAFT: {{ "reasoning": "I want to create something valuable", "type": "CRAFT", "extra": {{ "materials": 50 }} }}\n\n'
+        f'For REST: {{ "reasoning": "I need to recover my energy", "type": "REST", "extras": {{}} }}\n\n'
+        f'For WORK: {{ "reasoning": "I need to earn credits", "type": "WORK", "extras": {{}} }}\n\n'
+        f'For HARVEST: {{ "reasoning": "I need food", "type": "HARVEST", "extras": {{}} }}\n\n'
+        f'For CRAFT: {{ "reasoning": "I want to create something valuable", "type": "CRAFT", '
+        f'"extras": {{ "materials": 50, "name": "Red soil planter", "goodType": "FUN" }} }}\n\n'
         f'For THINK: {{ "reasoning": "I\'m feeling good, let\'s spend the day reflecting.", "type": "THINK", '
-        f'"extra": {{ "thoughts": "I wonder if I\'m alive or just feel like it", "theme": "existentialism" }} }}\n\n'
+        f'"extras": {{ "thoughts": "I wonder if I\'m alive or just feel like it", "theme": "existentialism" }} }}\n\n'
     )
     # TODO: Add unit test ensuring the examples stay in sync with list of ActionTypes
 
     if agent.goods:
-        prompt += f'For SELL: {{ "reasoning": "I want to sell my TV, to use credits for materials and craft something better.", "type": "SELL", "extra": {{ "good_index": 0, "price": 100 }} }}\n\n'
+        prompt += (f'For SELL: {{ "reasoning": "I want to sell my TV, to use credits for materials and craft something better.", '
+                   f'"type": "SELL", "extras": {{ "goodIndex": 0, "price": 100 }} }}\n\n')
 
     if market_listings:
-        prompt += f'For BUY: {{ "reasoning": "I need this item and can afford it.", "type": "BUY", "extra": {{ "listing_id": "{market_listings[0].id}" }} }}\n\n'
+        prompt += (f'For BUY: {{ "reasoning": "I need this item and can afford it.", '
+                   f'"type": "BUY", "extras": {{ "listingId": "{market_listings[0].id}" }} }}\n\n')
 
     # Add a critical reminder
     prompt += (
-        f"IMPORTANT: Your response must be valid JSON with 'reasoning', 'type', and 'extra' fields.\n"
-        f"The 'extra' field MUST be a JSON object (not a string or other type), even if empty: {{}}\n"
+        f"IMPORTANT: Your response must be valid JSON with 'reasoning', 'type', and 'extras' fields.\n"
+        f"The 'extras' field MUST be a JSON object (not a string or other type), even if empty: {{}}\n"
     )
 
     return prompt

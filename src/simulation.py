@@ -70,7 +70,7 @@ class Simulation:
         self.history: History = History()
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        
+
         # Initialize the scribe for rich text output
         self.scribe = Scribe()
 
@@ -94,7 +94,6 @@ class Simulation:
 
         self._craft_options = generate_mars_craft_options()
 
-
         # Ensure output directory exists
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Initialized simulation with {num_agents} agents for {max_days} days using model {model_name}")
@@ -114,7 +113,8 @@ class Simulation:
             personality_str = generate_personality()
 
         new_agent = Agent(id=id, name=name, age_days=age_days,
-                          personality=AgentPersonality(personality=personality_str), credits=starting_credits, needs=needs,
+                          personality=AgentPersonality(personality=personality_str), credits=starting_credits,
+                          needs=needs,
                           goods=goods)
         return new_agent
 
@@ -226,6 +226,10 @@ class Simulation:
 
         # Decay agent needs at the start of the day
         self._decay_agent_needs()
+
+        # Prepare for new inventions and ideas
+        self.state.inventions[self.state.day] = []
+        self.state.ideas[self.state.day] = []
 
         # Process agent actions
         agent_actions = self._process_agent_actions()
@@ -347,17 +351,17 @@ class Simulation:
         elif action_type == ActionType.HARVEST:
             self._execute_harvest(agent)
         elif action_type == ActionType.CRAFT:
-            self._execute_craft(agent, extras.get("materials", 0))
+            self._execute_craft(agent, extras.get("goodType"), extras.get("name"), extras.get("materials"))
         elif action_type == ActionType.SELL:
-            # Check if extra contains the required fields
+            # Check if extras contains the required fields
             if "good_index" in extras and "price" in extras:
-                good_index = extras.get("good_index", 0)
+                good_index = extras.get("goodIndex", 0)
                 price = extras.get("price", 100)
                 self._execute_sell(agent, good_index, price)
             else:
                 logger.error(f"Missing required fields for SELL action: {extras}")
         elif action_type == ActionType.BUY:
-            # Check if extra contains the required fields
+            # Check if extras contains the required fields
             if "listing_id" in extras:
                 listing_id = extras.get("listing_id")
                 self._execute_buy(agent, listing_id)
@@ -448,7 +452,7 @@ class Simulation:
             f"New food level: {agent.needs.food:.2f}"
         )
 
-    def _execute_craft(self, agent: Agent, materials_cost: int) -> None:
+    def _execute_craft(self, agent: Agent, good_type: GoodType, name: str = None, materials_cost: int = 0) -> None:
         """
         Execute CRAFT action for an agent.
 
@@ -460,6 +464,8 @@ class Simulation:
         if materials_cost < 0:
             materials_cost = 0
         if materials_cost > agent.credits:
+            logger.warning(f"Agent {agent.name} tried to spend {materials_cost} but has only {agent.credits}. "
+                           f"Going all in with cost={agent.credits}!")
             materials_cost = agent.credits
 
         # Deduct the cost
@@ -471,26 +477,14 @@ class Simulation:
         random_quality = random.uniform(0, 0.2)
         quality = min(1.0, base_quality + materials_quality + random_quality)
 
-        # Create a random item type with a probability distribution
-        item_type_roll = random.random()
-        if item_type_roll < 0.4:  # 40% chance for tool
-            item_type = GoodType.FOOD
-            name = random.choice(self._craft_options["FOOD"])
-        elif item_type_roll < 0.8:  # 40% chance for luxury
-            item_type = GoodType.FUN
-            name = random.choice(self._craft_options["FUN"])
-        else:  # 20% chance for food
-            item_type = GoodType.REST
-            name = random.choice(self._craft_options["REST"])
-
         # Create and add the item
         item = Good(
             name=name,
-            type=item_type,
+            type=good_type,
             quality=quality
         )
         agent.goods.append(item)
-        self.state.inventions[self.state.day].append(item)
+        self.state.inventions[self.state.day].append((agent, item))
 
         # Decrease rest and food, increase fun slightly
         agent.needs.rest = max(0, agent.needs.rest - 0.1)
@@ -627,10 +621,10 @@ class Simulation:
 
         # Use rich output for user-facing log
         self.scribe.agent_buy(
-            agent.name, 
-            listing["good"].name, 
-            listing["good"].type.value, 
-            listing["good"].quality, 
+            agent.name,
+            listing["good"].name,
+            listing["good"].type.value,
+            listing["good"].quality,
             listing["price"]
         )
         logger.info(
@@ -651,7 +645,7 @@ class Simulation:
             # Use rich markdown formatting for the narrative
             self.scribe.narrative_title(narrative.title)
             self.scribe.narrative_content(narrative.content, self.state)
-            
+
             logger.info(f"Day {self.state.day} Narrative: {narrative.title}\n{narrative.content}")
 
             # Save narrative to file
@@ -741,7 +735,7 @@ class Simulation:
         # Diverse first names from various cultural backgrounds, including futuristic and AI-inspired names
         first_names = [
             # Human names from different cultures
-            "Aisha", "Carlos", "Elena", "Hiroshi", "Kwame", "Maria", "Nikolai", "Priya", "Sanjay", "Zara", 
+            "Aisha", "Carlos", "Elena", "Hiroshi", "Kwame", "Maria", "Nikolai", "Priya", "Sanjay", "Zara",
             # Futuristic/Sci-fi inspired names
             "Nova", "Orion", "Aria", "Zephyr", "Kai", "Luna", "Phoenix", "Stellar", "Cosmo", "Nebula",
             # AI/Transhuman inspired names
@@ -772,7 +766,7 @@ class Simulation:
         for name in all_names:
             if not hasattr(self, 'state') or name not in [a.name for a in self.state.agents]:
                 return name
-        
+
         # Fallback with a numbered colonist name if all combinations are used
         base_name = "Colonist"
         counter = 1

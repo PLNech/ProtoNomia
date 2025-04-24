@@ -273,6 +273,8 @@ class Scribe:
         """Print narrative content with markdown rendering"""
         lines = content.split('\n')
         all_agent_names = []
+        # Identify agent names and highlight in the narrative
+        # TODO: Same for goods names
         for agent in state.agents:
             all_agent_names.append(agent.name)
             if len(agent.name.split(' ')) == 2:

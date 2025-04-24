@@ -1,4 +1,6 @@
 import enum
+import hashlib
+import logging
 import time
 import uuid
 from collections import defaultdict
@@ -14,15 +16,22 @@ from src.generators import generate_thoughts
 
 # noinspection PyDataclass
 # The above error seems a false-positive
-
+logger = logging.getLogger(__name__)
 
 # ========== Resource Models ==========
 
 class GoodType(str, enum.Enum):
-    FOOD = "food"
-    REST = "rest"
-    FUN = "fun"
+    FOOD = "FOOD"
+    REST = "REST"
+    FUN = "FUN"
 
+    @classmethod
+    def random(cls) -> "GoodType":
+        return random.choice([v for v in GoodType])
+
+    @classmethod
+    def is_valid(self, key: str) -> bool:
+        return key in [v.value for v in GoodType]
 
 class Good(BaseModel):
     type: GoodType
@@ -34,6 +43,24 @@ class Good(BaseModel):
     def clamp_quality(cls, v: float) -> float:
         """Automatically clamp quality between 0 and 1"""
         return max(0.0, min(1.0, v))
+
+    def __hash__(self) -> int:
+        # Convert None to empty string for consistent hashing
+        str_part = f"{self.name or '' } - {self.type}"
+        # Convert float to string with fixed precision
+        float_str = f"{self.quality:.6f}"
+
+        # Serialize components in consistent order
+        hash_input = (
+                str_part.encode() +
+                float_str.encode()
+        )
+
+        # Generate SHA256 hash and convert to integer
+        return int.from_bytes(
+            hashlib.sha256(hash_input).digest(),
+            byteorder='big'
+        )
 
 
 # Initialize a global counter for agent IDs
@@ -216,7 +243,7 @@ class AgentActionResponse(BaseModel):
         description="Your short step-by-step reasoning for choosing this Action Type. "
                     "You must talk first person as the agent, don't break character, don't mention validation. "
                     "MAX 20 words. Use abbrevs and Mars 2993-setting appropriate urban slang. "
-                    "Keep it EXTRA SHORT and concise. e.g \"I'm low on food, gotta harvest some shrooms 2day\""
+                    "Keep it SUPER SHORT and concise. e.g \"I'm low on food, gotta harvest some shrooms 2day\""
     )
 
     type: ActionType = Field(
@@ -226,15 +253,41 @@ class AgentActionResponse(BaseModel):
     extras: Dict[str, Any] = Field(description="Extra information specific to the action type", default_factory=dict)
 
     @model_validator(mode="after")
-    def default_reasoning_for_think(cls, model):
+    def default_action_extras(cls, model):
+        # Normalize thoughts and default to cached thoughts otherwise
         thoughts = model.extras.get("thoughts", model.extras.get("thinking", ""))
-        if thoughts:
-            print(f"Observed agent thinking: {thoughts}")
         if model.type == ActionType.THINK and thoughts.strip() == "":
-            print(f"Observed no thinking... (extras={model.extras})", end="")
-            thoughts = generate_thoughts()
-            model.extras["thoughts"] = thoughts
-            print(f"default thoughts now: {thoughts}")
+            if thoughts and thoughts.strip() != "":
+                print(f"Observed agent thinking: {thoughts}")
+            else:
+                print(f"Observed no thinking... (extras={model.extras})", end="")
+                thoughts = generate_thoughts()
+                model.extras["thoughts"] = thoughts
+                model.extras["theme"] = "cached"
+                print(f"default thoughts now: {thoughts}")
+
+        # Normalize good types/materials, with default to random type
+        elif model.type == ActionType.CRAFT:
+            existing_type = model.extras.get("goodType", model.extras.get("good_type"))
+            if existing_type:
+                if GoodType.is_valid(existing_type):
+                    model.extras["goodType"] = existing_type
+                else:
+                    model.extras["goodType"] = GoodType.random()
+                    logger.error(f"Invalid good type: {existing_type}. Defaulting to random={model.extras.get('goodType')}.")
+            else:
+                model.extras["goodType"] = GoodType.random()
+            if hasattr(model.extras, "good_type"):
+                del model.extras["good_type"]
+
+            existing_materials = model.extras.get("materials", model.extras.get("materials"))
+            if "materialsCost" in model.extras:
+                model.extras["materials"] = model.extras["materialsCost"]
+                del model.extras["materialsCost"]
+            elif "materials_cost" in model.extras:
+                model.extras["materials"] = model.extras["materials_cost"]
+                del model.extras["materials_cost"]
+
         return model
 
 
@@ -265,8 +318,9 @@ class SimulationState(BaseModel):
     day: int = 0
     dead_agents: list[Agent] = Field(default_factory=list)
     actions: list[ActionLog] = Field(default_factory=list)
-    inventions: DefaultDict[int, Annotated[list[Good], Field(default_factory=list)]] = Field(default_factory=list)
-    ideas: DefaultDict[int, Annotated[list[tuple[Agent, str]], Field(default_factory=list)]] = Field(default_factory=list)
+    # TODO: DefaultDicts would have been nicer, but I didn't manage to make them work with BaseModel...
+    inventions: dict[int, list[tuple[Agent, Good]]] = Field(default_factory=dict)
+    ideas: dict[int, list[tuple[Agent, str]]] = Field(default_factory=dict)
 
     def add_action(self, agent: Agent, action: AgentActionResponse) -> None:
         self.actions.append(ActionLog(action=action, agent=agent, day=self.day))
@@ -275,8 +329,21 @@ class SimulationState(BaseModel):
     def today_actions(self) -> list[ActionLog]:
         return [a for a in self.actions if a.day is self.day]
 
+    def count_inventions(self, on_day: Optional[int] = 0) -> int:
+        if on_day:
+            only_day = self.inventions[on_day]
+            return len(set([g for (_, g) in only_day]))
+        else:
+            return len(set([g for inventions in self.inventions.values() for (_, g) in inventions]))
+
 class History(BaseModel):
     steps: List[SimulationState] = Field(default_factory=list)
 
     def add(self, step: SimulationState):
         self.steps.append(deepcopy(step))
+
+
+if __name__ == '__main__':
+    import random
+
+    print(GoodType.random())
