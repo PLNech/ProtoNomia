@@ -330,7 +330,7 @@ class Simulation:
         """
         action_type = action_response.type
         extras = action_response.extras or {}
-        reasoning = action_response.reasoning
+        reasoning = action_response.reasoning or "" # TODO: This is not clean, surely we can improve models
 
         logger.info(f"Agent {agent.name} chose action {action_type} with reasoning: {reasoning}")
 
