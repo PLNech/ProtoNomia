@@ -194,17 +194,17 @@ def format_credits(net_worth: float) -> str:
 def format_need(need: float) -> str:
     """Format a need value as a percentage and analysis of urgency."""
     if need < 0.2:
-        return f"{need:.2%} - MUST BE ADDRESSED IMMEDIATELY!"
+        return f"{need:.2%}: MUST BE ADDRESSED IMMEDIATELY!"
     elif need < 0.4:
-        return f"{need:.2%} - SHOULD BE ADDRESSED SOON!"
+        return f"{need:.2%}: SHOULD BE ADDRESSED SOON!"
     elif need < 0.6:
-        return f"{need:.2%} - you're good for today."
+        return f"{need:.2%}: good for today."
     elif need < 0.8:
-        return f"{need:.2%} - you're doing well."
+        return f"{need:.2%}: doing well."
     elif need < 0.9:
-        return f"{need:.2%} - you're doing great."
+        return f"{need:.2%}: doing great."
     else:
-        return f"{need:.2%} - amazing!"
+        return f"{need:.2%}: amazing!"
 
 
 def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:

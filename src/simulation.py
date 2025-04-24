@@ -38,7 +38,7 @@ class Simulation:
             max_days: int = 30,
             starting_credits: Optional[int] = None,
             model_name: str = DEFAULT_LM,
-            output_dir: str = "output",
+            output_dir: str = "../output",
             temperature: float = 0.7,
             top_p: float = 0.9,
             top_k: int = 40,
@@ -713,7 +713,7 @@ class Simulation:
         # Save to file
         history_file = os.path.join(self.output_dir, f"history.json")
         with open(history_file, 'w') as f:
-            json.dump(self.history.model_dump_json(), f, indent=2)
+            f.write(self.history.model_dump_json(indent=0))
 
         logger.info(f"Saved simulation state for day {self.state.day}")
 

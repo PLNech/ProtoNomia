@@ -6,6 +6,7 @@ import logging
 import random
 from copy import deepcopy
 
+from src.agent import format_need
 from src.llm_utils import OllamaClient
 from src.models import (
     ActionType, SimulationState,
@@ -111,7 +112,7 @@ class Narrator:
         for agent in state.agents:
             prompt += f"- {agent.name}: "
             prompt += f"Credits: {agent.credits}, "
-            prompt += f"Needs: Food={agent.needs.food:.2f}, Rest={agent.needs.rest:.2f}, Fun={agent.needs.fun:.2f}\n"
+            prompt += f"Needs: Food={format_need(agent.needs.food)}, Rest={agent.needs.rest:.2f}, Fun={agent.needs.fun:.2f}\n"
         prompt += "\n"
 
         # Day's actions
