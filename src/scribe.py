@@ -124,6 +124,20 @@ class Scribe:
         console.print(text)
 
     @staticmethod
+    def agent_eat(agent_name: str, food_name: str, updated, amount: float) -> None:
+        """Print agent eat automatic action."""
+        text = Text()
+        text.append("► ", style="bright_white")
+        text.append(agent_name, style=Colors.AGENT)
+        text.append(" was hungry and ate ", style="white")
+        text.append(f"{food_name}", style=Colors.GOOD)
+        text.append(": ", style="white")
+        text.append(f"{updated - amount:.2f}", style=Colors.NEED_LOW)
+        text.append(" -> ", style="white")
+        text.append(f"{updated:.2f}", style=Colors.NEED)
+        console.print(text)
+
+    @staticmethod
     def agent_rest(agent_name: str, updated: float, amount: float) -> None:
         """Print agent rest action"""
         text = Text()
@@ -243,7 +257,7 @@ class Scribe:
         text.append("(", style="bright_white")
         text.append(repr(agent.needs), style=Colors.NEED)
         text.append(")[", style="bright_white")
-        text.append(f"{agent.credits}", style=Colors.CREDITS)
+        text.append(f"{agent.credits:2}", style=Colors.CREDITS)
         text.append(" credits]", style="bright_white")
         text.append(" chose to ", style="white")
         text.append(Scribe.format_action(action))

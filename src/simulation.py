@@ -17,7 +17,7 @@ from pydantic import ValidationError
 from src.agent import LLMAgent
 from src.generators import generate_personality, generate_mars_craft_options
 from src.models import (Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, SimulationState,
-                        AgentActionResponse, AgentAction, History)
+                        AgentActionResponse, AgentAction, History, MarketListing)
 from src.narrator import Narrator
 from src.scribe import Scribe
 from src.settings import DEFAULT_LM, LLM_MAX_RETRIES
@@ -104,7 +104,11 @@ class Simulation:
                                                      fun=random.uniform(0.5, 0.8)), starting_credits=None,
                       goods=None) -> Agent:
         if starting_credits is None:
-            starting_credits = random.randint(20, 50000)
+            starting_credits = random.uniform(2000, 500000)
+            if random.random() < 0.9:
+                starting_credits /= 10
+                if random.random() < 0.9:
+                    starting_credits /= 10
         if not goods:
             goods = self._generate_starting_goods()
         if not name:
@@ -253,6 +257,14 @@ class Simulation:
             # Log critically low needs
             if agent.needs.food < 0.2:
                 logger.warning(f"{agent.name} has critically low food: {agent.needs.food:.2f}")
+                food_items: list[Good] = [g for g in agent.goods if g.type == GoodType.FOOD]
+                if food_items:
+                    highest_quality = max(i.quality for i in food_items)
+                    highest_food = [f for f in food_items if f.quality == highest_quality][0]
+                    agent.items.remove(highest_food)
+                    agent.needs.food += highest_quality
+                    self.scribe.agent_eat(agent.name, highest_food.name, agent.needs.food, highest_quality)
+                    logger.info(f"{agent.name} ate their {highest_food.name}, now at {agent.need.food}")
             if agent.needs.rest < 0.2:
                 logger.warning(f"{agent.name} has critically low rest: {agent.needs.rest:.2f}")
 
@@ -382,7 +394,7 @@ class Simulation:
             agent: The agent resting
         """
         # Increase rest by a fixed amount
-        rest_amount = 0.2
+        rest_amount = 0.5
         agent.needs.rest = min(1.0, agent.needs.rest + rest_amount)
         # Slightly increase fun
         agent.needs.fun = min(1.0, agent.needs.fun + 0.05)
@@ -526,9 +538,10 @@ class Simulation:
             "price": price,
             "created_at": time.time()
         }
+        listing = MarketListing(**listing)
 
         # Add to market listings
-        self.state.market["listings"].append(listing)
+        self.state.market.listings.append(listing)
 
         # Slightly decrease food and rest, increase fun
         agent.needs.food = max(0, agent.needs.food - 0.05)

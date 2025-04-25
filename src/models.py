@@ -158,7 +158,7 @@ ACTION_DESCRIPTIONS = {ActionType.REST: "Rest to recover energy",
                        ActionType.WORK: "Work at a settlement-provided job, get credits for your time",
                        ActionType.BUY: "Purchase from a goods listing.",
                        ActionType.SELL: "Offer a goods for sale as a new listing.",
-                       ActionType.HARVEST: "Harvest shrooms from a settlement farm, get food for your time",
+                       ActionType.HARVEST: "Harvest shrooms from a settlement farm, you get food for your time and eat a bit while working",
                        ActionType.CRAFT: "Invent an item which could improve your conditions or be sold for credits.",
                        ActionType.THINK: "Spend the day creatively thinking about inventions, culture, philosophy, "
                                          "etc. PUT THOSE THOUGHTS IN extras[\"thoughts\"] "
@@ -267,7 +267,7 @@ class AgentActionResponse(BaseModel):
                 thoughts = generate_thoughts()
                 model.extras["thoughts"] = thoughts
                 model.extras["theme"] = "cached"
-                print(f"default thoughts now: {thoughts}")
+                # print(f"default thoughts now: {thoughts}")
 
         # Normalize good types/materials, with default to random type
         elif model.type == ActionType.CRAFT:

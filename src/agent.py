@@ -86,7 +86,7 @@ class LLMAgent:
             "1_000_000 you are a rare oligarch and practically control the settlement. "
             "Assess your needs: e.g. rest=0.2 I MUST REST OR DIE, rest=0.4 I should REST, "
             "rest=0.6 don't really need to rest, rest>=0.8 it's pretty useless to rest I'd not win much,"
-            "if all your needs are met, try to craft something cool, or to buy and sell smart. "
+            "if all your needs are met, try to craft something unique with a cool name, or to buy and sell smart. "
             "Your response MUST be valid JSON with a 'type' field for the action type and an 'extras' field "
             "containing any additional information needed for the action in a proper JSON object format. "
             "IMPORTANT: Make sure 'extras' is a JSON object/dictionary, not a string or any other type. "
@@ -178,10 +178,6 @@ class LLMAgent:
 
 def format_credits(net_worth: float) -> str:
     """Format net worth as a number with commas and analysis of urgency."""
-    #             "10 credits is enough to survive a day. 100 credits you're fine. 1000 you're good. "
-    # "10000 choosing to WORK would be seen as obscene. "
-    # "1_000_000 you are a rare oligarch and practically control the settlement
-    # . "
     if net_worth < 10:
         return f"{net_worth:,} - starving if you don't WORK"
     elif net_worth < 100:
@@ -189,7 +185,7 @@ def format_credits(net_worth: float) -> str:
     elif net_worth < 1000:
         return f"{net_worth:,} - you're doing fine, no need to WORK anytime soon"
     else:
-        return f"{net_worth:,} - you're very rich, all needs can be met with credits!"
+        return f"{net_worth:,} - you're very rich, WORK would be obscene, all needs can be met with credits!"
 
 
 def format_need(need: float) -> str:
@@ -277,7 +273,8 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     prompt += f"3. HARVEST - Gather mushrooms from the colony farm\n"
     prompt += (f"4. CRAFT - Create a new item (you can give it a 'name', "
                f"choose 1 'goodType' within {GoodType.all()} else will be at random, "
-               f"and optional 'materials' amount in credits to improve quality. Adding even few credits will make your craft better!)\n")
+               f"and optional 'materials' amount in credits to improve quality. Adding credits as you can, "
+               f"even few, can make your craft better!)\n")
 
     if agent.goods:
         prompt += (f"5. SELL - Sell one of your goods ({','.join([str(g) for g in agent.goods])}) on the market. "

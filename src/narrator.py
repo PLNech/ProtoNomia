@@ -133,7 +133,7 @@ class Narrator:
             agent: Agent
             for agent, good in today_crafts:
                 prompt += f"- {good.name} ({good.type} of quality {good.quality}) invented by {agent.name}\n"
-            prompt += "\n"
+            prompt += "Make sure to comment if some are complementary, opposed, or ripoffs.\n"
 
         # Market activity
         prompt += f"## MARKET ACTIVITY\n"
