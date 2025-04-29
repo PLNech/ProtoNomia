@@ -5,6 +5,8 @@ This module handles the integration with language models for agent decision maki
 import logging
 import random
 
+from pydantic import Field
+
 from src.generators import generate_thoughts
 from src.llm_utils import OllamaClient
 from src.models import Agent, ActionType, AgentActionResponse, SimulationState, ACTION_DESCRIPTIONS, GoodType
@@ -107,7 +109,8 @@ class LLMAgent:
         except Exception as e:
             logger.error(f"Error generating action for {agent.name}: {e}")
             # Fallback to a random action if LLM fails
-            return self._fallback_action(agent)
+            fallback_action = self._fallback_action(agent)
+            return fallback_action
 
     def _fallback_action(self, agent: Agent = None) -> AgentActionResponse:
         """Generate a fallback random action when LLM fails"""
@@ -223,6 +226,14 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     prompt += f"Age: {agent.age_days} days\n"
     prompt += f"Personality: {agent.personality.personality}\n"
     prompt += f"Credits: {format_credits(agent.credits)}\n\n"
+
+    if agent.history:
+        recent_history = agent.history[-3:]
+        prompt += f"Your recent history:\n"
+        for (i, entry) in enumerate(recent_history):
+            credits_score, needs, goods, action = entry
+            prompt += f"Entry {i}: {credits_score} credits, needs: {repr(needs)}, goods={goods} -> you chose to: {action.type} (extras={action.extras} / reasoning={action.reasoning}\n"
+
 
     # Format agent needs
     prompt += f"## YOUR NEEDS\n"

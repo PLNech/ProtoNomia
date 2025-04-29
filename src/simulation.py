@@ -300,7 +300,7 @@ class Simulation:
                     # If successful, add to list of actions
                     if action:
                         agent_actions.append((agent, action))
-                        # Use rich output for user-facing log
+                        agent.record(response)
                 except ValidationError as validation_error:
                     logger.error(f"ValidationError: {validation_error.errors()}")
                     raise
@@ -317,16 +317,16 @@ class Simulation:
 
                         # Use fallback action
                         try:
-                            fallback_response = self.llm_agent._fallback_action(agent)
+                            fallback_response: AgentActionResponse = self.llm_agent._fallback_action(agent)
                             action = self._execute_agent_action(agent, fallback_response)
                             if action:
                                 agent_actions.append((agent, action))
                                 # Use rich output for user-facing log
                                 self.scribe.agent_action(agent, action)
                                 logger.info(f"{agent.name} performed fallback action: {action.type}")
+                                agent.record(fallback_response)
                         except Exception as fallback_error:
                             logger.error(f"Even fallback action failed for {agent.name}: {fallback_error}")
-
         return agent_actions
 
     def _execute_agent_action(self, agent: Agent, action_response: AgentActionResponse) -> AgentAction:
@@ -342,7 +342,7 @@ class Simulation:
         """
         action_type = action_response.type
         extras = action_response.extras or {}
-        reasoning = action_response.reasoning or "" # TODO: This is not clean, surely we can improve models
+        reasoning = action_response.reasoning or ""  # TODO: This is not clean, surely we can improve models
 
         logger.info(f"Agent {agent.name} chose action {action_type} with reasoning: {reasoning}")
 

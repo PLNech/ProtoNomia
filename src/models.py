@@ -139,7 +139,12 @@ class Agent(BaseModel):
     personality: AgentPersonality = "no personality."
     credits: float = 0
     needs: AgentNeeds = Field(default_factory=AgentNeeds)
-    goods: List[Good] = Field(default_factory=list)
+    goods: list[Good] = Field(default_factory=list)
+
+    history: list[tuple[float, AgentNeeds, list[Good], "AgentActionResponse"]] = Field(default_factory=list)
+
+    def record(self, action: "AgentActionResponse"):
+        self.history.append((deepcopy(self.credits), deepcopy(self.needs), deepcopy(self.goods), action))
 
 
 class ActionType(str, Enum):
