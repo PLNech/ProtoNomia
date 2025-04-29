@@ -229,10 +229,11 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
 
     if agent.history:
         recent_history = agent.history[-agent.memory:]
-        prompt += f"Your recent history:\n"
+        prompt += f"Your personal journal includes {len(recent_history)} recent history entries:\n"
         for (i, entry) in enumerate(recent_history):
             credits_score, needs, goods, action = entry
             prompt += f"Entry {i}: {credits_score} credits, needs: {repr(needs)}, goods={goods} -> you chose to: {action.type} (extras={action.extras} / reasoning={action.reasoning}\n"
+        prompt += "DO YOUR BEST TO THINK AND ACT LONG TERM BASED ON YOUR MEMORY\n"
 
 
     # Format agent needs
