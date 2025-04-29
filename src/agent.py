@@ -228,7 +228,7 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     prompt += f"Credits: {format_credits(agent.credits)}\n\n"
 
     if agent.history:
-        recent_history = agent.history[-3:]
+        recent_history = agent.history[-agent.memory:]
         prompt += f"Your recent history:\n"
         for (i, entry) in enumerate(recent_history):
             credits_score, needs, goods, action = entry
