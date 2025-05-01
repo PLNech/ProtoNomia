@@ -3,16 +3,14 @@ ProtoNomia Scribe
 A utility class for rich console output formatting using cyberpunk colors.
 """
 import re
-
 from copy import deepcopy
-from typing import Dict, Any
+from typing import Any
 
 from rich.console import Console
+from rich.status import Status
 from rich.text import Text
 
 from src.models import SimulationState, Agent, AgentAction, AgentActionResponse
-
-from rich.text import Text
 
 
 def rich_replace(text: str, old: str, new: Text) -> Text:
@@ -42,6 +40,7 @@ class Colors:
     HIGHLIGHT = "bright_white"  # White for highlights
     DAY = "bright_red"  # Red for day markers
     NARRATIVE = "white"  # Default for narrative text
+    STATUS = "cyan1" # Cyan for status indicators
 
 
 class Scribe:
@@ -49,6 +48,49 @@ class Scribe:
     The Scribe is responsible for all rich text output in the simulation.
     It formats and colorizes output for better readability and aesthetic.
     """
+
+    # Add class-level status attribute
+    _status = None
+
+    @classmethod
+    def status(cls, message, spinner="dots"):
+        """
+        Create and display a status indicator with spinner.
+        Returns the status object that can be used as a context manager.
+
+        Args:
+            message: The status message to display
+            spinner: Name of the spinner animation
+
+        Returns:
+            Status: A Rich Status object that can be used as a context manager
+        """
+        # If there's an existing status, stop it
+        if cls._status is not None:
+            cls._status.stop()
+
+        # Create status text with cyberpunk styling
+        status_text = Text()
+        status_text.append("⚡ ", style="bright_yellow")
+        status_text.append(message, style=Colors.STATUS)
+
+        # Create and start the status
+        cls._status = Status(
+            status_text,
+            console=console,
+            spinner=spinner,
+            spinner_style="bright_cyan",
+            speed=1.5
+        )
+        cls._status.start()
+        return cls._status
+
+    @classmethod
+    def stop_status(cls):
+        """Stop the current status indicator if one exists."""
+        if cls._status is not None:
+            cls._status.stop()
+            cls._status = None
 
     @staticmethod
     def format_agent(agent_name: str) -> Text:
@@ -330,3 +372,7 @@ class Scribe:
         """Print content as markdown"""
         from rich.markdown import Markdown
         console.print(Markdown(content))
+
+    @staticmethod
+    def set_loading(is_loading: bool = True) -> None:
+        pass

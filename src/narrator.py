@@ -10,10 +10,11 @@ from src.agent import format_need
 from src.llm_utils import OllamaClient
 from src.models import (
     ActionType, SimulationState,
-    DailySummaryResponse, AgentActionResponse, AgentAction, Good, GoodType
+    DailySummaryResponse, AgentActionResponse, AgentAction, Good
 )
-from src.settings import DEFAULT_LM
 from src.models import Agent, ActionLog
+from src.scribe import Scribe
+from src.settings import DEFAULT_LM
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -84,14 +85,18 @@ class Narrator:
         )
 
         try:
-            # Generate structured daily summary
-            summary = self.ollama_client.generate_daily_summary(
-                prompt=prompt,
-                system_prompt=system_prompt
-            )
+            # Show status indicator while generating the narrative
+            with Scribe.status(f"Generating narrative for Day {state.day}...", spinner="aesthetic"):
+                # Generate structured daily summary
+                summary = self.ollama_client.generate_daily_summary(
+                    prompt=prompt,
+                    system_prompt=system_prompt
+                )
             return summary
         except Exception as e:
             logger.error(f"Error generating daily summary: {e}")
+            # Make sure to stop any status if there's an exception
+            Scribe.stop_status()
             # Create fallback summary
             return self._generate_fallback_summary(state)
 
@@ -158,6 +163,8 @@ class Narrator:
         if len(today_songs):
             prompt += f"## TODAY'S {len(today_songs)} SONG{'S' if len(today_songs) > 1 else ''}\n"
             prompt += "\n".join(f"{agent.name}: \"{song}\"" for (agent, song) in today_songs)
+        else:
+            prompt += "## TODAY'S SONGS: NONE! It could be rad to be the one to COMPOSE one ;)"
 
         # Deaths or critical events
         if state.dead_agents:

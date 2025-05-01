@@ -5,11 +5,10 @@ This module handles the integration with language models for agent decision maki
 import logging
 import random
 
-from pydantic import Field
-
 from src.generators import generate_thoughts
 from src.llm_utils import OllamaClient
 from src.models import Agent, ActionType, AgentActionResponse, SimulationState, ACTION_DESCRIPTIONS, GoodType
+from src.scribe import Scribe
 from src.settings import DEFAULT_LM, LLM_MAX_RETRIES
 
 # Initialize logger
@@ -94,18 +93,22 @@ class LLMAgent:
         )
 
         try:
-            # Generate structured action response
-            action: AgentActionResponse = self.ollama_client.generate_structured(
-                prompt=prompt,
-                response_model=AgentActionResponse,
-                system_prompt=system_prompt
-            )
+            # Show status indicator while generating the response
+            with Scribe.status(f"Querying LLM for {agent.name}'s next action..."):
+                # Generate structured action response
+                action: AgentActionResponse = self.ollama_client.generate_structured(
+                    prompt=prompt,
+                    response_model=AgentActionResponse,
+                    system_prompt=system_prompt
+                )
 
             logger.info(f"[{simulation_state.day}] Generated action for {agent.name}: {action.type}")
             return action
 
         except Exception as e:
             logger.error(f"Error generating action for {agent.name}: {e}")
+            # Make sure to stop any status if there's an exception
+            Scribe.stop_status()
             # Fallback to a random action if LLM fails
             fallback_action = self._fallback_action(agent)
             return fallback_action
@@ -233,7 +236,6 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
             prompt += f"Entry {i}: {credits_score} credits, needs: {repr(needs)}, goods={goods} -> you chose to: {action.type} (extras={action.extras} / reasoning={action.reasoning}\n"
         prompt += "DO YOUR BEST TO THINK AND ACT LONG TERM BASED ON YOUR MEMORY\n"
 
-
     # Format agent needs
     prompt += f"## YOUR NEEDS\n"
     # percentage would help agent better understand their needs.
@@ -337,8 +339,9 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     # TODO: Add unit test ensuring the examples stay in sync with list of ActionTypes
 
     if agent.goods:
-        prompt += (f'For SELL: {{ "reasoning": "I want to sell my TV, to use credits for materials and craft something better.", '
-                   f'"type": "SELL", "extras": {{ "goodIndex": 0, "price": 100 }} }}\n\n')
+        prompt += (
+            f'For SELL: {{ "reasoning": "I want to sell my TV, to use credits for materials and craft something better.", '
+            f'"type": "SELL", "extras": {{ "goodIndex": 0, "price": 100 }} }}\n\n')
 
     if market_listings:
         prompt += (f'For BUY: {{ "reasoning": "I need this item and can afford it.", '

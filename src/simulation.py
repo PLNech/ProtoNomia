@@ -234,6 +234,7 @@ class Simulation:
         # Prepare for new inventions and ideas
         self.state.inventions[self.state.day] = []
         self.state.ideas[self.state.day] = []
+        self.state.songs[self.state.day] = []
 
         # Process agent actions
         agent_actions = self._process_agent_actions()
@@ -303,11 +304,16 @@ class Simulation:
                         agent.record(response)
                 except ValidationError as validation_error:
                     logger.error(f"ValidationError: {validation_error.errors()}")
+                    # Ensure we stop any status indicator that might be running
+                    self.scribe.stop_status()
                     raise
                 except Exception as e:
                     retries += 1
                     logger.error(
                         f"Error processing action for {agent.name} (attempt {retries}/{self.max_retries}): {e}")
+
+                    # Ensure we stop any status indicator that might be running
+                    self.scribe.stop_status()
 
                     if retries < self.max_retries:
                         logger.info(f"Retrying in {self.retry_delay} seconds...")
@@ -327,6 +333,11 @@ class Simulation:
                                 agent.record(fallback_response)
                         except Exception as fallback_error:
                             logger.error(f"Even fallback action failed for {agent.name}: {fallback_error}")
+                            # Ensure we stop any status indicator that might be running
+                            self.scribe.stop_status()
+
+        # Make sure any lingering status is stopped before returning
+        self.scribe.stop_status()
         return agent_actions
 
     def _execute_agent_action(self, agent: Agent, action_response: AgentActionResponse) -> AgentAction:
@@ -653,6 +664,7 @@ class Simulation:
             f"quality: {listing.good.quality:.2f}) for {listing.price} credits"
         )
 
+
     def _generate_daily_narrative(self, agent_actions: list[tuple[Agent, AgentAction]]) -> None:
         """
         Generate a narrative description of the day's events.
@@ -675,22 +687,13 @@ class Simulation:
                 f.write(f"# {narrative.title}\n\n")
                 f.write(narrative.content)
 
-            # Try to generate a daily summary
-            try:
-                summary = self.narrator.generate_daily_summary(self.state)
-                logger.info(f"Generated daily summary for day {self.state.day}")
-
-                # Save summary to file
-                summary_file = os.path.join(self.output_dir, f"day_{self.state.day}_summary.txt")
-                with open(summary_file, 'w') as f:
-                    f.write(f"# Day {self.state.day} Summary\n\n")
-                    f.write(summary.content)
-
-            except Exception as e:
-                logger.error(f"Failed to generate daily summary: {e}")
+            # Make sure any lingering status is stopped
+            self.scribe.stop_status()
 
         except Exception as e:
             logger.error(f"Failed to generate narrative: {e}")
+            # Make sure to stop any status if there's an exception
+            self.scribe.stop_status()
 
     def _check_agent_status(self) -> None:
         """

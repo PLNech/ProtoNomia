@@ -171,7 +171,7 @@ class ActionType(str, Enum):
 
 
 ACTION_DESCRIPTIONS = {ActionType.REST: "Rest to recover energy",
-                       ActionType.WORK: "Work at a settlement-provided job, get credits for your time",
+                       ActionType.WORK: "Work at a low-pay settlement-provided job, get few credits for your time",
                        ActionType.BUY: "Purchase from a goods listing.",
                        ActionType.SELL: "Offer a goods for sale as a new listing.",
                        ActionType.HARVEST: "Harvest shrooms from a settlement farm, you get food for your time and eat a bit while working",
@@ -319,7 +319,7 @@ class DailySummaryResponse(BaseModel):
 
     content: str = Field(
         description="A narrative summary of the day's events in the settlement. "
-                    "You can use light markdown highlighting in bold/italics/inlinecode. "
+                    "You can use light markdown highlighting in bold/italics/inline code. "
                     "REQUIRED. MIN 10 WORDS MAX 30."
     )
 

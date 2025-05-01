@@ -7,14 +7,11 @@
     <list default="true" id="cd0a6fa9-59ac-4f67-a548-a6ea9a9a0846" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/llm_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/llm_utils.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/narrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/narrator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/scribe.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/scribe.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/simulation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/llm/test_ollama_integration.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/llm/test_ollama_integration.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/unit/test_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/unit/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/unit/test_narrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_narrator.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -101,7 +98,7 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/simulation.py" />
-      <option name="PARAMETERS" value="--log-level=ERROR -n 2 -d 7 -m phi4" />
+      <option name="PARAMETERS" value="--log-level=ERROR -n 2 -d 7 -m gemma3:1b" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
@@ -228,29 +225,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>297</line>
-          <option name="timeStamp" value="18" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>293</line>
-          <option name="timeStamp" value="27" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>679</line>
+          <line>721</line>
           <option name="timeStamp" value="31" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>676</line>
+          <line>718</line>
           <option name="timeStamp" value="35" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <condition expression="good_type == None" language="Python" />
-          <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>482</line>
-          <option name="timeStamp" value="38" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/models.py</url>
@@ -263,24 +244,24 @@
           <option name="timeStamp" value="61" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/models.py</url>
-          <line>282</line>
-          <option name="timeStamp" value="63" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/src/models.py</url>
-          <line>278</line>
-          <option name="timeStamp" value="64" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>654</line>
+          <line>665</line>
           <option name="timeStamp" value="68" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/scribe.py</url>
-          <line>288</line>
+          <line>330</line>
           <option name="timeStamp" value="69" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/simulation.py</url>
+          <line>734</line>
+          <option name="timeStamp" value="70" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/src/simulation.py</url>
+          <line>714</line>
+          <option name="timeStamp" value="71" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

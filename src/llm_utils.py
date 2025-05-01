@@ -77,23 +77,7 @@ class OllamaClient:
             self.logger.warning(f"Failed to connect to Ollama: {e}")
             return False
 
-    # def _retry_with_backoff(self, func, *args, **kwargs):
-    #     """Helper method to retry API calls with a simple retry mechanism"""
-    #     retries = self.max_retries
-    #     last_exception = None
-
-    #     while retries > 0:
-    #         try:
-    #             return func(*args, **kwargs)
-    #         except Exception as e:
-    #             last_exception = e
-    #             self.logger.warning(f"API call failed, {retries} retries left: {e}")
-    #             retries -= 1
-    #             if retries > 0:
-    #                 time.sleep(2)  # Simple fixed delay
-
-    #     # If we've exhausted retries, raise the last exception
-    #     raise last_exception if last_exception else Exception("API call failed after retries")
+    # src/llm_utils.py - Update generate_structured to use status
 
     def generate_structured(
             self,
@@ -107,7 +91,7 @@ class OllamaClient:
     ) -> T:
         """
         Generate structured output from Ollama using Instructor.
-        
+
         Args:
             prompt: The user prompt
             response_model: Pydantic model for structured response
@@ -116,7 +100,7 @@ class OllamaClient:
             temperature: Optional temperature override
             max_tokens: Optional max tokens override
             max_retries: Optional max retries override
-            
+
         Returns:
             An instance of the response_model
         """
@@ -140,7 +124,7 @@ class OllamaClient:
             format_guidance = f"""Your response must be only valid JSON conforming to this response schema: 
             {response_model.model_json_schema()}
             {examples_str}
-            
+
             IMPORTANT: Make sure all fields have the correct type according to the schema.
             """
 
@@ -148,6 +132,9 @@ class OllamaClient:
             messages.append({"role": "user", "content": prompt})
 
             try:
+                # We won't directly use status here, as it's better to have it in the higher-level methods
+                # that call this function, so they can provide more specific status messages
+
                 # Use Instructor's create method with structured response and retry mechanism
                 response = self.client.chat.completions.create(
                     model=self.model_name,
@@ -185,17 +172,18 @@ class OllamaClient:
     ) -> DailySummaryResponse:
         """
         Generate a daily summary response.
-        
+
         Args:
             prompt: The prompt for summary generation
             system_prompt: System prompt for the model
-            
+
         Returns:
             A DailySummaryResponse object
         """
         example = DailySummaryResponse(title="example title", content="Example content with **highlights**.")
 
         try:
+            # Status indication is handled by the calling function in the Narrator class
             return self.generate_structured(
                 prompt=prompt,
                 response_model=DailySummaryResponse,
