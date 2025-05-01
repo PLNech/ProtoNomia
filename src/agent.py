@@ -291,7 +291,8 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     if agent.goods:
         prompt += (f"5. SELL - Sell one of your goods ({','.join([str(g) for g in agent.goods])}) on the market. "
                    f"When you have several FUN or REST items, it's a great idea to SELL the worst one."
-                   f"If there's no market\n")
+                   f"If there's no market, you could be a marketmaker and set very high prices!!!\n"
+                   f"SELL orders MUST include a extras.price")
 
     if market_listings:
         prompt += (f"6. BUY - Purchase an item from the market, "

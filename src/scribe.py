@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.status import Status
 from rich.text import Text
 
-from src.models import SimulationState, Agent, AgentAction, AgentActionResponse
+from src.models import SimulationState, Agent, AgentAction, AgentActionResponse, Song
 
 
 def rich_replace(text: str, old: str, new: Text) -> Text:
@@ -265,6 +265,28 @@ class Scribe:
         text.append(" credits", style="white")
         console.print(text)
 
+    @staticmethod
+    def agent_song(agent_name: str, song: Song, extras: dict[str, Any] = None) -> None:
+        # agent.name, song, extras
+        # RENDER COLORFUL METADATA VIA: o COMPOSE ({'title': 'Red Planet Serenade', 'genre':
+        # 'Synthwave', 'bpm': 128, 'tags': ['space', 'nostalgic', 'futuristic'], 'description': 'A melodic journey through the Martian landscapes.'})
+        """Print agent rest action"""
+        text = Text()
+        text.append("► ", style="bright_white")
+        text.append(agent_name, style=Colors.AGENT)
+        text.append(" spent the day composing a new song : ", style="white")
+        text.append(f"{song.title}\n", style=Colors.HIGHLIGHT)
+        if song.description:
+            text.append(f"{song.description}\n", style=Colors.NARRATIVE)
+
+        # if extras:
+        #     extras = deepcopy(extras)
+        #     del extras["thoughts"]
+        #     text.append("(", style="bright_white")
+        #     text.append(repr(f"{extras}"), style=Colors.GOOD)
+        #     text.append(")", style="bright_white")
+
+        console.print(text)
     @staticmethod
     def agent_buy(agent_name: str, good_name: str, good_type: str, quality: float, price: int) -> None:
         """Print agent buy action"""

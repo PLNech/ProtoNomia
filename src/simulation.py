@@ -262,7 +262,7 @@ class Simulation:
                 if food_items:
                     highest_quality = max(i.quality for i in food_items)
                     highest_food = [f for f in food_items if f.quality == highest_quality][0]
-                    agent.items.remove(highest_food)
+                    agent.goods.remove(highest_food)
                     agent.needs.food += highest_quality
                     self.scribe.agent_eat(agent.name, highest_food.name, agent.needs.food, highest_quality)
                     logger.info(f"{agent.name} ate their {highest_food.name}, now at {agent.need.food}")

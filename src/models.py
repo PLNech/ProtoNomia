@@ -307,6 +307,11 @@ class AgentActionResponse(BaseModel):
             else:
                 model.extras["materials"] = 0
 
+        elif model.type == ActionType.SELL:
+            existing_price = model.extras.get("price")
+            if not existing_price:
+                model.extras["price"] = 100 # Default price
+
         return model
 
 
@@ -334,6 +339,7 @@ class Song(BaseModel):
     genre: str
     bpm: int
     tags: list[str]
+    description: Optional[str] = None
 
     def __str__(self) -> str:
         return f"{self.title} ({self.genre}@{self.bpm}BPM) - {'[' + ','.join(self.tags) + ']' if len(self.tags) else ''}"
