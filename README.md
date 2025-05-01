@@ -1,6 +1,15 @@
-# ProtoNomia
+# ProtoNomia 🌃🏢🪐🪙🫧
 
 Mars colony economic simulation with LLM-powered agents.
+
+----
+![image](https://github.com/user-attachments/assets/097827eb-556b-46b2-bfb7-5d81198f64a1)
+_Cosmo inventing a new moss-based statue while Zara created a relatively tastier Nutrient Paste._
+
+![image](https://github.com/user-attachments/assets/f645f1b6-f686-4ab6-88e6-d4432d0e6624)
+_Birth of a Market_
+
+----
 
 ## Features
 
