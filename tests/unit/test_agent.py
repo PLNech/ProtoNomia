@@ -21,7 +21,7 @@ class TestAgentModule(unittest.TestCase):
         # Create an agent instance for testing
         self.agent = Agent(
             name="Test Agent", 
-            personality=AgentPersonality(personality="Cautious and methodical")
+            personality=AgentPersonality(text="Cautious and methodical")
         )
         
         # Create a simulation state for testing

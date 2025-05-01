@@ -153,6 +153,11 @@ class Narrator:
             prompt += f"## TODAY'S {len(today_thoughts)} IDEA{'S' if len(today_thoughts) > 1 else ''}\n"
             prompt += "\n".join(f"{agent.name}: \"{idea}\"" for (agent, idea) in today_thoughts)
 
+        # Day's songs
+        today_songs = state.songs[state.day]
+        if len(today_songs):
+            prompt += f"## TODAY'S {len(today_songs)} SONG{'S' if len(today_songs) > 1 else ''}\n"
+            prompt += "\n".join(f"{agent.name}: \"{song}\"" for (agent, song) in today_songs)
 
         # Deaths or critical events
         if state.dead_agents:

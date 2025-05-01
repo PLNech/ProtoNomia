@@ -17,7 +17,7 @@ from pydantic import ValidationError
 from src.agent import LLMAgent
 from src.generators import generate_personality, generate_mars_craft_options
 from src.models import (Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, SimulationState,
-                        AgentActionResponse, AgentAction, History, MarketListing)
+                        AgentActionResponse, AgentAction, History, MarketListing, Song)
 from src.narrator import Narrator
 from src.scribe import Scribe
 from src.settings import DEFAULT_LM, LLM_MAX_RETRIES
@@ -117,7 +117,7 @@ class Simulation:
             personality_str = generate_personality()
 
         new_agent = Agent(id=id, name=name, age_days=age_days,
-                          personality=AgentPersonality(personality=personality_str), credits=starting_credits,
+                          personality=AgentPersonality(text=personality_str), credits=starting_credits,
                           needs=needs,
                           goods=goods)
         return new_agent
@@ -381,6 +381,8 @@ class Simulation:
                 logger.error(f"Missing required field 'listing_id' for BUY action: {extras}")
         elif action_type == ActionType.THINK:
             self._execute_think(agent, extras)
+        elif action_type == ActionType.COMPOSE:
+            self._execute_compose(agent, extras)
         else:
             logger.error(f"Unknown action type: {action_type}")
 
@@ -418,6 +420,23 @@ class Simulation:
         self.state.ideas[self.state.day].append((agent, thoughts))
         self.scribe.agent_think(agent.name, thoughts, extras)
         logger.info(f"{agent.name} spent the day thinking: {thoughts}{extras}")
+
+    def _execute_compose(self, agent: Agent, extras: dict[str, Any]) -> None:
+        """
+        Execute REST action for an agent.
+
+        Args:
+            agent: The agent resting
+        """
+        # Increase rest by a small amount
+        rest_amount = 0.1
+        agent.needs.rest = min(1.0, agent.needs.rest + rest_amount)
+        # Increase fun by random medium-large amount
+        agent.needs.fun = min(1.0, agent.needs.fun + random.uniform(0.25, 1))
+        song: Song = Song(**extras)
+        self.state.songs[self.state.day].append((agent, song))
+        self.scribe.agent_song(agent.name, song, extras)
+        logger.info(f"{agent.name} created a new song: {song}")
 
     def _execute_work(self, agent: Agent) -> None:
         """
@@ -529,19 +548,8 @@ class Simulation:
             logger.error(f"Invalid price {price} set by {agent.name}")
             return
 
-        # Get the good and create a listing
         good = agent.goods.pop(good_index)
-        listing = {
-            "id": str(uuid.uuid4()),
-            "seller_id": agent.id,
-            "good": good,
-            "price": price,
-            "created_at": time.time()
-        }
-        listing = MarketListing(**listing)
-
-        # Add to market listings
-        self.state.market.listings.append(listing)
+        self.state.market.add_listing(agent.id, good, price, self.state.day)
 
         # Slightly decrease food and rest, increase fun
         agent.needs.food = max(0, agent.needs.food - 0.05)
@@ -566,25 +574,25 @@ class Simulation:
         # Find the listing
         listing_index = -1
         listing = None
-        for i, lst in enumerate(self.state.market["listings"]):
-            if lst["id"] == listing_id:
+        for i, lst in enumerate(self.state.market.listings):
+            if lst.id == listing_id:
                 listing_index = i
                 listing = lst
                 break
 
         # Handle "random" listing ID (choose an affordable one if possible)
         if listing_id == "random":
-            affordable_listings = []
-            for i, lst in enumerate(self.state.market["listings"]):
-                if lst["price"] <= agent.credits:
+            affordable_listings: list[MarketListing] = []
+            for i, lst in enumerate(self.state.market.listings):
+                if lst.price <= agent.credits:
                     affordable_listings.append((i, lst))
 
             if affordable_listings:
                 listing_index, listing = random.choice(affordable_listings)
-            elif self.state.market["listings"]:
+            elif self.state.market.listings:
                 # Just pick a random one if none are affordable
-                listing_index = random.randint(0, len(self.state.market["listings"]) - 1)
-                listing = self.state.market["listings"][listing_index]
+                listing_index = random.randint(0, len(self.state.market.listings) - 1)
+                listing = self.state.market.listings[listing_index]
 
         # Validate listing exists
         if listing is None:
@@ -592,15 +600,15 @@ class Simulation:
             return
 
         # Check if agent has enough credits
-        if agent.credits < listing["price"]:
+        if agent.credits < listing.price:
             logger.error(
-                f"{agent.name} cannot afford {listing['good'].name} at {listing['price']} credits "
+                f"{agent.name} cannot afford {listing.good.name} at {listing.price} credits "
                 f"(has {agent.credits})"
             )
             return
 
         # Check if agent is buying their own listing
-        if listing["seller_id"] == agent.id:
+        if listing.seller_id == agent.id:
             logger.error(f"{agent.name} attempted to buy their own listing")
             return
 
@@ -610,18 +618,18 @@ class Simulation:
 
         # Find the seller and give them the credits
         for seller in self.state.agents:
-            if seller.id == listing["seller_id"]:
-                seller.credits += listing["price"]
+            if seller.id == listing.seller_id:
+                seller.credits += listing.price
                 # Use rich output for user-facing log
-                self.scribe.agent_sale(seller.name, listing["price"])
+                self.scribe.agent_sale(seller.name, listing.price)
                 logger.info(f"{seller.name} received {listing['price']} credits from sale")
                 break
 
         # Remove the listing from the market
-        self.state.market["listings"].pop(listing_index)
+        self.state.market.listings.pop(listing_index)
 
         # Update agent needs based on what they bought
-        good_type = listing["good"].type
+        good_type = listing.good.type
         if good_type == GoodType.FOOD:
             # Consuming some of the food
             agent.needs.food = min(1.0, agent.needs.food + 0.2)
@@ -635,14 +643,14 @@ class Simulation:
         # Use rich output for user-facing log
         self.scribe.agent_buy(
             agent.name,
-            listing["good"].name,
-            listing["good"].type.value,
-            listing["good"].quality,
-            listing["price"]
+            listing.good.name,
+            listing.good.type.value,
+            listing.good.quality,
+            listing.price
         )
         logger.info(
-            f"{agent.name} bought {listing['good'].name} ({listing['good'].type.value}, "
-            f"quality: {listing['good'].quality:.2f}) for {listing['price']} credits"
+            f"{agent.name} bought {listing.good.name} ({listing.good.type.value}, "
+            f"quality: {listing.good.quality:.2f}) for {listing.price} credits"
         )
 
     def _generate_daily_narrative(self, agent_actions: list[tuple[Agent, AgentAction]]) -> None:
@@ -707,14 +715,7 @@ class Simulation:
                 base_price = int(good.quality * 100)
                 discounted_price = int(base_price * 0.7)  # 30% discount
 
-                listing = {
-                    "id": str(uuid.uuid4()),
-                    "seller_id": "settlement",  # Settlement selling deceased agent's goods
-                    "good": good,
-                    "price": discounted_price,
-                    "created_at": time.time()
-                }
-                self.state.market["listings"].append(listing)
+                self.state.market.add_listing("settlement", good, discounted_price, self.state.day)
                 # Use rich output for user-facing log
                 self.scribe.deceased_good_added(good.name, agent.name, discounted_price)
                 logger.info(f"Added {good.name} from deceased {agent.name} to market for {discounted_price} credits")

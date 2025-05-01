@@ -7,7 +7,14 @@
     <list default="true" id="cd0a6fa9-59ac-4f67-a548-a6ea9a9a0846" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/narrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/narrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/scribe.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/scribe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/simulation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/llm/test_ollama_integration.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/llm/test_ollama_integration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/unit/test_agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_agent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/unit/test_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/unit/test_narrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_narrator.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -190,8 +197,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-PY-251.23774.444" />
-        <option value="bundled-python-sdk-890ed5b35930-d9c5bdb153f4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.23774.444" />
+        <option value="bundled-python-sdk-4ce43fa16dc8-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.21565.33" />
       </set>
     </attachedChunks>
   </component>
@@ -232,43 +238,43 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>671</line>
+          <line>679</line>
           <option name="timeStamp" value="31" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>668</line>
+          <line>676</line>
           <option name="timeStamp" value="35" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <condition expression="good_type == None" language="Python" />
           <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>463</line>
+          <line>482</line>
           <option name="timeStamp" value="38" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/models.py</url>
-          <line>285</line>
+          <line>296</line>
           <option name="timeStamp" value="58" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/models.py</url>
-          <line>290</line>
+          <line>301</line>
           <option name="timeStamp" value="61" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/models.py</url>
-          <line>271</line>
+          <line>282</line>
           <option name="timeStamp" value="63" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/models.py</url>
-          <line>267</line>
+          <line>278</line>
           <option name="timeStamp" value="64" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/src/simulation.py</url>
-          <line>646</line>
+          <line>654</line>
           <option name="timeStamp" value="68" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">

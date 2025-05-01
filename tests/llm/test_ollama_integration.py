@@ -42,7 +42,7 @@ class TestOllamaIntegration(unittest.TestCase):
         # Create test agent
         cls.agent = Agent(
             name="Test Agent",
-            personality=AgentPersonality(personality="Pragmatic and efficient, focused on optimization"),
+            personality=AgentPersonality(text="Pragmatic and efficient, focused on optimization"),
             credits=100,
             needs=AgentNeeds(food=0.7, rest=0.5, fun=0.8)
         )

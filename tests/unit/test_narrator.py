@@ -21,11 +21,11 @@ class TestNarrator(unittest.TestCase):
         # Create agents and simulation state for testing
         self.agent1 = Agent(
             name="Agent 1",
-            personality=AgentPersonality(personality="Cautious")
+            personality=AgentPersonality(text="Cautious")
         )
         self.agent2 = Agent(
             name="Agent 2",
-            personality=AgentPersonality(personality="Adventurous")
+            personality=AgentPersonality(text="Adventurous")
         )
 
         # Create simulation state

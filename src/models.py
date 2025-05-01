@@ -77,8 +77,7 @@ def agent_id_factory() -> str:
 
 
 class AgentPersonality(BaseModel):
-    personality: str
-    # TODO: Could be developed into e.g. OCEAN model
+    text: str # TODO: Could be developed into e.g. OCEAN model
     """A basic description of the agent's personality."""
 
 
@@ -149,7 +148,17 @@ class Agent(BaseModel):
 
 
 class ActionType(str, Enum):
-    """Types of actions and interactions an agent can take in the Mars economy"""
+    """Types of actions and interactions an agent can take in the Mars economy.
+
+    When adding a new one, you must:
+    - Define it here
+    - Add it to the below ACTION_DESCRIPTIONS with a straightforward description.
+    - Ensure it's presented with eventual extras in format_prompt()
+    - Add to SimulationState a state tracking of this new action consequences
+    - Add a simulation.execute_XXX function
+    - Add to the narrator some new state description
+
+    """
     # Basic individual actions
     REST = "REST"  # Rest to recover energy
     WORK = "WORK"  # Work at a settlement-provided job, get credits for your time
@@ -158,6 +167,7 @@ class ActionType(str, Enum):
     HARVEST = "HARVEST"  # Harvest shrooms from a settlement farm, get food for your time
     CRAFT = "CRAFT"  # Invent a new item
     THINK = "THINK"  # Spend the day thinking
+    COMPOSE = "COMPOSE"  # Make some music
 
 
 ACTION_DESCRIPTIONS = {ActionType.REST: "Rest to recover energy",
@@ -167,7 +177,8 @@ ACTION_DESCRIPTIONS = {ActionType.REST: "Rest to recover energy",
                        ActionType.HARVEST: "Harvest shrooms from a settlement farm, you get food for your time and eat a bit while working",
                        ActionType.CRAFT: "Invent an item which could improve your conditions or be sold for credits.",
                        ActionType.THINK: "Spend the day creatively thinking about inventions, culture, philosophy, "
-                                         "etc. PUT THOSE THOUGHTS IN extras[\"thoughts\"] "
+                                         "etc. PUT THOSE THOUGHTS IN extras[\"thoughts\"] ",
+                       ActionType.COMPOSE: "Be creative and make a new song to improve the vibe or express your feelings"
                        }
 
 
@@ -318,6 +329,15 @@ class ActionLog(BaseModel):
     agent: Agent
     day: int
 
+class Song(BaseModel):
+    title: str
+    genre: str
+    bpm: int
+    tags: list[str]
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.genre}@{self.bpm}BPM) - {'[' + ','.join(self.tags) + ']' if len(self.tags) else ''}"
+
 
 class SimulationState(BaseModel):
     """State of the simulation"""
@@ -329,6 +349,7 @@ class SimulationState(BaseModel):
     # TODO: DefaultDicts would have been nicer, but I didn't manage to make them work with BaseModel...
     inventions: dict[int, list[tuple[Agent, Good]]] = Field(default_factory=dict)
     ideas: dict[int, list[tuple[Agent, str]]] = Field(default_factory=dict)
+    songs: dict[int, list[tuple[Agent, Song]]] = Field(default_factory=dict)
 
     def add_action(self, agent: Agent, action: AgentActionResponse) -> None:
         self.actions.append(ActionLog(action=action, agent=agent, day=self.day))

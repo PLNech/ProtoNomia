@@ -80,12 +80,10 @@ class LLMAgent:
         prompt = format_prompt(agent, simulation_state)
         system_prompt = (
             "You are a citizen on Mars in our 2993 settlement. "
-            "Based on your personality and context, choose the most appropriate action. "
-            f"Action descriptions: {', '.join([f'{x.value}: {y}' for (x, y) in ACTION_DESCRIPTIONS.items()])}"
+            f"Based on your personality ({agent.personality.text}) and context, choose the most appropriate action. "
             "Consider your needs, resources, and available options when making your decision. "
             "10 credits is enough to survive a day. 100 credits you're fine. 1000 you're good. "
-            "10000 you almost never need to WORK and can just HARVEST and CRAFT/BUY/SELL for fun. "
-            "1_000_000 you are a rare oligarch and practically control the settlement. "
+            "5k+ you could never WORK and mostly COMPOSE or THINK, you'd just need to HARVEST/CRAFT/BUY/SELL sometimes. "
             "Assess your needs: e.g. rest=0.2 I MUST REST OR DIE, rest=0.4 I should REST, "
             "rest=0.6 don't really need to rest, rest>=0.8 it's pretty useless to rest I'd not win much,"
             "if all your needs are met, try to craft something unique with a cool name, or to buy and sell smart. "
@@ -224,7 +222,7 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     prompt += f"## YOUR PROFILE\n"
     prompt += f"Name: {agent.name}\n"
     prompt += f"Age: {agent.age_days} days\n"
-    prompt += f"Personality: {agent.personality.personality}\n"
+    prompt += f"Personality: {agent.personality.text}\n"
     prompt += f"Credits: {format_credits(agent.credits)}\n\n"
 
     if agent.history:
@@ -298,6 +296,8 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
                    f"current listings: {','.join(str(l) for l in market_listings)}\n")
 
     prompt += f"7. THINK - Spend the day creatively thinking about inventions, culture, philosophy, etc.\n"
+    prompt += (f"8. COMPOSE - Create some music to elevate your mood, channel your creative feelings,"
+               f"entertain your fellow citizens, or to try to reach eternal posterity as a musical shooting star!\n")
 
     # Task description
     prompt += (
@@ -305,6 +305,7 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         f"Based on your profile, resources, needs, and available actions, decide what to do next.\n"
         f"Think step by step about what would be the most beneficial course of action "
         f"considering your personality traits and current situation.\n"
+        f"Action descriptions: {', '.join([f'{x.value}: {y}' for (x, y) in ACTION_DESCRIPTIONS.items()])}"
         f"Return your choice in this format:\n\n"
     )
 
@@ -329,6 +330,9 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         f'"extras": {{ "materials": 50, "name": "Red soil planter", "goodType": "FUN" }} }}\n\n'
         f'For THINK: {{ "reasoning": "I\'m feeling good, let\'s spend the day reflecting.", "type": "THINK", '
         f'"extras": {{ "thoughts": "I wonder if I\'m alive or just feel like it", "theme": "existentialism" }} }}\n\n'
+        f'For COMPOSE: {{ "reasoning": "I\'m bored, let\'s get grooving!", "type": "COMPOSE", '
+        f'"extras": {{ "title": "Robot Rock", "genre": "Techno", "bpm": "120", "tags":["groovy", "off-beat", "guitar"],'
+        f'"description": "fast paced french touch revival" }} }}\n\n'
     )
     # TODO: Add unit test ensuring the examples stay in sync with list of ActionTypes
 

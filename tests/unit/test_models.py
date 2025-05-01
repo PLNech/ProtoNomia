@@ -16,10 +16,10 @@ class TestModels(unittest.TestCase):
         """Test creating an agent."""
         agent = Agent(
             name="Test Agent", 
-            personality=AgentPersonality(personality="Cautious")
+            personality=AgentPersonality(text="Cautious")
         )
         self.assertEqual(agent.name, "Test Agent")
-        self.assertEqual(agent.personality.personality, "Cautious")
+        self.assertEqual(agent.personality.text, "Cautious")
         self.assertEqual(agent.credits, 0)
         self.assertEqual(agent.needs.food, 1.0)
         self.assertEqual(agent.needs.rest, 1.0)

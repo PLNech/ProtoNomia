@@ -238,7 +238,7 @@ class Scribe:
         console.print(text)
 
     @staticmethod
-    def agent_sale(agent_name: str, amount: int) -> None:
+    def agent_sale(agent_name: str, amount: float) -> None:
         """Print agent received credits from sale"""
         text = Text()
         text.append("► ", style="bright_white")
