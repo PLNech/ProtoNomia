@@ -234,7 +234,6 @@ class Simulation:
         # Prepare for new inventions and ideas
         self.state.inventions[self.state.day] = []
         self.state.ideas[self.state.day] = []
-        self.state.songs[self.state.day] = []
 
         # Process agent actions
         agent_actions = self._process_agent_actions()
@@ -244,6 +243,20 @@ class Simulation:
 
         # Check for any dead agents and remove them
         self._check_agent_status()
+
+    def _process_night(self) -> None:
+        """
+        Process a single day in the simulation.
+        This includes agent actions, market updates, and narratives.
+        """
+        logger.info(f"===== Evening/Night {self.state.day} =====")
+        # TODO: Display rich night header?
+        # self.scribe.night_header(self.state.day)
+        # ...
+        # TODO:
+        # Choose music to listen to (Everyone has one in their homepod)
+        # Choose friend to chat to (everyone can speak to 1-3)
+
 
     def _decay_agent_needs(self) -> None:
         """
@@ -265,7 +278,7 @@ class Simulation:
                     agent.goods.remove(highest_food)
                     agent.needs.food += highest_quality
                     self.scribe.agent_eat(agent.name, highest_food.name, agent.needs.food, highest_quality)
-                    logger.info(f"{agent.name} ate their {highest_food.name}, now at {agent.need.food}")
+                    logger.info(f"{agent.name} ate their {highest_food.name}, now at {agent.needs.food}")
             if agent.needs.rest < 0.2:
                 logger.warning(f"{agent.name} has critically low rest: {agent.needs.rest:.2f}")
 
@@ -385,11 +398,11 @@ class Simulation:
                 logger.error(f"Missing required 'goodIndex' and 'price' fields for SELL action: {extras}")
         elif action_type == ActionType.BUY:
             # Check if extras contains the required fields
-            if "listing_id" in extras:
-                listing_id = extras.get("listing_id")
+            if "listingId" in extras:
+                listing_id = extras.get("listingId")
                 self._execute_buy(agent, listing_id)
             else:
-                logger.error(f"Missing required field 'listing_id' for BUY action: {extras}")
+                logger.error(f"Missing required field 'listingId' for BUY action: {extras}")
         elif action_type == ActionType.THINK:
             self._execute_think(agent, extras)
         elif action_type == ActionType.COMPOSE:
@@ -445,7 +458,7 @@ class Simulation:
         # Increase fun by random medium-large amount
         agent.needs.fun = min(1.0, agent.needs.fun + random.uniform(0.25, 1))
         song: Song = Song(**extras)
-        self.state.songs[self.state.day].append((agent, song))
+        self.state.songs.add_song(agent, song, self.state.day)
         self.scribe.agent_song(agent.name, song, extras)
         logger.info(f"{agent.name} created a new song: {song}")
 

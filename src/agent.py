@@ -300,7 +300,10 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
 
     prompt += f"7. THINK - Spend the day creatively thinking about inventions, culture, philosophy, etc.\n"
     prompt += (f"8. COMPOSE - Create some music to elevate your mood, channel your creative feelings,"
-               f"entertain your fellow citizens, or to try to reach eternal posterity as a musical shooting star!\n")
+               f"entertain your fellow citizens, or to try to reach eternal posterity as a musical shooting star!\n"
+               f"Current music genres: {','.join(simulation_state.songs.genres) 
+               if simulation_state.songs.genres else 'None' } - but feel free to create a variant- or "
+               f"invent a totally new one :D")
 
     # Task description
     prompt += (

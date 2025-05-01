@@ -109,7 +109,7 @@ class Scribe:
         if action.extras:
             return Text(f"{action.type.value}", style=Colors.ACTION) \
                 + Text(" (", style=Colors.NARRATIVE) \
-                + Text(f"{action.extras}", style=Colors.ACTION_EXTRA) \
+                + Text(f"{str(action.extras):50}", style=Colors.ACTION_EXTRA) \
                 + Text(")", style=Colors.NARRATIVE)
         return Text(str(action.type.value), style=Colors.ACTION)
 
@@ -274,8 +274,19 @@ class Scribe:
         text = Text()
         text.append("► ", style="bright_white")
         text.append(agent_name, style=Colors.AGENT)
-        text.append(" spent the day composing a new song : ", style="white")
-        text.append(f"{song.title}\n", style=Colors.HIGHLIGHT)
+        text.append(" spent the day composing a new ", style=Colors.NARRATIVE)
+        text.append(f"{song.genre}", style=Colors.GOOD)
+        text.append(" song : ", style=Colors.NARRATIVE)
+        text.append(f"{song.title} ", style=Colors.HIGHLIGHT)
+        text.append("[", style=Colors.NARRATIVE)
+        text.append(f"{song.bpm}", style=Colors.CREDITS)
+        text.append(" BPM]\n", style=Colors.NARRATIVE)
+
+        if song.tags:
+            text.append("[", style=Colors.NARRATIVE)
+            text.append(', '.join(song.tags), style=Colors.AGENT)
+            text.append("]", style=Colors.NARRATIVE)
+
         if song.description:
             text.append(f"{song.description}\n", style=Colors.NARRATIVE)
 

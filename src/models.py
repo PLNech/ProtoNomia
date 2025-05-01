@@ -32,7 +32,7 @@ class GoodType(str, enum.Enum):
 
     @staticmethod
     def all() -> str:
-        return f"{','.join([v.value for v in GoodType])}"
+        return f"{', '.join([v.value for v in GoodType])}"
 
 
 class Good(BaseModel):
@@ -77,7 +77,7 @@ def agent_id_factory() -> str:
 
 
 class AgentPersonality(BaseModel):
-    text: str # TODO: Could be developed into e.g. OCEAN model
+    text: str  # TODO: Could be developed into e.g. OCEAN model
     """A basic description of the agent's personality."""
 
 
@@ -310,7 +310,7 @@ class AgentActionResponse(BaseModel):
         elif model.type == ActionType.SELL:
             existing_price = model.extras.get("price")
             if not existing_price:
-                model.extras["price"] = 100 # Default price
+                model.extras["price"] = 100  # Default price
 
         return model
 
@@ -334,15 +334,43 @@ class ActionLog(BaseModel):
     agent: Agent
     day: int
 
+
 class Song(BaseModel):
     title: str
-    genre: str
-    bpm: int
-    tags: list[str]
+    genre: str = "Electronica"
+    bpm: int = 113
+    tags: list[str] = []
     description: Optional[str] = None
 
     def __str__(self) -> str:
-        return f"{self.title} ({self.genre}@{self.bpm}BPM) - {'[' + ','.join(self.tags) + ']' if len(self.tags) else ''}"
+        return f"{self.title} ({self.genre}@{self.bpm}BPM) - {'[' + ', '.join(self.tags) + ']' if len(self.tags) else ''}"
+
+
+class SongEntry(BaseModel):
+    agent: Agent
+    song: Song
+
+
+class SongBook(BaseModel):
+    _history: Dict[int, list[SongEntry]] = {}  # day to song inventions
+    genres: set[str] = set()
+
+    @property
+    def history(self):
+        return self._history.copy()  # Read
+
+    def day(self, day: int) -> List[SongEntry]:
+        return self._history.get(day)
+
+    def recompute_genres(self):
+        all_genres = [entry.song.genre for day in self.history.values() for entry in day]
+        self.genres = set(sorted(all_genres, key=lambda x: str(x)))
+
+    def add_song(self, composer: Agent, song: Song, day: int):
+        if day not in self._history:
+            self.history[day] = []
+        self._history[day].append(SongEntry(agent=composer, song=song))
+        self.recompute_genres()
 
 
 class SimulationState(BaseModel):
@@ -355,7 +383,7 @@ class SimulationState(BaseModel):
     # TODO: DefaultDicts would have been nicer, but I didn't manage to make them work with BaseModel...
     inventions: dict[int, list[tuple[Agent, Good]]] = Field(default_factory=dict)
     ideas: dict[int, list[tuple[Agent, str]]] = Field(default_factory=dict)
-    songs: dict[int, list[tuple[Agent, Song]]] = Field(default_factory=dict)
+    songs: SongBook = SongBook()
 
     def add_action(self, agent: Agent, action: AgentActionResponse) -> None:
         self.actions.append(ActionLog(action=action, agent=agent, day=self.day))
