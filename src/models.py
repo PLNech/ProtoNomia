@@ -141,7 +141,7 @@ class Agent(BaseModel):
     goods: list[Good] = Field(default_factory=list)
 
     history: list[tuple[float, AgentNeeds, list[Good], "AgentActionResponse"]] = Field(default_factory=list)
-    memory: int = 3
+    memory: int = 5
 
     def record(self, action: "AgentActionResponse"):
         self.history.append((deepcopy(self.credits), deepcopy(self.needs), deepcopy(self.goods), action))
