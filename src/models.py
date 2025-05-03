@@ -407,6 +407,14 @@ class SimulationState(BaseModel):
             return len(set([g for inventions in self.inventions.values() for (_, g) in inventions]))
 
 
+    @model_validator(mode='after')
+    def ensure_defaultdicts(self) -> 'SimulationState':
+        if not isinstance(self.inventions, defaultdict):
+            self.inventions = defaultdict(list, self.inventions)
+        if not isinstance(self.ideas, defaultdict):
+            self.ideas = defaultdict(list, self.ideas)
+        return self
+
 class History(BaseModel):
     steps: List[SimulationState] = Field(default_factory=list)
 
