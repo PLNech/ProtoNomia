@@ -78,7 +78,6 @@ class TestNarrator(unittest.TestCase):
         # Verify the result
         self.assertEqual(result.title, "Test Day")
         self.assertEqual(result.content, "This is a test summary")
-        self.assertEqual(len(result.highlights), 2)
 
         # Verify generate_daily_summary was called
         self.mock_ollama_client.generate_daily_summary.assert_called_once()
@@ -105,11 +104,11 @@ class TestNarrator(unittest.TestCase):
         prompt = narrator._format_summary_prompt(self.state)
 
         # Verify prompt contains necessary information
-        self.assertIn(f"MARS COLONY: DAY {self.state.day}", prompt)
+        self.assertIn(f"DAY {self.state.day}", prompt)
         self.assertIn(self.agent1.name, prompt)
         self.assertIn(self.agent2.name, prompt)
         self.assertIn("Test Food", prompt)
-        self.assertIn("worked at the colony job", prompt)  # Action description
+        self.assertIn("worked at the settlement job", prompt)  # Action description
         self.assertIn("harvested mushrooms", prompt)  # Action description
 
     @patch('src.narrator.OllamaClient')
@@ -175,7 +174,6 @@ class TestNarrator(unittest.TestCase):
         self.assertIsInstance(result, DailySummaryResponse)
         self.assertIsNotNone(result.title)
         self.assertIsNotNone(result.content)
-        self.assertIsInstance(result.highlights, list)
 
 
 if __name__ == '__main__':

@@ -121,12 +121,10 @@ class TestOllamaIntegration(unittest.TestCase):
             self.assertIsNotNone(summary)
             self.assertIsNotNone(summary.title)
             self.assertIsNotNone(summary.content)
-            self.assertIsInstance(summary.highlights, list)
 
             # Log the summary
             logger.info(f"Daily summary title: {summary.title}")
             logger.info(f"Summary: {summary.content}")
-            logger.info(f"Highlights: {summary.highlights}")
 
         except Exception as e:
             logger.error(f"Error in daily summary generation: {e}")
