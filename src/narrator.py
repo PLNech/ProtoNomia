@@ -163,7 +163,7 @@ class Narrator:
         # Day's songs
         today_songs = state.songs.day(state.day)
         logger.debug(f"Songs of the day : {len(today_songs)} songs.")
-        if len(today_songs):
+        if today_songs:
             prompt += f"## TODAY'S {len(today_songs)} SONG{'S' if len(today_songs) > 1 else ''}\n"
             prompt += "\n".join(f"{agent.name}: \"{song}\"" for (agent, song) in today_songs)
         else:

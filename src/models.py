@@ -2,9 +2,10 @@ import enum
 import hashlib
 import logging
 import uuid
+from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, DefaultDict
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 
@@ -323,7 +324,7 @@ class DailySummaryResponse(BaseModel):
     )
 
     content: str = Field(
-        description="A narrative summary of the day's events in the settlement. "
+        description="A narrative summary of the day's events, inventions, songs, sales, etc in the settlement. "
                     "You can use light markdown highlighting in bold/italics/inline code. "
                     "REQUIRED. MIN 10 WORDS MAX 30."
     )
@@ -338,12 +339,18 @@ class ActionLog(BaseModel):
 class Song(BaseModel):
     title: str
     genre: str = "Electronica"
-    bpm: int = 113
+    bpm: int = Field(default=113)
     tags: list[str] = []
     description: Optional[str] = None
 
+    model_config = ConfigDict(extra='allow')
+
     def __str__(self) -> str:
-        return f"{self.title} ({self.genre}@{self.bpm}BPM) - {'[' + ', '.join(self.tags) + ']' if len(self.tags) else ''}"
+        text = f"{self.title} "
+        text += f"({self.genre}@{self.bpm}BPM) - "
+        if self.tags:
+            text += "[" + ', '.join(self.tags) + ']'
+        return text
 
 
 class SongEntry(BaseModel):
@@ -360,18 +367,18 @@ class SongBook(BaseModel):
         return self._history.copy()  # Read
 
     def day(self, day: int) -> List[SongEntry]:
-        return self._history.get(day)
-
-    def recompute_genres(self):
-        all_genres = [entry.song.genre for day in self.history.values() for entry in day]
-        self.genres = set(sorted(all_genres, key=lambda x: str(x)))
+        return self._history.get(day, [])
 
     def add_song(self, composer: Agent, song: Song, day: int):
         if day not in self._history:
-            self.history[day] = []
+            self._history[day] = []
         self._history[day].append(SongEntry(agent=composer, song=song))
-        self.recompute_genres()
 
+        if song.genre not in self.genres:
+            self.genres.add(song.genre)
+
+    def __len__(self):
+        return sum(len(h) for h in self.history.values())
 
 class SimulationState(BaseModel):
     """State of the simulation"""
@@ -381,8 +388,8 @@ class SimulationState(BaseModel):
     dead_agents: list[Agent] = Field(default_factory=list)
     actions: list[ActionLog] = Field(default_factory=list)
     # TODO: DefaultDicts would have been nicer, but I didn't manage to make them work with BaseModel...
-    inventions: dict[int, list[tuple[Agent, Good]]] = Field(default_factory=dict)
-    ideas: dict[int, list[tuple[Agent, str]]] = Field(default_factory=dict)
+    inventions: DefaultDict[int, list[tuple[Agent, Good]]] = Field(default_factory=lambda: defaultdict(list))
+    ideas: DefaultDict[int, list[tuple[Agent, str]]] = Field(default_factory=lambda: defaultdict(list))
     songs: SongBook = SongBook()
 
     def add_action(self, agent: Agent, action: AgentActionResponse) -> None:

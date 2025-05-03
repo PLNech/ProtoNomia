@@ -281,8 +281,8 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
     # Format available actions
     prompt += f"## AVAILABLE ACTIONS\n"
     prompt += f"1. REST - Recover some rest (0.2)\n"
-    prompt += f"2. WORK - Earn 100 credits at the colony job\n"
-    prompt += f"3. HARVEST - Gather mushrooms from the colony farm\n"
+    prompt += f"2. WORK - Earn 100 credits at the settlement job\n"
+    prompt += f"3. HARVEST - Gather mushrooms from the settlement farm\n"
     prompt += (f"4. CRAFT - Create a new item (you can give it a 'name', "
                f"choose 1 'goodType' within {GoodType.all()} else will be at random, "
                f"and optional 'materials' amount in credits to improve quality. Adding credits as you can, "
@@ -337,7 +337,7 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
         f'For THINK: {{ "reasoning": "I\'m feeling good, let\'s spend the day reflecting.", "type": "THINK", '
         f'"extras": {{ "thoughts": "I wonder if I\'m alive or just feel like it", "theme": "existentialism" }} }}\n\n'
         f'For COMPOSE: {{ "reasoning": "I\'m bored, let\'s get grooving!", "type": "COMPOSE", '
-        f'"extras": {{ "title": "Robot Rock", "genre": "Techno", "bpm": "120", "tags":["groovy", "off-beat", "guitar"],'
+        f'"extras": {{ "title": "Robot Rock", "genre": "Techno", "bpm": 120, "tags":["groovy", "off-beat", "guitar"],'
         f'"description": "fast paced french touch revival" }} }}\n\n'
     )
     # TODO: Add unit test ensuring the examples stay in sync with list of ActionTypes

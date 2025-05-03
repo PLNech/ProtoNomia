@@ -231,9 +231,6 @@ class Simulation:
         # Decay agent needs at the start of the day
         self._decay_agent_needs()
 
-        # Prepare for new inventions and ideas
-        self.state.inventions[self.state.day] = []
-        self.state.ideas[self.state.day] = []
 
         # Process agent actions
         agent_actions = self._process_agent_actions()
@@ -323,7 +320,7 @@ class Simulation:
                 except Exception as e:
                     retries += 1
                     logger.error(
-                        f"Error processing action for {agent.name} (attempt {retries}/{self.max_retries}): {e}")
+                        f"Error processing action for {agent.name} (attempt {retries}/{self.max_retries}): {type(e)} - {str(e)}")
 
                     # Ensure we stop any status indicator that might be running
                     self.scribe.stop_status()
@@ -457,7 +454,9 @@ class Simulation:
         agent.needs.rest = min(1.0, agent.needs.rest + rest_amount)
         # Increase fun by random medium-large amount
         agent.needs.fun = min(1.0, agent.needs.fun + random.uniform(0.25, 1))
+        logger.info("Executing compose...")
         song: Song = Song(**extras)
+        logger.info("Created song.")
         self.state.songs.add_song(agent, song, self.state.day)
         self.scribe.agent_song(agent.name, song, extras)
         logger.info(f"{agent.name} created a new song: {song}")
