@@ -1,37 +1,38 @@
 import random
 
+from src.settings import settings
 
 def generate_personality() -> str:
     """
-    Generates a 10-word personality string with:
-    - 1-2 descriptor per OCEAN trait (low/mid/high)
-    - fillers with additional benign non-OCEAN qualifiers
+    Generates a 3-word personality string with:
+    - 1 descriptor per OCEAN trait (low/mid/high)
+    - 3 additional benign non-OCEAN qualifiers
     """
     # Big Five trait descriptors (evidence-based)
     ocean_traits = {
         'openness': {
             'low': ['conventional', 'practical', 'traditional', 'literal'],
-            'mid': ['balanced', 'moderately curious', 'flexible', 'neutral'],
+            'mid': ['somewhat open', 'moderately curious', 'flexible', 'neutral'],
             'high': ['inventive', 'philosophical', 'artistic', 'visionary']
         },
         'conscientiousness': {
             'low': ['spontaneous', 'carefree', 'impulsive', 'flexible'],
-            'mid': ['balanced', 'situationally-organized', 'adaptable', 'middling'],
+            'mid': ['averagely organized', 'situationally-organized', 'adaptable', 'middling'],
             'high': ['disciplined', 'systematic', 'precise', 'deliberate']
         },
         'extraversion': {
             'low': ['reserved', 'contemplative', 'solitary', 'quiet'],
-            'mid': ['ambivert', 'situationally-social', 'moderate', 'balanced'],
+            'mid': ['ambivert', 'situationally-social', 'moderate', 'a bit social'],
             'high': ['gregarious', 'enthusiastic', 'assertive', 'talkative']
         },
         'agreeableness': {
             'low': ['skeptical', 'direct', 'self-focused', 'competitive'],
-            'mid': ['fair', 'situationally-kind', 'neutral', 'balanced'],
+            'mid': ['fair', 'situationally-kind', 'neutral', 'a bit kind'],
             'high': ['empathetic', 'altruistic', 'compromising', 'softhearted']
         },
         'neuroticism': {
             'low': ['resilient', 'unflappable', 'steady', 'composed'],
-            'mid': ['situationally-sensitive', 'middling', 'balanced', 'variable'],
+            'mid': ['situationally-sensitive', 'middling', 'a bit sensitive', 'variable'],
             'high': ['worrying', 'self-doubting', 'reactive', 'moody']
         }
     }
@@ -46,21 +47,49 @@ def generate_personality() -> str:
         'tech-enthusiast', 'coffee-lover', 'tea-enthusiast', 'minimalist', 'maximalist'
     ]
 
+    dark_triad_traits = {
+    'machiavellianism': {
+        'low': ['straightforward', 'genuine', 'open-book'],
+        'high': ['scheming', 'manipulative', 'calculating']
+    },
+    'narcissism': {
+        'low': ['modest', 'self-effacing', 'humble'],
+        'high': ['self-important', 'egotistical', 'vain']
+    },
+    'psychopathy': {
+        'low': ['empathetic', 'cautious', 'considerate'],
+        'high': ['ruthless', 'remorseless', 'callous']
+        }
+    }
+
     # Generate OCEAN descriptors (choose a level, then sample 2 per trait)
     personality = []
-    for trait in ocean_traits.values():
+    for key, trait in ocean_traits.items():
         level = random.choice(['low', 'mid', 'high'])
-        personality.extend(random.sample(trait[level], random.randint(1, 2)))
+        # Let's annotate it for better model understanding: e.g. [adventurous O-high] [obsessed N-med] etc
+        trait_name = random.choice(trait[level])
+        personality.append(f"{trait_name} [{key}-{level}]")
+
+    dark_triad_summary = []
+    # TODO: Consider adding negative info about the dark triad? but agents are quite proactive already
+    if random.random() < 0.05 or not settings.agent_first_day_dark_triad:
+        dt_level = 'high'
+        random_triad = random.choice(list(dark_triad_traits.keys()))
+        dt_levels = dark_triad_traits[random_triad]
+        dt_adj = random.choice(dt_levels[dt_level])
+        # Add explicit annotation
+        personality.append(f"{dt_adj} [{random_triad}-{dt_level}]")
+        dark_triad_summary.append(f"{random_triad.capitalize()}: {dt_adj} ({dt_level})")
 
     # shuffle but keep OCEAN traits at the front
-    random.shuffle(personality)
+    # random.shuffle(personality)
 
     # Add benign qualifiers (ensuring no duplicates)
     unique_benign = [q for q in benign_qualifiers if q not in personality]
-    personality += random.sample(unique_benign, 10)
+    personality += random.sample(unique_benign, 3)
 
     # Final formatting
-    return ', '.join(personality[:10])
+    return ', '.join(personality)
 
 
 DEFAULT_THOUGHTS = [

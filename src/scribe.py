@@ -176,8 +176,12 @@ class Scribe:
         text.append(f"{agent.personality.text}", style="white")
         text.append(", needs: ", style="white")
         text.append(str(agent.needs), style=Colors.NEED)
-        text.append(", and goods: ", style="white")
-        text.append(", ".join([str(g) for g in agent.goods]), style=Colors.GOOD)
+        if len(agent.goods) > 0:
+            text.append(", and goods: ", style="white")
+            text.append(", ".join([str(g) for g in agent.goods]), style=Colors.GOOD)
+        else:
+            text.append(", and empty pockets.", style="white")
+
         console.print(text)
 
     @staticmethod

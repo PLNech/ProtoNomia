@@ -387,7 +387,7 @@ class SimulationState(BaseModel):
     """State of the simulation"""
     market: GlobalMarket = Field(default_factory=GlobalMarket)
     agents: list[Agent] = Field(default_factory=list)
-    day: int = 0
+    day: int = 1
     dead_agents: list[Agent] = Field(default_factory=list)
     actions: list[ActionLog] = Field(default_factory=list)
     # TODO: DefaultDicts would have been nicer, but I didn't manage to make them work with BaseModel...
