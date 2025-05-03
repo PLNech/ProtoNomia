@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import random
+import string
 import time
 import uuid
 from copy import deepcopy
@@ -13,6 +14,7 @@ from typing import List, Optional, Dict, Any
 
 import click
 from pydantic import ValidationError
+from typing import Optional
 
 from src.agent import LLMAgent
 from src.generators import generate_personality, generate_mars_craft_options
@@ -66,13 +68,13 @@ class Simulation:
         self.temperature = temperature
         self.top_p = top_p
         self.top_k = top_k
-        self.state: SimulationState = self._setup_initial_state(starting_credits=starting_credits)
+        self.scribe = Scribe()
+        self.starting_credits = starting_credits
+        self.state: SimulationState = SimulationState()
         self.history: History = History()
         self.max_retries = max_retries
         self.retry_delay = retry_delay
 
-        # Initialize the scribe for rich text output
-        self.scribe = Scribe()
 
         # Initialize the LLM agent for all agent decision making
         self.llm_agent = LLMAgent(
@@ -120,6 +122,9 @@ class Simulation:
                           personality=AgentPersonality(text=personality_str), credits=starting_credits,
                           needs=needs,
                           goods=goods)
+        logger.info(f"Generated core traits for {name}: {personality_str}, needs: {needs}, goods: {goods}")
+        self.scribe.agent_created(new_agent)
+
         return new_agent
 
     def _add_agent(self, agent: Agent):
@@ -198,9 +203,11 @@ class Simulation:
         Run the simulation for the specified number of days.
         This is the main loop that advances time and processes agent actions.
         """
-        logger.info(f"Starting simulation with {len(self.state.agents)} agents")
+
+        logger.info(f"Starting simulation with {self.num_agents} agents")
         # Display rich welcome message
-        self.scribe.simulation_start(len(self.state.agents), self.max_days)
+        self.scribe.simulation_start(self.num_agents, self.max_days)
+        self.state = self._setup_initial_state(starting_credits=self.starting_credits)
 
         # Main simulation loop
         while self.state.day <= self.max_days:
@@ -576,7 +583,21 @@ class Simulation:
             price = 0
 
         try:
-            good_index = [g.name for g in agent.goods].index(good_name)
+            # Find closest match with up to 2 char typo tolerance using Levenshtein distance
+            good_name_lower = str(good_name).lower()
+            min_distance = float('inf')
+            good_index = -1
+            
+            for i, good in enumerate(agent.goods):
+                distance = sum(1 for a, b in zip(good_name_lower, str(good.name).lower()) if a != b)
+                distance += abs(len(good_name_lower) - len(str(good.name).lower()))
+                if distance <= 2 and distance < min_distance:
+                    min_distance = distance
+                    good_index = i
+            
+            if good_index == -1:
+                raise ValueError(f"No close match found for {good_name}")
+                
             good: Good = agent.goods[good_index]
 
             self.state.market.add_listing(agent.id, good, price, self.state.day)
@@ -764,44 +785,71 @@ class Simulation:
             json.dump(self.state.model_dump_json(), f, indent=2)
 
         logger.info(f"Saved simulation state for day {self.state.day}")
-
     def generate_name(self) -> str:
         """
         Generates a new, unique name.
         Combines diverse, global, and futuristic names representing human and transhuman identities.
+        Can generate over 1,000,000 unique combinations.
         """
         # Diverse first names from various cultural backgrounds, including futuristic and AI-inspired names
         first_names = [
             # Human names from different cultures
             "Aisha", "Carlos", "Elena", "Hiroshi", "Kwame", "Maria", "Nikolai", "Priya", "Sanjay", "Zara",
+            "Liam", "Olivia", "Noah", "Emma", "Ethan", "Ava", "Mason", "Sophia", "William", "Isabella",
+            "Yuki", "Ravi", "Fatima", "Jamal", "Ingrid", "Dmitri", "Amara", "Mateo", "Zoe", "Kai",
             # Futuristic/Sci-fi inspired names
             "Nova", "Orion", "Aria", "Zephyr", "Kai", "Luna", "Phoenix", "Stellar", "Cosmo", "Nebula",
+            "Aether", "Cygnus", "Lyra", "Vega", "Atlas", "Andromeda", "Sirius", "Celeste", "Zenith", "Astro",
             # AI/Transhuman inspired names
-            "Cipher", "Echo", "Nexus", "Quantum", "Synth", "Vector", "Pixel", "Cipher", "Datastream", "Neuron"
+            "Cipher", "Echo", "Nexus", "Quantum", "Synth", "Vector", "Pixel", "Cipher", "Datastream", "Neuron",
+            "Binary", "Cortex", "Matrix", "Nano", "Qubit", "Axiom", "Cypher", "Helix", "Omega", "Zen"
         ]
 
         # Last names with a mix of cultural, scientific, and futuristic themes
         last_names = [
             # Traditional surnames
             "Rodriguez", "Chen", "Okonkwo", "Singh", "Kim", "Petrov", "Martinez", "Hassan", "Mueller", "Nakamura",
+            "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Wilson", "Taylor",
+            "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Moore", "Young", "Allen",
             # Scientific/Technological surnames
             "Quantum", "Starr", "Nova", "Circuit", "Fusion", "Horizon", "Neutron", "Cosmos", "Binary", "Pulse",
+            "Tesla", "Edison", "Curie", "Darwin", "Hawking", "Bohr", "Feynman", "Planck", "Heisenberg", "Schrodinger",
             # Mars/Space-themed surnames
-            "Armstrong", "Aldrin", "Bradbury", "Clarke", "Sagan", "Musk", "Tsiolkovsky", "Glenn", "Gagarin", "Kepler"
+            "Armstrong", "Aldrin", "Bradbury", "Clarke", "Sagan", "Musk", "Tsiolkovsky", "Glenn", "Gagarin", "Kepler",
+            "Hubble", "Curiosity", "Opportunity", "Perseverance", "Voyager", "Cassini", "Huygens", "Galileo", "Copernicus", "Tycho"
         ]
 
-        # Try to generate a unique name
-        all_names = []
-        for first_name in first_names:
-            for last_name in last_names:
-                name = f"{first_name} {last_name}"
-                all_names.append(name)
+        # Optional titles or prefixes
+        titles = [
+            "", "Dr.", "Prof.", "Cmdr.", "Capt.", "Lt.", "Sgt.", "Adm.", "Gen.", "Ambassador",
+            "Councilor", "Elder", "Overseer", "Architect", "Innovator", "Pioneer", "Visionary"
+        ]
 
-        # Shuffle the names
-        random.shuffle(all_names)
+        # Optional suffixes
+        suffixes = [
+            "", "Jr.", "Sr.", "III", "IV", "V", "PhD", "MD", "Esq.", "AI",
+            "Prime", "Alpha", "Omega", "Zero", "Infinity", "Nexus", "Core"
+        ]
+
+        def generate_unique_name():
+            title = random.choice(titles)
+            first = random.choice(first_names)
+            last = random.choice(last_names)
+            suffix = random.choice(suffixes)
+            
+            # Randomly decide to use a middle initial
+            if random.random() < 0.3:
+                middle_initial = random.choice(string.ascii_uppercase) + "."
+                name = f"{title} {first} {middle_initial} {last} {suffix}".strip()
+            else:
+                name = f"{title} {first} {last} {suffix}".strip()
+            
+            return name
 
         # Try to generate a unique name
-        for name in all_names:
+        max_attempts = 1000
+        for _ in range(max_attempts):
+            name = generate_unique_name()
             if not hasattr(self, 'state') or name not in [a.name for a in self.state.agents]:
                 return name
 

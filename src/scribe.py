@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.status import Status
 from rich.text import Text
 
-from src.models import SimulationState, Agent, AgentAction, AgentActionResponse, Song
+from src.models import SimulationState, Agent, AgentAction, AgentActionResponse, Song, Good, AgentNeeds
 
 
 def rich_replace(text: str, old: str, new: Text) -> Text:
@@ -163,6 +163,21 @@ class Scribe:
         text.append(" " * (57 - len(f" DAY {day}")), style="white")
         text.append("┃\n", style="bright_white")
         text.append("┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\n", style="bright_white")
+        console.print(text)
+
+    @staticmethod
+    def agent_created(agent: Agent) -> None:
+        """Print agent created message"""
+        text = Text()
+        text.append("► ", style="bright_white")
+        text.append(agent.name, style=Colors.AGENT)
+        text.append(" just spawned! Personality: ", style="white")
+        # italicize the personality text
+        text.append(f"{agent.personality.text}", style="white")
+        text.append(", needs: ", style="white")
+        text.append(str(agent.needs), style=Colors.NEED)
+        text.append(", and goods: ", style="white")
+        text.append(", ".join([str(g) for g in agent.goods]), style=Colors.GOOD)
         console.print(text)
 
     @staticmethod

@@ -46,6 +46,9 @@ class Good(BaseModel):
     def clamp_quality(cls, v: float) -> float:
         """Automatically clamp quality between 0 and 1"""
         return max(0.0, min(1.0, v))
+    
+    def __str__(self) -> str:
+        return f"{self.name or 'Random {self.type.value} item'} [{self.type.value}] ({self.quality:.2f} quality)"
 
     def __hash__(self) -> int:
         # Convert None to empty string for consistent hashing

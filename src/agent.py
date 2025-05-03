@@ -344,7 +344,7 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
 
     if agent.goods:
         prompt += (
-            f'For SELL: {{ "reasoning": "I want to sell my third good, the \"Martian TV\", '
+            f'For SELL: {{ "reasoning": "I want to sell my third good, the \"{agent.goods[0].name}\", '
             f'to use its credits for materials and craft something way better.", '
             f'"type": "SELL", "extras": {{ "goodName": "{agent.goods[0].name}", "price": 1000 }} }}\n\n')
 
