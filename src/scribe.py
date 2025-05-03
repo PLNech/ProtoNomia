@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.status import Status
 from rich.text import Text
 
-from src.models import SimulationState, Agent, AgentAction, AgentActionResponse, Song, Good, AgentNeeds
+from models import SimulationState, Agent, AgentAction, AgentActionResponse, Song, Good, AgentNeeds
 
 
 def rich_replace(text: str, old: str, new: Text) -> Text:

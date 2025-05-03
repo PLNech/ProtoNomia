@@ -1,0 +1,346 @@
+ PYTHONPATH=`pwd` python src/simulation.py --model=gemma3:4b -l WARNING -n 5
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Welcome to Mars Settlement, 2993
+Beginning simulation with 5 citizens for 30 days
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+► Elder Stellar Allen just spawned! Personality: neutral [openness-mid], systematic [conscientiousness-high], reserved 
+[extraversion-low], self-focused [agreeableness-low], reactive [neuroticism-high], calculating [machiavellianism-high], 
+history-buff, humorous, musical, needs: Ate well, Energetic, Having fun, and goods: Basic TV [FUN] (0.36 quality)
+► Ambassador Elena Tesla Prime just spawned! Personality: traditional [openness-low], situationally-organized 
+[conscientiousness-mid], reserved [extraversion-low], skeptical [agreeableness-low], resilient [neuroticism-low], vain 
+[narcissism-high], DIY-enthusiast, outdoorsy, bookish, needs: Ate well, Energetic, Having fun, and goods: Martian Mushrooms
+[FOOD] (0.78 quality), Basic TV [FUN] (0.21 quality)
+► Cmdr. Andromeda Singh IV just spawned! Personality: artistic [openness-high], deliberate [conscientiousness-high], 
+moderate [extraversion-mid], competitive [agreeableness-low], moody [neuroticism-high], vain [narcissism-high], outdoorsy, 
+animal-lover, handy, needs: Ate well, Energetic, Having fun, and goods: Basic TV [FUN] (0.50 quality)
+► Innovator Yuki Bohr V just spawned! Personality: inventive [openness-high], carefree [conscientiousness-low], assertive 
+[extraversion-high], softhearted [agreeableness-high], variable [neuroticism-mid], self-important [narcissism-high], 
+health-conscious, humorous, early-riser, needs: Ate well, Energetic, Having fun, and empty pockets.
+► Ambassador Andromeda Hassan III just spawned! Personality: neutral [openness-mid], averagely organized 
+[conscientiousness-mid], situationally-social [extraversion-mid], skeptical [agreeableness-low], composed 
+[neuroticism-low], self-important [narcissism-high], punctual, family-oriented, outdoorsy, needs: Ate well, Energetic, 
+Having fun, and goods: Martian Mushrooms [FOOD] (0.54 quality)
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ DAY 1                                                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+
+▶ Elder Stellar Allen(Food: 71.06%|Rest: 62.47%|Fun: 36.25%)[1027.40 credits] chose to CRAFT ({'materials': 100, 'name': 
+'Luxury Soil Enhancer', 'goodType': 'FUN'})
+  Reasoning: I'm feeling restless and have a surplus of credits. I want to create something valuable and potentially sell 
+it to improve my situation. A high-quality item will give me a good return.
+► Elder Stellar Allen crafted Luxury Soil Enhancer (FUN, quality: 0.81) using 100 credits of materials
+
+▶ Ambassador Elena Tesla Prime(Food: 66.06%|Rest: 52.47%|Fun: 46.25%)[1349.66 credits] chose to HARVEST
+► Ambassador Elena Tesla Prime harvested Martian Mushrooms (quality: 0.63). Food: 0.81
+
+▶ Cmdr. Andromeda Singh IV(Food: 81.06%|Rest: 42.47%|Fun: 46.25%)[178.86 credits] chose to CRAFT ({'materials': 100, 
+'name': 'Crimson Soil Elixir', 'goodType': 'FUN', 'quality': 0.95})
+  Reasoning: I want to capitalize on my existing crafting ability and the lack of a market. I'll craft a high-quality soil 
+enhancer, aiming for the best possible 'FUN' quality, and then immediately sell it for a s...
+► Cmdr. Andromeda Singh IV crafted Crimson Soil Elixir (FUN, quality: 0.80) using 100 credits of materials
+
+▶ Innovator Yuki Bohr V(Food: 76.06%|Rest: 32.47%|Fun: 56.25%)[3418.24 credits] chose to CRAFT ({'materials': 200, 'name': 
+'Luxury Soil Enhancer 2.0', 'goodType': 'FOOD'})
+  Reasoning: I'm feeling productive and have plenty of credits. I want to capitalize on my inventive streak and create 
+something valuable that I can sell for a significant profit. Focusing on a high-quality item w...
+► Innovator Yuki Bohr V crafted Luxury Soil Enhancer 2.0 (FOOD, quality: 1.00) using 200 credits of materials
+
+▶ Ambassador Andromeda Hassan III(Food: 71.06%|Rest: 22.47%|Fun: 66.25%)[3511.19 credits] chose to SELL ({'goodName': 
+'Luxury Soil Enhancer 2.0', 'price': 1000})
+  Reasoning: I need to prioritize replenishing my energy and assess my resources. While earning credits is a good long-term
+strategy, I'm currently at a 33% food level, and a slight dip in energy wouldn’t hurt. Th...
+2025-05-03 17:42:51,185 - __main__ - ERROR - Failed to find Luxury Soil Enhancer 2.0 in Ambassador Andromeda Hassan III's goods: [Good(type=<GoodType.FOOD: 'FOOD'>, quality=0.5367038959054233, name='Martian Mushrooms')]
+
+═══════ Dust & Dreams: A Martian Pause ═══════
+
+Elder Stellar Allen, fueled by the Luxury Soil Enhancer’s success – a delightful 0.8070710336874329 – spent the day 
+haggling over nutrient paste with Cmdr. Singh IV. A minor ripoff, he grumbled, though the Crimson Soil Elixir’s quality 
+(0.8036044007032359) seemed a worthwhile investment. Ambassador Tesla Prime, ever the pragmatist, observed with a detached 
+amusement, her credits untouched. Innovator Bohr V, meanwhile, quietly refined the Luxury Soil Enhancer 2.0, a clear 
+response to market demand. Rest was a fleeting luxury, a mere 0.22% of his attention. A contemplative silence settled over 
+the settlement, a collective breath held against the red dust, punctuated only by the unspoken desire for a song. The 
+market remained stubbornly empty; a frustrating void reflecting the nascent, uncertain economy. It felt…static.
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ DAY 2                                                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+2025-05-03 17:42:54,712 - __main__ - WARNING - Cmdr. Andromeda Singh IV has critically low rest: 0.19
+2025-05-03 17:42:54,712 - __main__ - WARNING - Innovator Yuki Bohr V has critically low rest: 0.18
+2025-05-03 17:42:54,712 - __main__ - WARNING - Ambassador Andromeda Hassan III has critically low rest: 0.17
+
+▶ Elder Stellar Allen(Food: 63.79%|Rest: 16.65%|Fun: 24.75%)[927.40 credits] chose to CRAFT ({'materials': 75, 'name': 
+'Crimson Soil Elixir', 'goodType': 'FOOD'})
+  Reasoning: I'm feeling restless and want to engage my creative side while also potentially improving my situation. While 
+earning credits is necessary, I’m prioritizing a fulfilling activity. Crafting allows me t...
+► Elder Stellar Allen crafted Crimson Soil Elixir (FOOD, quality: 0.76) using 75 credits of materials
+
+▶ Ambassador Elena Tesla Prime(Food: 58.79%|Rest: 6.65%|Fun: 34.75%)[1349.66 credits] chose to HARVEST
+  Reasoning: I am desperately low on food, and the settlement job barely pays enough to keep me going. While earning 
+credits is important, my immediate need is sustenance. Harvesting seems like the most efficient ...
+► Ambassador Elena Tesla Prime harvested Martian Mushrooms (quality: 0.34). Food: 0.74
+
+▶ Cmdr. Andromeda Singh IV(Food: 73.79%|Rest: 0.00%|Fun: 34.75%)[78.86 credits] chose to SELL ({'goodName': 'Basic TV', 
+'price': 1000}           )
+  Reasoning: I need to maximize my potential income and continue developing my crafting skills. Selling the 'Basic TV' will
+free up credits to invest in a higher quality item. Furthermore, I can use the credits to...
+► Cmdr. Andromeda Singh IV listed Basic TV (FUN, quality: 0.50) for sale at 1000 credits
+
+▶ Innovator Yuki Bohr V(Food: 68.79%|Rest: 0.00%|Fun: 44.75%)[3218.24 credits] chose to SELL ({'goodName': 'Basic TV', 
+'price': 1000}           )
+  Reasoning: I need to address my immediate need for energy and potential income. While crafting is appealing, I'm running 
+low on energy and could use a quick credit boost. Selling the 'Basic TV' seems like the mo...
+2025-05-03 17:43:02,921 - __main__ - ERROR - Failed to find Basic TV in Innovator Yuki Bohr V's goods: [Good(type=<GoodType.FOOD: 'FOOD'>, quality=1.0, name='Luxury Soil Enhancer 2.0')]
+
+▶ Ambassador Andromeda Hassan III(Food: 68.79%|Rest: 0.00%|Fun: 44.75%)[3511.19 credits] chose to REST
+  Reasoning: My energy is critically low, and I desperately need to recover. Prioritizing my health and well-being is 
+paramount, especially given my demanding personality. Resting will allow me to approach my othe...
+► Ambassador Andromeda Hassan III rested and recovered energy. Rest: 0.00 -> 0.50
+
+═══════ Crimson Dust & Calculated Trades ═══════
+
+A persistent, gritty dust storm muted the market today, impacting Elder Stellar Allen’s Basic TV sales – a meager 1000 
+credits exchanged for the salvaged screen. Ambassador Elena Tesla Prime observed Allen’s low profit with a shrewd eye, 
+noting the potential for a ‘ripoff’ if he continued selling at such a low margin. Ambassador Hassan III, meanwhile, quietly
+purchased the Crimson Soil Elixir – a surprisingly effective food additive (GoodType.FOOD quality 0.7622564536648622) – 
+suggesting a growing interest in resource optimization. Cmdr. Singh IV remained largely detached, meticulously reviewing 
+sensor data, a silent testament to the settlement's security protocols. Yuki Bohr V offered an unsolicited, almost 
+patronizing, suggestion regarding Allen’s pricing strategy, likely a calculated move to establish himself as a technical 
+advisor - a subtle power play. The air hung thick with unspoken competition and the quiet, desperate rhythm of survival on 
+the red planet.
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ DAY 3                                                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+
+▶ Elder Stellar Allen(Food: 61.94%|Rest: 43.55%|Fun: 11.15%)[852.40 credits] chose to SELL ({'goodName': 'Basic TV', 
+'price': 1000}           )
+  Reasoning: I need to improve my situation and I feel restless. Selling the Basic TV and using the credits to craft 
+something better seems like the most productive route. I also need to address my low energy leve...
+► Elder Stellar Allen listed Basic TV (FUN, quality: 0.36) for sale at 1000 credits
+
+▶ Ambassador Elena Tesla Prime(Food: 56.94%|Rest: 38.55%|Fun: 21.15%)[1349.66 credits] chose to HARVEST
+  Reasoning: I am critically low on food and energy. Harvesting shrooms is the most immediate solution to my pressing need 
+for sustenance. Recovering energy will come later.
+► Ambassador Elena Tesla Prime harvested Martian Mushrooms (quality: 0.53). Food: 0.72
+
+▶ Cmdr. Andromeda Singh IV(Food: 71.94%|Rest: 28.55%|Fun: 21.15%)[78.86 credits] chose to CRAFT ({'materials': 100, 'name':
+'Red soil planter', 'goodType': 'FUN'})
+  Reasoning: I need to capitalize on my existing resources and skills. I have a partially crafted item ('Basic TV') and 
+some credits. I can improve the 'Basic TV' to a higher quality item, which I can sell for a h...
+2025-05-03 17:43:13,540 - __main__ - WARNING - Agent Cmdr. Andromeda Singh IV tried to spend 100 but has only 78.86210104329572. Going all in with cost=78.86210104329572!
+► Cmdr. Andromeda Singh IV crafted Red soil planter (FUN, quality: 0.76) using 78.86210104329572 credits of materials
+
+▶ Innovator Yuki Bohr V(Food: 66.94%|Rest: 18.55%|Fun: 31.15%)[3218.24 credits] chose to SELL ({'goodName': 'Basic TV', 
+'price': 1000}           )
+  Reasoning: I need to address my immediate need for food and energy, and I have a valuable item to sell. Selling the 
+'Basic TV' will give me the resources to craft something more useful. I'll prioritize crafting ...
+2025-05-03 17:43:15,326 - __main__ - ERROR - Failed to find Basic TV in Innovator Yuki Bohr V's goods: [Good(type=<GoodType.FOOD: 'FOOD'>, quality=1.0, name='Luxury Soil Enhancer 2.0')]
+
+▶ Ambassador Andromeda Hassan III(Food: 66.94%|Rest: 18.55%|Fun: 31.15%)[3511.19 credits] chose to SELL ({'goodName': 
+'Basic TV', 'price': 1000}           )
+  Reasoning: My energy is critically low, and I need to prioritize recovery. Selling the 'Basic TV' will provide me with 
+funds to invest in a more valuable craft project, and it's the last good I have. Focusing on...
+2025-05-03 17:43:17,139 - __main__ - ERROR - Failed to find Basic TV in Ambassador Andromeda Hassan III's goods: [Good(type=<GoodType.FOOD: 'FOOD'>, quality=0.5367038959054233, name='Martian Mushrooms')]
+
+═══════ Dust and Deals: Day 3 on Ares VI ═══════
+
+A grey dawn choked Ares VI. Cmdr. Singh’s red soil planter, a sturdy if unremarkable invention, sparked a minor trade war 
+between Allen and Tesla Prime – Allen’s Basic TV sales (Quality: 0.50) were undercut by Tesla Prime’s own, a surprisingly 
+successful offering. Singh, meanwhile, quietly observed, his credits still stubbornly zero, a stark reminder of the 
+settlement’s nascent economy. The low fun metric for all agents underscored a pervasive sense of weary pragmatism. A subtle
+friction arose as Allen attempted to renegotiate his TV pricing, sensing the competition and a desperate need for a boost 
+to his dwindling funds. It’s a slow, grinding process, a dance of supply and demand under the watchful gaze of the Martian 
+dust.
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ DAY 4                                                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+2025-05-03 17:43:19,972 - __main__ - WARNING - Elder Stellar Allen has critically low rest: 0.17
+2025-05-03 17:43:19,972 - __main__ - WARNING - Ambassador Elena Tesla Prime has critically low rest: 0.16
+2025-05-03 17:43:19,972 - __main__ - WARNING - Cmdr. Andromeda Singh IV has critically low rest: 0.15
+2025-05-03 17:43:19,972 - __main__ - WARNING - Innovator Yuki Bohr V has critically low rest: 0.14
+2025-05-03 17:43:19,972 - __main__ - WARNING - Ambassador Andromeda Hassan III has critically low rest: 0.13
+
+▶ Elder Stellar Allen(Food: 59.85%|Rest: 12.57%|Fun: 0.00%)[852.40 credits] chose to SELL ({'goodName': 'Basic TV', 
+'price': 1000}           )
+  Reasoning: I need to sell my third good, the "Basic TV", to use its credits for materials and craft something way better.
+Also, my energy levels are low, and I need to recover before doing anything else.
+► Elder Stellar Allen listed Basic TV (FUN, quality: 0.36) for sale at 1000 credits
+
+▶ Ambassador Elena Tesla Prime(Food: 54.85%|Rest: 7.57%|Fun: 10.00%)[1349.66 credits] chose to HARVEST
+  Reasoning: I'm desperately low on food. My immediate priority is to secure sustenance. Harvesting shrooms is the quickest
+way to address this need. The other options (work, craft, think, compose, sell) can wait ...
+► Ambassador Elena Tesla Prime harvested Martian Mushrooms (quality: 0.77). Food: 0.70
+
+▶ Cmdr. Andromeda Singh IV(Food: 69.85%|Rest: 0.00%|Fun: 10.00%)[0.00 credits] chose to SELL ({'goodName': 'Basic TV', 
+'price': 1000}           )
+  Reasoning: I need to improve my current 'Basic TV' and sell it for a better one. I have some credits, and I can use them 
+to craft a significantly better item. Selling the 'Basic TV' at 1000 credits will allow me...
+► Cmdr. Andromeda Singh IV listed Basic TV (FUN, quality: 0.50) for sale at 1000 credits
+
+▶ Innovator Yuki Bohr V(Food: 64.85%|Rest: 0.00%|Fun: 20.00%)[3218.24 credits] chose to SELL ({'goodName': 'Basic TV', 
+'price': 1000}           )
+  Reasoning: I need to improve my crafting capabilities and generate some income. Selling the Basic TV will give me credits
+to invest in better crafting materials and potentially a more valuable creation. Also, I'...
+2025-05-03 17:43:26,828 - __main__ - ERROR - Failed to find Basic TV in Innovator Yuki Bohr V's goods: [Good(type=<GoodType.FOOD: 'FOOD'>, quality=1.0, name='Luxury Soil Enhancer 2.0')]
+
+▶ Ambassador Andromeda Hassan III(Food: 64.85%|Rest: 0.00%|Fun: 20.00%)[3511.19 credits] chose to SELL ({'goodName': 'Basic
+TV', 'price': 1000}           )
+  Reasoning: I need to improve my crafting ability and potentially generate income. Selling the 'Basic TV' and using the 
+credits to craft something more valuable seems like the best course of action. I also need t...
+2025-05-03 17:43:28,787 - __main__ - ERROR - Failed to find Basic TV in Ambassador Andromeda Hassan III's goods: [Good(type=<GoodType.FOOD: 'FOOD'>, quality=0.5367038959054233, name='Martian Mushrooms')]
+
+═══════ Dust and Deals: A Martian Morning ═══════
+
+A persistent ochre haze clung to the Hab-Complex today, mirroring the quiet desperation of a fledgling economy. Elder 
+Stellar Allen, predictably, dominated the market, relentlessly offering Basic TVs – a quality holding stubbornly at 0.50 – 
+for a consistent 1000 credits. Ambassador Tesla Prime observed with detached amusement, her credits untouched, a silent 
+critique of the settlement's skewed priorities. Cmdr. Singh IV, remarkably, remained devoid of funds, a stark reminder of 
+the settlement’s unequal distribution. Innovator Bohr, ever the pragmatist, quietly brokered a trade – a slightly-better TV
+(0.36 quality) for 1000 credits, a subtle attempt to disrupt Allen's dominance. Ambassador Hassan III simply watched, the 
+silent observer of the strange Martian dance. The air, thick with dust and uncertainty, held a single, haunting question: 
+who truly needed a new television?
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ DAY 5                                                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+2025-05-03 17:43:32,076 - __main__ - WARNING - Elder Stellar Allen has critically low rest: 0.00
+2025-05-03 17:43:32,076 - __main__ - WARNING - Ambassador Elena Tesla Prime has critically low rest: 0.00
+2025-05-03 17:43:32,076 - __main__ - WARNING - Cmdr. Andromeda Singh IV has critically low rest: 0.00
+2025-05-03 17:43:32,076 - __main__ - WARNING - Innovator Yuki Bohr V has critically low rest: 0.00
+2025-05-03 17:43:32,076 - __main__ - WARNING - Ambassador Andromeda Hassan III has critically low rest: 0.00
+
+▶ Elder Stellar Allen(Food: 57.97%|Rest: 0.00%|Fun: 0.00%)[852.40 credits] chose to SELL ({'goodName': 'Basic TV', 'price':
+1000}           )
+  Reasoning: I need to improve my crafting capabilities and generate some income. Selling the 'Basic TV' seems like the 
+most efficient way to get credits that can be used for crafting materials. I'll also consider...
+► Elder Stellar Allen listed Basic TV (FUN, quality: 0.36) for sale at 1000 credits
+
+▶ Ambassador Elena Tesla Prime(Food: 52.97%|Rest: 0.00%|Fun: 10.00%)[1349.66 credits] chose to SELL ({'goodName': 'Basic 
+TV', 'price': 1000}           )
+  Reasoning: I need to improve my crafting capabilities and potentially earn some credits. Selling the 'Basic TV' and using
+the funds to craft a more valuable item seems like a good strategy. I'll craft a 'Red soi...
+► Ambassador Elena Tesla Prime listed Basic TV (FUN, quality: 0.21) for sale at 1000 credits
+
+▶ Cmdr. Andromeda Singh IV(Food: 47.97%|Rest: 0.00%|Fun: 20.00%)[0.00 credits] chose to SELL ({'goodName': 'Basic TV', 
+'price': 1000}           )
+  Reasoning: I have a Basic TV that I want to sell to get resources for a better craft. I also need to replenish my energy 
+and consider my options.
+► Cmdr. Andromeda Singh IV listed Basic TV (FUN, quality: 0.50) for sale at 1000 credits
+
+▶ Innovator Yuki Bohr V(Food: 42.97%|Rest: 0.00%|Fun: 30.00%)[3218.24 credits] chose to CRAFT ({'materials': 75, 'name': 
+'Luxury Soil Enhancer', 'goodType': 'FUN'})
+  Reasoning: I currently have a 'Basic TV' and a 'Red soil planter' that I can sell to gain resources for a better craft. I
+also need to improve my situation and I have some credits from the settlement job. I want...
+► Innovator Yuki Bohr V crafted Luxury Soil Enhancer (FUN, quality: 0.74) using 75 credits of materials
+
+▶ Ambassador Andromeda Hassan III(Food: 37.97%|Rest: 0.00%|Fun: 40.00%)[3511.19 credits] chose to CRAFT ({'materials': 50, 
+'name': 'Luxury Red Soil Planter', 'goodType': 'FUN'})
+  Reasoning: I need to improve my crafting capabilities and potentially generate income. The 'Luxury Red Soil Planter' 
+seems like a good project, given my current situation and the available resources. It's a 'FUN...
+► Ambassador Andromeda Hassan III crafted Luxury Red Soil Planter (FUN, quality: 0.56) using 50 credits of materials
+
+═══════ Dust and Deals...economic advantage.” ═══════
+
+The hydroponics bay hummed, a vital lifeline. Silas argued with Kaito over nutrient paste distribution, a familiar dance of
+scarcity. A lone surveyor, Elias, reported a vein of iron ore – a potential boon. Yet, the silence of the observation dome 
+remained, a constant reminder of the planet's vast emptiness.  The rhythmic drip of recycled water, a melancholic 
+soundtrack to a fragile existence.
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ DAY 6                                                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+2025-05-03 17:45:47,382 - __main__ - WARNING - Elder Stellar Allen has critically low rest: 0.00
+2025-05-03 17:45:47,382 - __main__ - WARNING - Ambassador Elena Tesla Prime has critically low rest: 0.00
+2025-05-03 17:45:47,382 - __main__ - WARNING - Cmdr. Andromeda Singh IV has critically low rest: 0.00
+2025-05-03 17:45:47,382 - __main__ - WARNING - Innovator Yuki Bohr V has critically low rest: 0.00
+2025-05-03 17:45:47,382 - __main__ - WARNING - Ambassador Andromeda Hassan III has critically low rest: 0.00
+
+▶ Elder Stellar Allen(Food: 24.29%|Rest: 0.00%|Fun: 10.32%)[852.40 credits] chose to CRAFT ({'materials': 50, 'name': 'Red 
+soil planter', 'goodType': 'FUN'})
+  Reasoning: I want to improve my crafting capabilities and potentially earn some credits. I have a decent amount of 
+resources and I'm feeling creative. Crafting a 'Red soil planter' seems like a good use of my ti...
+► Elder Stellar Allen crafted Red soil planter (FUN, quality: 0.69) using 50 credits of materials
+
+▶ Ambassador Elena Tesla Prime(Food: 19.29%|Rest: 0.00%|Fun: 20.32%)[1349.66 credits] chose to CRAFT ({'materials': 75, 
+'name': 'Red soil planter', 'goodType': 'FUN'})
+  Reasoning: I have a Red soil planter and a Basic TV. I want to craft something better to sell for more credits. I'll 
+craft a new Red soil planter, and I'll add some materials to it to make it better. 
+► Ambassador Elena Tesla Prime crafted Red soil planter (FUN, quality: 0.87) using 75 credits of materials
+
+▶ Cmdr. Andromeda Singh IV(Food: 14.29%|Rest: 0.00%|Fun: 30.32%)[0.00 credits] chose to CRAFT ({'materials': 50, 'name': 
+'Red soil planter', 'goodType': 'FUN'})
+  Reasoning: I've got a few goods to sell, and I want to make something more valuable. The "Red soil planter" seems like a 
+good investment. I can use the credits to buy materials and craft something more profitabl...
+2025-05-03 17:45:55,879 - __main__ - WARNING - Agent Cmdr. Andromeda Singh IV tried to spend 50 but has only 0.0. Going all in with cost=0.0!
+► Cmdr. Andromeda Singh IV crafted Red soil planter (FUN, quality: 0.43) using 0.0 credits of materials
+
+▶ Innovator Yuki Bohr V(Food: 9.29%|Rest: 0.00%|Fun: 40.32%)[3143.24 credits] chose to CRAFT ({'materials': 100, 'name': 
+'Red soil planter', 'goodType': 'FUN'})
+  Reasoning: I want to improve my crafting capabilities by creating a more valuable item. I have a red soil planter, which 
+is a decent start, but I can improve it and potentially sell it for more credits. I will c...
+► Innovator Yuki Bohr V crafted Red soil planter (FUN, quality: 0.81) using 100 credits of materials
+
+▶ Ambassador Andromeda Hassan III(Food: 4.29%|Rest: 0.00%|Fun: 50.32%)[3461.19 credits] chose to CRAFT ({'materials': 50, 
+'name': 'Red soil planter', 'goodType': 'FUN'})
+  Reasoning: I have a red soil planter, which is a 'FUN' good. I could sell it to get materials to craft something better. 
+I also have some credits from previous actions. I'll craft a new red soil planter, as it's...
+► Ambassador Andromeda Hassan III crafted Red soil planter (FUN, quality: 0.64) using 50 credits of materials
+
+═══════ Red Soil's Urgent Demand ═══════
+
+A palpable desperation clung to the settlement today. All agents, save Innovator Yuki Bohr V, faced the immediate, 
+screaming need for sustenance. Elder Stellar Allen, ever pragmatic, continued his relentless sales of Basic TV – a dismal 
+0.21 quality – attempting to scrape together credits. Ambassador Elena Tesla Prime mirrored his efforts, while Cmdr. 
+Andromeda Singh IV silently absorbed the stark reality of zero credits, a chilling silence marking his inaction. Ambassador
+Hassan III, displaying a similar, almost frantic, sales approach, reinforced the mounting pressure. Yuki Bohr V, 
+surprisingly, remained untouched by the demand, a quiet observer of the chaos. The repeated sales, a desperate cycle, 
+underscored the nascent economy's vulnerability, driven solely by immediate survival. A strange, unsettling efficiency 
+permeated the market – a brutal testament to necessity. The complete absence of the Red Soil Planters, a rapid flood of 
+invention, hinted at a burgeoning, if somewhat chaotic, technological focus, quickly moving towards basic food production. 
+The quiet activity of Yuki Bohr V, a stark contrast to the others' relentless drive, offered a silent question: what was he
+*waiting* for?
+☠️  Elder Stellar Allen has died due to starvation
+2025-05-03 17:46:08,637 - __main__ - WARNING - Elder Stellar Allen has died due to starvation
+☠️  Ambassador Elena Tesla Prime has died due to starvation
+2025-05-03 17:46:08,637 - __main__ - WARNING - Ambassador Elena Tesla Prime has died due to starvation
+☠️  Cmdr. Andromeda Singh IV has died due to starvation
+2025-05-03 17:46:08,638 - __main__ - WARNING - Cmdr. Andromeda Singh IV has died due to starvation
+☠️  Innovator Yuki Bohr V has died due to starvation
+2025-05-03 17:46:08,638 - __main__ - WARNING - Innovator Yuki Bohr V has died due to starvation
+☠️  Ambassador Andromeda Hassan III has died due to starvation
+2025-05-03 17:46:08,638 - __main__ - WARNING - Ambassador Andromeda Hassan III has died due to starvation
+► Added Basic TV from deceased Elder Stellar Allen to market for 25 credits
+► Added Luxury Soil Enhancer from deceased Elder Stellar Allen to market for 56 credits
+► Added Crimson Soil Elixir from deceased Elder Stellar Allen to market for 53 credits
+► Added Red soil planter from deceased Elder Stellar Allen to market for 48 credits
+► Added Martian Mushrooms from deceased Ambassador Elena Tesla Prime to market for 53 credits
+► Added Basic TV from deceased Ambassador Elena Tesla Prime to market for 14 credits
+► Added Martian Mushrooms from deceased Ambassador Elena Tesla Prime to market for 44 credits
+► Added Martian Mushrooms from deceased Ambassador Elena Tesla Prime to market for 23 credits
+► Added Martian Mushrooms from deceased Ambassador Elena Tesla Prime to market for 37 credits
+► Added Martian Mushrooms from deceased Ambassador Elena Tesla Prime to market for 53 credits
+► Added Red soil planter from deceased Ambassador Elena Tesla Prime to market for 60 credits
+► Added Basic TV from deceased Cmdr. Andromeda Singh IV to market for 35 credits
+► Added Crimson Soil Elixir from deceased Cmdr. Andromeda Singh IV to market for 56 credits
+► Added Red soil planter from deceased Cmdr. Andromeda Singh IV to market for 53 credits
+► Added Red soil planter from deceased Cmdr. Andromeda Singh IV to market for 30 credits
+► Added Luxury Soil Enhancer 2.0 from deceased Innovator Yuki Bohr V to market for 70 credits
+► Added Luxury Soil Enhancer from deceased Innovator Yuki Bohr V to market for 51 credits
+► Added Red soil planter from deceased Innovator Yuki Bohr V to market for 56 credits
+► Added Martian Mushrooms from deceased Ambassador Andromeda Hassan III to market for 37 credits
+► Added Luxury Red Soil Planter from deceased Ambassador Andromeda Hassan III to market for 38 credits
+► Added Red soil planter from deceased Ambassador Andromeda Hassan III to market for 44 credits
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ DAY 7                                                   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+

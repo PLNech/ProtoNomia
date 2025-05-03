@@ -5,6 +5,11 @@ pydantic>=2.0.0
 click>=8.0.0
 rich>=13.0.0  # For rich text formatting in terminal
 
+# API and web
+fastapi>=0.95.0
+uvicorn>=0.21.0
+requests>=2.28.0  # For frontends to communicate with API
+
 # LLM integration
 instructor==1.7.9
 httpx>=0.23.0
