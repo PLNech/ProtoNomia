@@ -214,13 +214,12 @@ class Narrator:
             return "crafted a new item"
 
         elif action.type == ActionType.SELL:
-            good_index = action.extras.get("goodIndex", 0)
+            good_name = action.extras.get("goodName", "s")
             price = action.extras.get("price", 0)
 
-            if 0 <= good_index < len(agent.goods):
-                good_name = agent.goods[good_index].name
+            if good_name:
                 return f"put {good_name} up for sale at {price} credits"
-            return f"tried to sell an item for {price} credits"
+            return f"tried to sell an unnamed item for {price} credits"
 
         elif action.type == ActionType.BUY:
             listing_id = action.extras.get("listingId", "")

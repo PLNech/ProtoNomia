@@ -387,12 +387,12 @@ class Simulation:
             self._execute_craft(agent, extras.get("goodType"), extras.get("name"), extras.get("materials"))
         elif action_type == ActionType.SELL:
             # Check if extras contains the required fields
-            if "goodIndex" in extras and "price" in extras:
-                good_index = extras.get("goodIndex")
+            if "goodName" in extras and "price" in extras:
+                good_name = extras.get("goodName")
                 price = extras.get("price", 100)
-                self._execute_sell(agent, good_index, price)
+                self._execute_sell(agent, good_name, price)
             else:
-                logger.error(f"Missing required 'goodIndex' and 'price' fields for SELL action: {extras}")
+                logger.error(f"Missing required 'goodName' and 'price' fields for SELL action: {extras}")
         elif action_type == ActionType.BUY:
             # Check if extras contains the required fields
             if "listingId" in extras:
@@ -552,39 +552,48 @@ class Simulation:
             f"using {materials_cost} credits worth of materials."
         )
 
-    def _execute_sell(self, agent: Agent, good_index: int, price: int) -> None:
+    def _execute_sell(self, agent: Agent, good_name: str = "random", price: int = 0) -> None:
         """
         Execute SELL action for an agent.
 
         Args:
             agent: The agent selling
-            good_index: Index of the good in the agent's inventory
-            price: Asking price for the good
+            good_name: The name of the good to sell
+            price: Asking price for the good, 0 for free.
         """
-        # Validate good index
-        if good_index < 0 or good_index >= len(agent.goods):
-            logger.error(f"Invalid good index {good_index} for {agent.name} with {len(agent.goods)} goods")
-            return
+        # Validate good name
+        if not good_name or not len(good_name) or good_name == "random":
+            if agent.goods:
+                good_name = random.choice(agent.goods).name
+            else:
+                logger.error(f"Invalid good index {good_index} for {agent.name} "
+                         f"with {len(agent.goods)} goods: {','.join([str(g) for g in agent.goods])}")
+                return
 
         # Validate price
         if price <= 0:
-            logger.error(f"Invalid price {price} set by {agent.name}")
-            return
+            logger.error(f"Invalid neg price {price} set by {agent.name} - listing for free!")
+            price = 0
 
-        good = agent.goods.pop(good_index)
-        self.state.market.add_listing(agent.id, good, price, self.state.day)
+        try:
+            good_index = [g.name for g in agent.goods].index(good_name)
+            good: Good = agent.goods[good_index]
 
-        # Slightly decrease food and rest, increase fun
-        agent.needs.food = max(0, agent.needs.food - 0.05)
-        agent.needs.rest = max(0, agent.needs.rest - 0.05)
-        agent.needs.fun = min(1.0, agent.needs.fun + 0.1)
+            self.state.market.add_listing(agent.id, good, price, self.state.day)
 
-        # Use rich output for user-facing log
-        self.scribe.agent_sell(agent.name, good.name, good.type.value, good.quality, price)
-        logger.info(
-            f"{agent.name} listed {good.name} ({good.type.value}, quality: {good.quality:.2f}) "
-            f"for sale at {price} credits"
-        )
+            # Slightly decrease food and rest, increase fun
+            agent.needs.food = max(0, agent.needs.food - 0.05)
+            agent.needs.rest = max(0, agent.needs.rest - 0.05)
+            agent.needs.fun = min(1.0, agent.needs.fun + 0.1)
+
+            # Use rich output for user-facing log
+            self.scribe.agent_sell(agent.name, good.name, good.type.value, good.quality, price)
+            logger.info(
+                f"{agent.name} listed {good.name} ({good.type.value}, quality: {good.quality:.2f}) "
+                f"for sale at {price} credits"
+            )
+        except ValueError:
+            logger.error(f"Failed to find {good_name} in {agent.name}'s goods: {agent.goods}")
 
     def _execute_buy(self, agent: Agent, listing_id: str) -> None:
         """

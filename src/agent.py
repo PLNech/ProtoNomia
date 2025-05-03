@@ -162,7 +162,7 @@ class LLMAgent:
         elif random_type == ActionType.SELL:
             return AgentActionResponse(
                 type=random_type,
-                extras={"goodIndex": 0, "price": random.randint(50, 150)},
+                extras={"goodName": "Martian TV", "price": random.randint(50, 150)},
                 reasoning="[FALLBACK ACTION] Selling an item"
             )
         elif random_type == ActionType.THINK:
@@ -254,14 +254,14 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
 
     # Format market information
     prompt += f"## MARKET\n"
-    market_listings = simulation_state.market.listings
+    market_listings = [l for l in simulation_state.market.listings if agent.name != l.seller_id]
     if not market_listings:
         prompt += "The market has no listings at the moment. You may make big bucks if you CRAFT & SELL something!\n\n"
     else:
         for listing in market_listings:
             seller = next((a for a in simulation_state.agents if a.id == listing.seller_id), None)
             seller_name = seller.name if seller else "Unknown"
-            prompt += f"- {listing.good.name} ({listing.good.type.value}, quality: {listing.good.quality:.2f}) for {listing.price} credits from {seller_name}\n"
+            prompt += f"-[ID={listing.id}] {listing.good.name} ({listing.good.type.value}, quality: {listing.good.quality:.2f}) for {listing.price} credits from {seller_name} ({listing.seller_id})\n"
         prompt += "\n"
 
     # Format inventions
@@ -344,12 +344,13 @@ def format_prompt(agent: Agent, simulation_state: SimulationState) -> str:
 
     if agent.goods:
         prompt += (
-            f'For SELL: {{ "reasoning": "I want to sell my TV, to use credits for materials and craft something better.", '
-            f'"type": "SELL", "extras": {{ "goodIndex": 0, "price": 100 }} }}\n\n')
+            f'For SELL: {{ "reasoning": "I want to sell my third good, the \"Martian TV\", '
+            f'to use its credits for materials and craft something way better.", '
+            f'"type": "SELL", "extras": {{ "goodName": "{agent.goods[0].name}", "price": 1000 }} }}\n\n')
 
     if market_listings:
-        prompt += (f'For BUY: {{ "reasoning": "I need this item and can afford it.", '
-                   f'"type": "BUY", "extras": {{ "listingId": "{market_listings[0].id}" }} }}\n\n')
+        prompt += (f'For BUY: {{ "reasoning": "I need the \"V60 CoffeeBot\" and I can afford it.", '
+                   f'"type": "BUY", "extras": {{ "listingId": "YOUR_LISTING_ID" }} }}\n\n')
 
     # Add a critical reminder
     prompt += (
