@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from models import (
     Agent, Good, GoodType, AgentNeeds, SimulationState,
-    AgentPersonality
+    AgentPersonality, SimulationStage
 )
 
 
@@ -50,6 +50,22 @@ class SimulationStatusResponse(BaseModel):
     inventions_count: int
     ideas_count: int
     songs_count: int
+    current_stage: SimulationStage = Field(
+        default=SimulationStage.INITIALIZATION,
+        description="Current stage of the simulation"
+    )
+    current_agent_id: Optional[str] = Field(
+        default=None,
+        description="ID of the agent currently being processed (if applicable)"
+    )
+    current_agent_name: Optional[str] = Field(
+        default=None,
+        description="Name of the agent currently being processed (if applicable)"
+    )
+    night_activities_today: int = Field(
+        default=0,
+        description="Number of night activities processed today"
+    )
 
 
 class SimulationDetailResponse(BaseModel):

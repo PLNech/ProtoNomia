@@ -94,6 +94,63 @@ Advance the simulation by a specified number of days.
 }
 ```
 
+#### Get Simulation Status
+
+Retrieves information about the current status of a specific simulation.
+
+**Endpoint:** `GET /simulation/status/{simulation_id}`
+
+**Parameters:**
+- `simulation_id`: ID of the simulation to retrieve status
+
+**Response:**
+
+```json
+{
+  "simulation_id": "d102106e-bc18-41ec-9aee-b803d787131b",
+  "day": 5,
+  "agents_count": 4,
+  "dead_agents_count": 0,
+  "market_listings_count": 2,
+  "inventions_count": 3,
+  "ideas_count": 2,
+  "songs_count": 1,
+  "current_stage": "agent_day",
+  "current_agent_id": "550e8400-e29b-41d4-a716-446655440000",
+  "current_agent_name": "Dr. Nebula Martin Alpha",
+  "night_activities_today": 0
+}
+```
+
+### Simulation Stages
+
+The `current_stage` field can have the following values:
+
+- `initialization`: Setting up the simulation environment
+- `agent_day`: Processing day actions for agents one at a time
+- `narrator`: Generating the narrative for the day
+- `agent_night`: Processing night activities for agents one at a time
+
+When the simulation is in the `agent_day` or `agent_night` stage, the `current_agent_id` and `current_agent_name` fields indicate which agent is currently being processed.
+
+### Night Activities Information
+
+The `night_activities_today` field indicates how many agents have completed their night activities for the current day.
+
+Night activities are automatically processed during the simulation run and include:
+
+- Dinner (food consumption)
+- Music listening
+- Social interactions (chat)
+
+Detailed night activity information can be found in the simulation detail endpoint:
+
+```
+GET /simulation/detail/{simulation_id}
+```
+
+The response includes a `night_activities` field containing a list of night activities for each day.
+
 ### Agent Endpoints
 
 #### Add an Agent

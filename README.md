@@ -19,6 +19,8 @@ _Birth of a Market_
 - RESTful API for programmatic access to simulations
 - Interactive UI with real-time visualization
 - Fully configurable simulation parameters
+- Stage-based simulation with day and night cycles
+- Agent night activities including dinner, music, and social interaction
 
 ## Installation
 
@@ -189,3 +191,30 @@ ProtoNomia follows a clean architecture with:
 - **API**: RESTful API in `api/`
 - **Frontends**: User interfaces in `frontends/`
 - **Tests**: Comprehensive test suite in `tests/`
+
+## Simulation Stages
+
+ProtoNomia now uses a stage-based approach to track the simulation status:
+
+1. **Initialization**: Setting up the simulation environment
+2. **Agent Day**: Processing each agent's day actions one by one
+3. **Narrator**: Generating a narrative for the day's events
+4. **Agent Night**: Processing night activities for each agent
+
+The API exposes the current stage and active agent in the status endpoint. The headless frontend displays detailed stage information during simulation runs.
+
+For detailed documentation on simulation stages, see [docs/simulation_stages.md](docs/simulation_stages.md).
+
+## Night Activities
+
+Agents now participate in night activities after their day actions:
+
+- **Dinner**: Consuming food items in quality order to satisfy hunger
+- **Music**: Listening to songs created by other agents
+- **Social**: Chatting with 1-3 other agents with conversation topics
+
+Night activities impact agent needs and create more interesting social dynamics in the simulation.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

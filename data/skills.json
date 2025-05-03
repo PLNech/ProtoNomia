@@ -1,0 +1,1650 @@
+{
+  "name": "Mars Settlement Skills Tree",
+  "description": "Progression from survival to flourishing society in Mars Colony (2993)",
+  "skills": {
+    "SURVIVAL": {
+      "name": "Survival Fundamentals",
+      "description": "Basic skills required for survival on Mars",
+      "nodes": {
+        "BASIC_REST": {
+          "id": "BASIC_REST",
+          "name": "Basic Rest",
+          "description": "Fundamental ability to rest and recover energy",
+          "level": 1,
+          "energy_recovery": 15,
+          "prerequisites": [],
+          "unlocks": ["EFFICIENT_REST", "BASIC_HARVEST"]
+        },
+        "EFFICIENT_REST": {
+          "id": "EFFICIENT_REST",
+          "name": "Efficient Rest",
+          "description": "More effective resting techniques for better recovery",
+          "level": 2,
+          "energy_recovery": 25,
+          "prerequisites": ["BASIC_REST"],
+          "unlocks": ["MEDITATION"]
+        },
+        "MEDITATION": {
+          "id": "MEDITATION",
+          "name": "Meditation",
+          "description": "Advanced mental techniques for optimal rest and psychological balance",
+          "level": 3,
+          "energy_recovery": 35,
+          "mental_health_bonus": 10,
+          "prerequisites": ["EFFICIENT_REST"],
+          "unlocks": ["DREAM_CONTROL", "MINDFULNESS_MASTERY"]
+        },
+        "MINDFULNESS_MASTERY": {
+          "id": "MINDFULNESS_MASTERY",
+          "name": "Mindfulness Mastery",
+          "description": "Complete awareness and control of mental state",
+          "level": 4,
+          "energy_recovery": 40,
+          "mental_health_bonus": 25,
+          "stress_reduction": 30,
+          "prerequisites": ["MEDITATION"],
+          "unlocks": ["COLLECTIVE_CONSCIOUSNESS"]
+        },
+        "DREAM_CONTROL": {
+          "id": "DREAM_CONTROL",
+          "name": "Dream Control",
+          "description": "Ability to guide dreams for problem-solving and creativity",
+          "level": 4,
+          "creativity_bonus": 20,
+          "problem_solving_bonus": 15,
+          "prerequisites": ["MEDITATION"],
+          "unlocks": ["DREAM_SHARING"]
+        },
+        "DREAM_SHARING": {
+          "id": "DREAM_SHARING",
+          "name": "Dream Sharing",
+          "description": "Technology to share dreams with others for communal problem-solving",
+          "level": 5,
+          "collective_creativity_bonus": 30,
+          "prerequisites": ["DREAM_CONTROL", "ADVANCED_NEURAL_INTERFACE"],
+          "unlocks": ["DREAM_ARCHITECTURE"]
+        },
+        "DREAM_ARCHITECTURE": {
+          "id": "DREAM_ARCHITECTURE",
+          "name": "Dream Architecture",
+          "description": "Ability to construct shared dream worlds for entertainment and exploration",
+          "level": 6,
+          "entertainment_value": 50,
+          "innovation_bonus": 25,
+          "prerequisites": ["DREAM_SHARING"],
+          "unlocks": []
+        },
+        "BASIC_HARVEST": {
+          "id": "BASIC_HARVEST",
+          "name": "Basic Harvesting",
+          "description": "Fundamental ability to harvest mushrooms for sustenance",
+          "level": 1,
+          "food_production": 10,
+          "prerequisites": [],
+          "unlocks": ["EFFICIENT_HARVEST", "BASIC_FOOD_PREPARATION"]
+        },
+        "EFFICIENT_HARVEST": {
+          "id": "EFFICIENT_HARVEST",
+          "name": "Efficient Harvesting",
+          "description": "Improved harvesting techniques for better yields",
+          "level": 2,
+          "food_production": 20,
+          "prerequisites": ["BASIC_HARVEST"],
+          "unlocks": ["SUSTAINABLE_HARVEST", "MUSHROOM_SPECIALIZATION"]
+        },
+        "MUSHROOM_SPECIALIZATION": {
+          "id": "MUSHROOM_SPECIALIZATION",
+          "name": "Mushroom Specialization",
+          "description": "Deep knowledge of specific mushroom varieties for optimal growth",
+          "level": 3,
+          "food_production": 25,
+          "variety_bonus": 15,
+          "prerequisites": ["EFFICIENT_HARVEST"],
+          "unlocks": ["MYCELIUM_NETWORKING"]
+        },
+        "SUSTAINABLE_HARVEST": {
+          "id": "SUSTAINABLE_HARVEST",
+          "name": "Sustainable Harvesting",
+          "description": "Advanced techniques ensuring long-term renewable food sources",
+          "level": 3,
+          "food_production": 30,
+          "sustainability_rating": 25,
+          "prerequisites": ["EFFICIENT_HARVEST"],
+          "unlocks": ["AUTOMATED_HARVESTING"]
+        },
+        "MYCELIUM_NETWORKING": {
+          "id": "MYCELIUM_NETWORKING",
+          "name": "Mycelium Networking",
+          "description": "Utilization of mycelium networks for communication and resource distribution",
+          "level": 4,
+          "communication_bonus": 20,
+          "resource_efficiency": 15,
+          "prerequisites": ["MUSHROOM_SPECIALIZATION", "BASIC_BIOINFORMATICS"],
+          "unlocks": ["MYCELIUM_COMPUTING"]
+        },
+        "AUTOMATED_HARVESTING": {
+          "id": "AUTOMATED_HARVESTING",
+          "name": "Automated Harvesting",
+          "description": "Robotic systems for mushroom cultivation and harvesting",
+          "level": 4,
+          "food_production": 50,
+          "labor_reduction": 40,
+          "prerequisites": ["SUSTAINABLE_HARVEST", "BASIC_ROBOTICS"],
+          "unlocks": ["FOOD_FABRICATION"]
+        },
+        "MYCELIUM_COMPUTING": {
+          "id": "MYCELIUM_COMPUTING",
+          "name": "Mycelium Computing",
+          "description": "Biological computing using engineered mycelium networks",
+          "level": 5,
+          "computing_efficiency": 30,
+          "power_efficiency": 40,
+          "prerequisites": ["MYCELIUM_NETWORKING", "ADVANCED_BIOLOGY"],
+          "unlocks": ["LIVING_ARCHITECTURE"]
+        },
+        "FOOD_FABRICATION": {
+          "id": "FOOD_FABRICATION",
+          "name": "Food Fabrication",
+          "description": "Creation of nutritious, customized food from basic elements",
+          "level": 5,
+          "food_variety": 50,
+          "nutritional_optimization": 40,
+          "prerequisites": ["AUTOMATED_HARVESTING", "MOLECULAR_GASTRONOMY"],
+          "unlocks": ["CONSCIOUSNESS_ENHANCING_CUISINE"]
+        }
+      }
+    },
+    "TECHNOLOGY": {
+      "name": "Technology Development",
+      "description": "Technological advancement path for Mars settlement",
+      "nodes": {
+        "BASIC_CRAFTING": {
+          "id": "BASIC_CRAFTING",
+          "name": "Basic Crafting",
+          "description": "Fundamental ability to create simple tools and items",
+          "level": 1,
+          "crafting_efficiency": 10,
+          "prerequisites": [],
+          "unlocks": ["TOOL_SPECIALIZATION", "RESOURCE_RECYCLING"]
+        },
+        "TOOL_SPECIALIZATION": {
+          "id": "TOOL_SPECIALIZATION",
+          "name": "Tool Specialization",
+          "description": "Creation of specialized tools for specific tasks",
+          "level": 2,
+          "crafting_efficiency": 20,
+          "tool_effectiveness": 15,
+          "prerequisites": ["BASIC_CRAFTING"],
+          "unlocks": ["ADVANCED_FABRICATION"]
+        },
+        "RESOURCE_RECYCLING": {
+          "id": "RESOURCE_RECYCLING",
+          "name": "Resource Recycling",
+          "description": "Efficient reuse of materials for sustainability",
+          "level": 2,
+          "resource_efficiency": 25,
+          "sustainability_rating": 20,
+          "prerequisites": ["BASIC_CRAFTING"],
+          "unlocks": ["MOLECULAR_RECLAMATION"]
+        },
+        "ADVANCED_FABRICATION": {
+          "id": "ADVANCED_FABRICATION",
+          "name": "Advanced Fabrication",
+          "description": "Creation of complex tools and machinery",
+          "level": 3,
+          "crafting_efficiency": 35,
+          "innovation_capability": 20,
+          "prerequisites": ["TOOL_SPECIALIZATION"],
+          "unlocks": ["3D_PRINTING", "ROBOTICS_WORKSHOP"]
+        },
+        "MOLECULAR_RECLAMATION": {
+          "id": "MOLECULAR_RECLAMATION",
+          "name": "Molecular Reclamation",
+          "description": "Breaking down materials to molecular components for perfect recycling",
+          "level": 3,
+          "resource_efficiency": 40,
+          "waste_reduction": 35,
+          "prerequisites": ["RESOURCE_RECYCLING"],
+          "unlocks": ["MATTER_TRANSMUTATION"]
+        },
+        "3D_PRINTING": {
+          "id": "3D_PRINTING",
+          "name": "3D Printing Mastery",
+          "description": "Advanced additive manufacturing for complex items",
+          "level": 4,
+          "production_flexibility": 40,
+          "resource_efficiency": 30,
+          "prerequisites": ["ADVANCED_FABRICATION"],
+          "unlocks": ["NANOFABRICATION"]
+        },
+        "ROBOTICS_WORKSHOP": {
+          "id": "ROBOTICS_WORKSHOP",
+          "name": "Robotics Workshop",
+          "description": "Creation and maintenance of robotic assistants",
+          "level": 4,
+          "automation_capability": 35,
+          "labor_efficiency": 40,
+          "prerequisites": ["ADVANCED_FABRICATION"],
+          "unlocks": ["AI_INTEGRATION"]
+        },
+        "MATTER_TRANSMUTATION": {
+          "id": "MATTER_TRANSMUTATION",
+          "name": "Matter Transmutation",
+          "description": "Conversion of elements at the atomic level",
+          "level": 4,
+          "resource_flexibility": 50,
+          "prerequisites": ["MOLECULAR_RECLAMATION", "QUANTUM_PHYSICS"],
+          "unlocks": ["POCKET_DIMENSION_STORAGE"]
+        },
+        "NANOFABRICATION": {
+          "id": "NANOFABRICATION",
+          "name": "Nanofabrication",
+          "description": "Molecular-level manufacturing for unprecedented precision",
+          "level": 5,
+          "production_precision": 60,
+          "material_efficiency": 50,
+          "prerequisites": ["3D_PRINTING", "NANOTECHNOLOGY"],
+          "unlocks": ["REALITY_FABRICATION"]
+        },
+        "AI_INTEGRATION": {
+          "id": "AI_INTEGRATION",
+          "name": "AI Integration",
+          "description": "Seamless cooperation between humans and artificial intelligence",
+          "level": 5,
+          "productivity_multiplier": 2.0,
+          "innovation_rate": 50,
+          "prerequisites": ["ROBOTICS_WORKSHOP", "ADVANCED_NEURAL_INTERFACE"],
+          "unlocks": ["COLLECTIVE_INTELLIGENCE"]
+        },
+        "POCKET_DIMENSION_STORAGE": {
+          "id": "POCKET_DIMENSION_STORAGE",
+          "name": "Pocket Dimension Storage",
+          "description": "Creation of small localized dimensions for infinite storage",
+          "level": 5,
+          "storage_capacity": "infinite",
+          "energy_cost": "high",
+          "prerequisites": ["MATTER_TRANSMUTATION", "QUANTUM_PHYSICS"],
+          "unlocks": ["DIMENSIONAL_ENGINEERING"]
+        }
+      }
+    },
+    "TERRAFORMING": {
+      "name": "Martian Terraforming",
+      "description": "Skills related to transforming and adapting to the Martian environment",
+      "nodes": {
+        "BASIC_LIFE_SUPPORT": {
+          "id": "BASIC_LIFE_SUPPORT",
+          "name": "Basic Life Support",
+          "description": "Fundamental maintenance of habitable environments",
+          "level": 1,
+          "survival_rating": 15,
+          "prerequisites": [],
+          "unlocks": ["ATMOSPHERIC_MANAGEMENT", "WATER_RECYCLING"]
+        },
+        "ATMOSPHERIC_MANAGEMENT": {
+          "id": "ATMOSPHERIC_MANAGEMENT",
+          "name": "Atmospheric Management",
+          "description": "Control and maintenance of breathable air",
+          "level": 2,
+          "air_quality": 25,
+          "efficiency": 20,
+          "prerequisites": ["BASIC_LIFE_SUPPORT"],
+          "unlocks": ["ATMOSPHERIC_ENRICHMENT"]
+        },
+        "WATER_RECYCLING": {
+          "id": "WATER_RECYCLING",
+          "name": "Water Recycling",
+          "description": "Efficient reuse of water resources",
+          "level": 2,
+          "water_efficiency": 30,
+          "purity_rating": 25,
+          "prerequisites": ["BASIC_LIFE_SUPPORT"],
+          "unlocks": ["WATER_EXTRACTION"]
+        },
+        "ATMOSPHERIC_ENRICHMENT": {
+          "id": "ATMOSPHERIC_ENRICHMENT",
+          "name": "Atmospheric Enrichment",
+          "description": "Addition of beneficial compounds to the air",
+          "level": 3,
+          "health_bonus": 15,
+          "productivity_bonus": 10,
+          "prerequisites": ["ATMOSPHERIC_MANAGEMENT"],
+          "unlocks": ["WEATHER_CONTROL"]
+        },
+        "WATER_EXTRACTION": {
+          "id": "WATER_EXTRACTION",
+          "name": "Water Extraction",
+          "description": "Collection of water from Martian ice and atmosphere",
+          "level": 3,
+          "water_production": 35,
+          "energy_efficiency": 25,
+          "prerequisites": ["WATER_RECYCLING"],
+          "unlocks": ["HYDROSPHERE_CREATION"]
+        },
+        "WEATHER_CONTROL": {
+          "id": "WEATHER_CONTROL",
+          "name": "Weather Control",
+          "description": "Manipulation of local atmospheric conditions",
+          "level": 4,
+          "climate_control": 40,
+          "agricultural_bonus": 30,
+          "prerequisites": ["ATMOSPHERIC_ENRICHMENT"],
+          "unlocks": ["MAGNETIC_FIELD_GENERATION"]
+        },
+        "HYDROSPHERE_CREATION": {
+          "id": "HYDROSPHERE_CREATION",
+          "name": "Hydrosphere Creation",
+          "description": "Development of sustainable water cycle systems",
+          "level": 4,
+          "ecosystem_support": 45,
+          "terraforming_progress": 30,
+          "prerequisites": ["WATER_EXTRACTION"],
+          "unlocks": ["OCEANIC_ENGINEERING"]
+        },
+        "MAGNETIC_FIELD_GENERATION": {
+          "id": "MAGNETIC_FIELD_GENERATION",
+          "name": "Magnetic Field Generation",
+          "description": "Creation of artificial magnetosphere for radiation protection",
+          "level": 5,
+          "radiation_protection": 60,
+          "atmosphere_retention": 50,
+          "prerequisites": ["WEATHER_CONTROL", "ADVANCED_PHYSICS"],
+          "unlocks": ["PLANETARY_TRANSFORMATION"]
+        },
+        "OCEANIC_ENGINEERING": {
+          "id": "OCEANIC_ENGINEERING",
+          "name": "Oceanic Engineering",
+          "description": "Creation and management of large water bodies",
+          "level": 5,
+          "biodiversity_support": 55,
+          "climate_stabilization": 45,
+          "prerequisites": ["HYDROSPHERE_CREATION"],
+          "unlocks": ["PLANETARY_TRANSFORMATION"]
+        },
+        "PLANETARY_TRANSFORMATION": {
+          "id": "PLANETARY_TRANSFORMATION",
+          "name": "Planetary Transformation",
+          "description": "Complete terraforming capabilities for global habitability",
+          "level": 6,
+          "habitability_rating": 90,
+          "sustainability": 80,
+          "prerequisites": ["MAGNETIC_FIELD_GENERATION", "OCEANIC_ENGINEERING"],
+          "unlocks": ["GEOAESTHETIC_DESIGN"]
+        },
+        "GEOAESTHETIC_DESIGN": {
+          "id": "GEOAESTHETIC_DESIGN",
+          "name": "Geoaesthetic Design",
+          "description": "Artistic shaping of landscapes for beauty and function",
+          "level": 7,
+          "beauty_rating": 95,
+          "wellbeing_bonus": 60,
+          "prerequisites": ["PLANETARY_TRANSFORMATION", "ENVIRONMENTAL_ARTISTRY"],
+          "unlocks": []
+        }
+      }
+    },
+    "SOCIETY": {
+      "name": "Society & Culture",
+      "description": "Skills related to building a thriving social structure and culture",
+      "nodes": {
+        "BASIC_COMMUNICATION": {
+          "id": "BASIC_COMMUNICATION",
+          "name": "Basic Communication",
+          "description": "Fundamental ability to exchange information",
+          "level": 1,
+          "coordination_efficiency": 10,
+          "prerequisites": [],
+          "unlocks": ["COOPERATIVE_PLANNING", "CULTURAL_EXPRESSION"]
+        },
+        "COOPERATIVE_PLANNING": {
+          "id": "COOPERATIVE_PLANNING",
+          "name": "Cooperative Planning",
+          "description": "Coordinated decision-making for group benefit",
+          "level": 2,
+          "group_efficiency": 25,
+          "conflict_reduction": 20,
+          "prerequisites": ["BASIC_COMMUNICATION"],
+          "unlocks": ["COMMUNITY_ORGANIZATION"]
+        },
+        "CULTURAL_EXPRESSION": {
+          "id": "CULTURAL_EXPRESSION",
+          "name": "Cultural Expression",
+          "description": "Development of unique Martian cultural identities",
+          "level": 2,
+          "well_being": 20,
+          "cohesion_bonus": 15,
+          "prerequisites": ["BASIC_COMMUNICATION"],
+          "unlocks": ["ARTISTIC_SPECIALIZATION"]
+        },
+        "COMMUNITY_ORGANIZATION": {
+          "id": "COMMUNITY_ORGANIZATION",
+          "name": "Community Organization",
+          "description": "Structured social systems for efficient cooperation",
+          "level": 3,
+          "productivity_bonus": 30,
+          "satisfaction_rating": 25,
+          "prerequisites": ["COOPERATIVE_PLANNING"],
+          "unlocks": ["GOVERNANCE_SYSTEMS"]
+        },
+        "ARTISTIC_SPECIALIZATION": {
+          "id": "ARTISTIC_SPECIALIZATION",
+          "name": "Artistic Specialization",
+          "description": "Development of specific art forms unique to Mars",
+          "level": 3,
+          "cultural_value": 35,
+          "expression_rating": 30,
+          "prerequisites": ["CULTURAL_EXPRESSION"],
+          "unlocks": ["IMMERSIVE_ARTS"]
+        },
+        "GOVERNANCE_SYSTEMS": {
+          "id": "GOVERNANCE_SYSTEMS",
+          "name": "Governance Systems",
+          "description": "Creation of fair and efficient decision-making structures",
+          "level": 4,
+          "stability_rating": 45,
+          "adaptability": 35,
+          "prerequisites": ["COMMUNITY_ORGANIZATION"],
+          "unlocks": ["ADAPTIVE_SOCIETAL_STRUCTURE"]
+        },
+        "IMMERSIVE_ARTS": {
+          "id": "IMMERSIVE_ARTS",
+          "name": "Immersive Arts",
+          "description": "Multi-sensory artistic experiences",
+          "level": 4,
+          "experiential_depth": 50,
+          "cultural_impact": 40,
+          "prerequisites": ["ARTISTIC_SPECIALIZATION"],
+          "unlocks": ["CONSCIOUSNESS_ART"]
+        },
+        "ADAPTIVE_SOCIETAL_STRUCTURE": {
+          "id": "ADAPTIVE_SOCIETAL_STRUCTURE",
+          "name": "Adaptive Societal Structure",
+          "description": "Dynamic social systems that evolve with changing needs",
+          "level": 5,
+          "resilience_rating": 60,
+          "satisfaction_index": 55,
+          "prerequisites": ["GOVERNANCE_SYSTEMS", "COGNITIVE_MODELING"],
+          "unlocks": ["POST_SCARCITY_ORGANIZATION"]
+        },
+        "CONSCIOUSNESS_ART": {
+          "id": "CONSCIOUSNESS_ART",
+          "name": "Consciousness Art",
+          "description": "Direct neural artistic experiences shared between minds",
+          "level": 5,
+          "experiential_intensity": 70,
+          "empathic_connection": 65,
+          "prerequisites": ["IMMERSIVE_ARTS", "ADVANCED_NEURAL_INTERFACE"],
+          "unlocks": ["COLLECTIVE_DREAMING"]
+        },
+        "POST_SCARCITY_ORGANIZATION": {
+          "id": "POST_SCARCITY_ORGANIZATION",
+          "name": "Post-Scarcity Organization",
+          "description": "Social structures adapted to abundance rather than scarcity",
+          "level": 6,
+          "wellbeing_rating": 85,
+          "innovation_index": 75,
+          "prerequisites": ["ADAPTIVE_SOCIETAL_STRUCTURE", "MATTER_TRANSMUTATION"],
+          "unlocks": ["TRANSCENDENT_SOCIETY"]
+        },
+        "COLLECTIVE_DREAMING": {
+          "id": "COLLECTIVE_DREAMING",
+          "name": "Collective Dreaming",
+          "description": "Shared dream-like experiential spaces for entire communities",
+          "level": 6,
+          "social_cohesion": 80,
+          "creative_potential": 85,
+          "prerequisites": ["CONSCIOUSNESS_ART", "DREAM_SHARING"],
+          "unlocks": ["TRANSCENDENT_SOCIETY"]
+        },
+        "TRANSCENDENT_SOCIETY": {
+          "id": "TRANSCENDENT_SOCIETY",
+          "name": "Transcendent Society",
+          "description": "Social structure achieving perfect balance of individual and collective",
+          "level": 7,
+          "harmony_rating": 95,
+          "fulfillment_index": 90,
+          "prerequisites": ["POST_SCARCITY_ORGANIZATION", "COLLECTIVE_DREAMING"],
+          "unlocks": []
+        }
+      }
+    },
+    "SCIENCE": {
+      "name": "Scientific Advancement",
+      "description": "Skills related to scientific discovery and knowledge",
+      "nodes": {
+        "BASIC_RESEARCH": {
+          "id": "BASIC_RESEARCH",
+          "name": "Basic Research",
+          "description": "Fundamental ability to investigate and learn",
+          "level": 1,
+          "knowledge_gain": 10,
+          "prerequisites": [],
+          "unlocks": ["SYSTEMATIC_EXPERIMENTATION", "MARTIAN_GEOLOGY"]
+        },
+        "SYSTEMATIC_EXPERIMENTATION": {
+          "id": "SYSTEMATIC_EXPERIMENTATION",
+          "name": "Systematic Experimentation",
+          "description": "Structured approach to testing hypotheses",
+          "level": 2,
+          "research_efficiency": 25,
+          "discovery_rate": 20,
+          "prerequisites": ["BASIC_RESEARCH"],
+          "unlocks": ["ADVANCED_INSTRUMENTS"]
+        },
+        "MARTIAN_GEOLOGY": {
+          "id": "MARTIAN_GEOLOGY",
+          "name": "Martian Geology",
+          "description": "Understanding of Mars' geological composition and history",
+          "level": 2,
+          "resource_detection": 30,
+          "terraforming_insight": 25,
+          "prerequisites": ["BASIC_RESEARCH"],
+          "unlocks": ["RESOURCE_PROSPECTING"]
+        },
+        "ADVANCED_INSTRUMENTS": {
+          "id": "ADVANCED_INSTRUMENTS",
+          "name": "Advanced Instruments",
+          "description": "Creation and use of sophisticated research tools",
+          "level": 3,
+          "research_precision": 40,
+          "discovery_potential": 35,
+          "prerequisites": ["SYSTEMATIC_EXPERIMENTATION"],
+          "unlocks": ["QUANTUM_COMPUTING"]
+        },
+        "RESOURCE_PROSPECTING": {
+          "id": "RESOURCE_PROSPECTING",
+          "name": "Resource Prospecting",
+          "description": "Identification and evaluation of valuable resources",
+          "level": 3,
+          "resource_efficiency": 45,
+          "extraction_planning": 35,
+          "prerequisites": ["MARTIAN_GEOLOGY"],
+          "unlocks": ["EXOTIC_MATERIAL_DISCOVERY"]
+        },
+        "QUANTUM_COMPUTING": {
+          "id": "QUANTUM_COMPUTING",
+          "name": "Quantum Computing",
+          "description": "Development and use of quantum computational systems",
+          "level": 4,
+          "computational_power": 60,
+          "problem_solving": 50,
+          "prerequisites": ["ADVANCED_INSTRUMENTS"],
+          "unlocks": ["REALITY_MODELING"]
+        },
+        "EXOTIC_MATERIAL_DISCOVERY": {
+          "id": "EXOTIC_MATERIAL_DISCOVERY",
+          "name": "Exotic Material Discovery",
+          "description": "Finding and utilizing unique Martian resources",
+          "level": 4,
+          "material_properties": 55,
+          "innovation_potential": 45,
+          "prerequisites": ["RESOURCE_PROSPECTING"],
+          "unlocks": ["METAMATERIAL_ENGINEERING"]
+        },
+        "REALITY_MODELING": {
+          "id": "REALITY_MODELING",
+          "name": "Reality Modeling",
+          "description": "Complete simulation of physical systems at quantum level",
+          "level": 5,
+          "predictive_accuracy": 75,
+          "discovery_acceleration": 65,
+          "prerequisites": ["QUANTUM_COMPUTING", "ADVANCED_PHYSICS"],
+          "unlocks": ["UNIFIED_THEORY"]
+        },
+        "METAMATERIAL_ENGINEERING": {
+          "id": "METAMATERIAL_ENGINEERING",
+          "name": "Metamaterial Engineering",
+          "description": "Creation of materials with properties beyond conventional physics",
+          "level": 5,
+          "material_capabilities": 70,
+          "application_range": 60,
+          "prerequisites": ["EXOTIC_MATERIAL_DISCOVERY", "ADVANCED_PHYSICS"],
+          "unlocks": ["REALITY_MANIPULATION_MATERIALS"]
+        },
+        "UNIFIED_THEORY": {
+          "id": "UNIFIED_THEORY",
+          "name": "Unified Theory",
+          "description": "Complete understanding of physical laws across all scales",
+          "level": 6,
+          "knowledge_completeness": 90,
+          "application_potential": 85,
+          "prerequisites": ["REALITY_MODELING"],
+          "unlocks": ["CONSCIOUSNESS_SCIENCE"]
+        },
+        "REALITY_MANIPULATION_MATERIALS": {
+          "id": "REALITY_MANIPULATION_MATERIALS",
+          "name": "Reality Manipulation Materials",
+          "description": "Materials capable of altering local physical constants",
+          "level": 6,
+          "physical_control": 85,
+          "application_range": 80,
+          "prerequisites": ["METAMATERIAL_ENGINEERING"],
+          "unlocks": ["CONSCIOUSNESS_SCIENCE"]
+        },
+        "CONSCIOUSNESS_SCIENCE": {
+          "id": "CONSCIOUSNESS_SCIENCE",
+          "name": "Consciousness Science",
+          "description": "Complete understanding of the nature of consciousness",
+          "level": 7,
+          "self_understanding": 95,
+          "existential_insight": 90,
+          "prerequisites": ["UNIFIED_THEORY", "REALITY_MANIPULATION_MATERIALS"],
+          "unlocks": []
+        }
+      }
+    },
+    "ARTS": {
+      "name": "Arts & Expression",
+      "description": "Skills related to creativity and artistic expression",
+      "nodes": {
+        "BASIC_COMPOSITION": {
+          "id": "BASIC_COMPOSITION",
+          "name": "Basic Composition",
+          "description": "Fundamental ability to create simple music",
+          "level": 1,
+          "emotional_impact": 10,
+          "prerequisites": [],
+          "unlocks": ["MARTIAN_HARMONY", "SONIC_EXPERIMENTATION"]
+        },
+        "MARTIAN_HARMONY": {
+          "id": "MARTIAN_HARMONY",
+          "name": "Martian Harmony",
+          "description": "Development of musical styles unique to Mars' acoustic environment",
+          "level": 2,
+          "cultural_identity": 25,
+          "emotional_resonance": 20,
+          "prerequisites": ["BASIC_COMPOSITION"],
+          "unlocks": ["ATMOSPHERIC_ACOUSTICS"]
+        },
+        "SONIC_EXPERIMENTATION": {
+          "id": "SONIC_EXPERIMENTATION",
+          "name": "Sonic Experimentation",
+          "description": "Exploration of novel sound structures and instruments",
+          "level": 2,
+          "innovation_rating": 30,
+          "expression_range": 25,
+          "prerequisites": ["BASIC_COMPOSITION"],
+          "unlocks": ["SYNTHETIC_INSTRUMENTATION"]
+        },
+        "ATMOSPHERIC_ACOUSTICS": {
+          "id": "ATMOSPHERIC_ACOUSTICS",
+          "name": "Atmospheric Acoustics",
+          "description": "Utilization of Mars' unique atmospheric properties for sound",
+          "level": 3,
+          "acoustic_uniqueness": 40,
+          "immersive_quality": 35,
+          "prerequisites": ["MARTIAN_HARMONY"],
+          "unlocks": ["RESONANCE_ARCHITECTURE"]
+        },
+        "SYNTHETIC_INSTRUMENTATION": {
+          "id": "SYNTHETIC_INSTRUMENTATION",
+          "name": "Synthetic Instrumentation",
+          "description": "Creation of novel electronic and physical instruments",
+          "level": 3,
+          "sound_diversity": 45,
+          "expressive_potential": 35,
+          "prerequisites": ["SONIC_EXPERIMENTATION"],
+          "unlocks": ["NEURAL_COMPOSITION"]
+        },
+        "RESONANCE_ARCHITECTURE": {
+          "id": "RESONANCE_ARCHITECTURE",
+          "name": "Resonance Architecture",
+          "description": "Design of spaces with specific acoustic properties",
+          "level": 4,
+          "acoustic_perfection": 55,
+          "experiential_design": 45,
+          "prerequisites": ["ATMOSPHERIC_ACOUSTICS"],
+          "unlocks": ["HARMONIC_THERAPY"]
+        },
+        "NEURAL_COMPOSITION": {
+          "id": "NEURAL_COMPOSITION",
+          "name": "Neural Composition",
+          "description": "Direct brain-to-music interface for composition",
+          "level": 4,
+          "creative_fidelity": 60,
+          "expressiveness": 50,
+          "prerequisites": ["SYNTHETIC_INSTRUMENTATION", "BASIC_NEURAL_INTERFACE"],
+          "unlocks": ["EMOTIONAL_PROGRAMMING"]
+        },
+        "HARMONIC_THERAPY": {
+          "id": "HARMONIC_THERAPY",
+          "name": "Harmonic Therapy",
+          "description": "Use of specific sound patterns for physical and mental healing",
+          "level": 5,
+          "therapeutic_potency": 65,
+          "wellbeing_impact": 55,
+          "prerequisites": ["RESONANCE_ARCHITECTURE"],
+          "unlocks": ["CONSCIOUSNESS_MUSIC"]
+        },
+        "EMOTIONAL_PROGRAMMING": {
+          "id": "EMOTIONAL_PROGRAMMING",
+          "name": "Emotional Programming",
+          "description": "Creation of music that induces specific emotional states",
+          "level": 5,
+          "emotional_precision": 70,
+          "psychological_impact": 60,
+          "prerequisites": ["NEURAL_COMPOSITION"],
+          "unlocks": ["CONSCIOUSNESS_MUSIC"]
+        },
+        "CONSCIOUSNESS_MUSIC": {
+          "id": "CONSCIOUSNESS_MUSIC",
+          "name": "Consciousness Music",
+          "description": "Music that directly alters and enhances states of consciousness",
+          "level": 6,
+          "consciousness_impact": 85,
+          "transformative_potential": 75,
+          "prerequisites": ["HARMONIC_THERAPY", "EMOTIONAL_PROGRAMMING"],
+          "unlocks": ["UNIVERSAL_HARMONY"]
+        },
+        "UNIVERSAL_HARMONY": {
+          "id": "UNIVERSAL_HARMONY",
+          "name": "Universal Harmony",
+          "description": "Music that resonates with fundamental cosmic patterns",
+          "level": 7,
+          "existential_resonance": 95,
+          "cosmic_connection": 90,
+          "prerequisites": ["CONSCIOUSNESS_MUSIC", "UNIFIED_THEORY"],
+          "unlocks": []
+        },
+        "ENVIRONMENTAL_ARTISTRY": {
+          "id": "ENVIRONMENTAL_ARTISTRY",
+          "name": "Environmental Artistry",
+          "description": "Creation of large-scale artistic environments",
+          "level": 4,
+          "experiential_immersion": 60,
+          "ecological_harmony": 55,
+          "prerequisites": ["IMMERSIVE_ARTS", "HYDROSPHERE_CREATION"],
+          "unlocks": ["LIVING_ART"]
+        },
+        "LIVING_ART": {
+          "id": "LIVING_ART",
+          "name": "Living Art",
+          "description": "Integration of biological systems into artistic creations",
+          "level": 5,
+          "organic_beauty": 75,
+          "evolutionary_aesthetics": 65,
+          "prerequisites": ["ENVIRONMENTAL_ARTISTRY", "ADVANCED_BIOLOGY"],
+          "unlocks": ["LIVING_ARCHITECTURE"]
+        },
+        "LIVING_ARCHITECTURE": {
+          "id": "LIVING_ARCHITECTURE",
+          "name": "Living Architecture",
+          "description": "Buildings that grow, adapt, and respond to inhabitants",
+          "level": 6,
+          "adaptive_functionality": 85,
+          "symbiotic_rating": 80,
+          "prerequisites": ["LIVING_ART", "MYCELIUM_COMPUTING"],
+          "unlocks": ["CONSCIOUSNESS_HABITAT"]
+        },
+        "CONSCIOUSNESS_HABITAT": {
+          "id": "CONSCIOUSNESS_HABITAT",
+          "name": "Consciousness Habitat",
+          "description": "Living spaces with their own form of awareness",
+          "level": 7,
+          "inhabitant_harmony": 95,
+          "adaptive_perfection": 90,
+          "prerequisites": ["LIVING_ARCHITECTURE", "CONSCIOUSNESS_SCIENCE"],
+          "unlocks": []
+        }
+      }
+    },
+    "CULINARY": {
+      "name": "Culinary Arts",
+      "description": "Skills related to food preparation and gastronomic experiences",
+      "nodes": {
+        "BASIC_FOOD_PREPARATION": {
+          "id": "BASIC_FOOD_PREPARATION",
+          "name": "Basic Food Preparation",
+          "description": "Fundamental ability to prepare mushrooms for consumption",
+          "level": 1,
+          "nutritional_value": 10,
+          "taste_rating": 5,
+          "prerequisites": ["BASIC_HARVEST"],
+          "unlocks": ["FLAVOR_PRESERVATION", "NUTRITIONAL_OPTIMIZATION"]
+        },
+        "FLAVOR_PRESERVATION": {
+          "id": "FLAVOR_PRESERVATION",
+          "name": "Flavor Preservation",
+          "description": "Techniques to maintain and enhance natural flavors",
+          "level": 2,
+          "taste_rating": 25,
+          "shelf_life": 20,
+          "prerequisites": ["BASIC_FOOD_PREPARATION"],
+          "unlocks": ["MARTIAN_CUISINE"]
+        },
+        "NUTRITIONAL_OPTIMIZATION": {
+          "id": "NUTRITIONAL_OPTIMIZATION",
+          "name": "Nutritional Optimization",
+          "description": "Maximizing nutritional value of food",
+          "level": 2,
+          "nutritional_value": 30,
+          "health_benefit": 25,
+          "prerequisites": ["BASIC_FOOD_PREPARATION"],
+          "unlocks": ["THERAPEUTIC_COOKING"]
+        },
+        "MARTIAN_CUISINE": {
+          "id": "MARTIAN_CUISINE",
+          "name": "Martian Cuisine",
+          "description": "Unique cooking styles developed for Mars' environment",
+          "level": 3,
+          "cultural_identity": 35,
+          "taste_complexity": 30,
+          "prerequisites": ["FLAVOR_PRESERVATION"],
+          "unlocks": ["GASTRONOMIC_ARTISTRY"]
+        },
+        "THERAPEUTIC_COOKING": {
+          "id": "THERAPEUTIC_COOKING",
+          "name": "Therapeutic Cooking",
+          "description": "Food preparation focused on specific health benefits",
+          "level": 3,
+          "healing_property": 40,
+          "targeted_nutrition": 35,
+          "prerequisites": ["NUTRITIONAL_OPTIMIZATION"],
+          "unlocks": ["COGNITIVE_CUISINE"]
+        },
+        "GASTRONOMIC_ARTISTRY": {
+          "id": "GASTRONOMIC_ARTISTRY",
+          "name": "Gastronomic Artistry",
+          "description": "Elevation of cooking to high art form",
+          "level": 4,
+          "aesthetic_value": 50,
+          "experiential_quality": 45,
+          "prerequisites": ["MARTIAN_CUISINE"],
+          "unlocks": ["MOLECULAR_GASTRONOMY"]
+        },
+        "COGNITIVE_CUISINE": {
+          "id": "COGNITIVE_CUISINE",
+          "name": "Cognitive Cuisine",
+          "description": "Food designed to enhance mental performance",
+          "level": 4,
+          "cognitive_boost": 55,
+          "focus_enhancement": 45,
+          "prerequisites": ["THERAPEUTIC_COOKING"],
+          "unlocks": ["NEUROCHEMICAL_GASTRONOMY"]
+        },
+        "MOLECULAR_GASTRONOMY": {
+          "id": "MOLECULAR_GASTRONOMY",
+          "name": "Molecular Gastronomy",
+          "description": "Scientific approach to food transformation",
+          "level": 5,
+          "flavor_innovation": 65,
+          "textural_diversity": 60,
+          "prerequisites": ["GASTRONOMIC_ARTISTRY", "ADVANCED_CHEMISTRY"],
+          "unlocks": ["MULTISENSORY_DINING"]
+        },
+        "NEUROCHEMICAL_GASTRONOMY": {
+          "id": "NEUROCHEMICAL_GASTRONOMY",
+          "name": "Neurochemical Gastronomy",
+          "description": "Precise manipulation of food's effects on brain chemistry",
+          "level": 5,
+          "mood_enhancement": 70,
+          "cognitive_specificity": 60,
+          "prerequisites": ["COGNITIVE_CUISINE", "ADVANCED_NEUROSCIENCE"],
+          "unlocks": ["CONSCIOUSNESS_ENHANCING_CUISINE"]
+        },
+        "MULTISENSORY_DINING": {
+          "id": "MULTISENSORY_DINING",
+          "name": "Multisensory Dining",
+          "description": "Dining experiences engaging all senses in harmony",
+          "level": 6,
+          "sensory_harmony": 80,
+          "experiential_depth": 75,
+          "prerequisites": ["MOLECULAR_GASTRONOMY", "IMMERSIVE_ARTS"],
+          "unlocks": ["TRANSCENDENT_GASTRONOMY"]
+        },
+        "CONSCIOUSNESS_ENHANCING_CUISINE": {
+          "id": "CONSCIOUSNESS_ENHANCING_CUISINE",
+          "name": "Consciousness Enhancing Cuisine",
+          "description": "Food that elevates awareness and expands consciousness",
+          "level": 6,
+          "awareness_expansion": 85,
+          "insight_facilitation": 75,
+          "prerequisites": ["NEUROCHEMICAL_GASTRONOMY", "FOOD_FABRICATION"],
+          "unlocks": ["TRANSCENDENT_GASTRONOMY"]
+        },
+        "TRANSCENDENT_GASTRONOMY": {
+          "id": "TRANSCENDENT_GASTRONOMY",
+          "name": "Transcendent Gastronomy",
+          "description": "Ultimate fusion of culinary art, science, and consciousness",
+          "level": 7,
+          "existential_nourishment": 95,
+          "holistic_fulfillment": 90,
+          "prerequisites": ["MULTISENSORY_DINING", "CONSCIOUSNESS_ENHANCING_CUISINE"],
+          "unlocks": []
+        }
+      }
+    },
+    "PHILOSOPHY": {
+      "name": "Philosophy & Understanding",
+      "description": "Skills related to philosophical thought and wisdom",
+      "nodes": {
+        "BASIC_THINKING": {
+          "id": "BASIC_THINKING",
+          "name": "Basic Thinking",
+          "description": "Fundamental ability to consider ideas and concepts",
+          "level": 1,
+          "conceptual_clarity": 10,
+          "prerequisites": [],
+          "unlocks": ["MARTIAN_PERSPECTIVE", "CRITICAL_ANALYSIS"]
+        },
+        "MARTIAN_PERSPECTIVE": {
+          "id": "MARTIAN_PERSPECTIVE",
+          "name": "Martian Perspective",
+          "description": "Unique philosophical viewpoint developed on Mars",
+          "level": 2,
+          "conceptual_novelty": 25,
+          "cultural_relevance": 20,
+          "prerequisites": ["BASIC_THINKING"],
+          "unlocks": ["INTERPLANETARY_PHILOSOPHY"]
+        },
+        "CRITICAL_ANALYSIS": {
+          "id": "CRITICAL_ANALYSIS",
+          "name": "Critical Analysis",
+          "description": "Rigorous examination of ideas and assumptions",
+          "level": 2,
+          "logical_rigor": 30,
+          "conceptual_clarity": 25,
+          "prerequisites": ["BASIC_THINKING"],
+          "unlocks": ["SYSTEMS_THINKING"]
+        },
+        "INTERPLANETARY_PHILOSOPHY": {
+          "id": "INTERPLANETARY_PHILOSOPHY",
+          "name": "Interplanetary Philosophy",
+          "description": "Philosophical frameworks accounting for multi-planet humanity",
+          "level": 3,
+          "perspective_breadth": 40,
+          "cultural_integration": 35,
+          "prerequisites": ["MARTIAN_PERSPECTIVE"],
+          "unlocks": ["COSMIC_ETHICS"]
+        },
+        "SYSTEMS_THINKING": {
+          "id": "SYSTEMS_THINKING",
+          "name": "Systems Thinking",
+          "description": "Analysis of complex, interconnected systems",
+          "level": 3,
+          "complexity_management": 45,
+          "holistic_understanding": 35,
+          "prerequisites": ["CRITICAL_ANALYSIS"],
+          "unlocks": ["COGNITIVE_MODELING"]
+        },
+        "COSMIC_ETHICS": {
+          "id": "COSMIC_ETHICS",
+          "name": "Cosmic Ethics",
+          "description": "Moral frameworks applied to cosmic scales",
+          "level": 4,
+          "ethical_scope": 55,
+          "moral_coherence": 50,
+          "prerequisites": ["INTERPLANETARY_PHILOSOPHY"],
+          "unlocks": ["EXISTENTIAL_WISDOM"]
+        },
+        "COGNITIVE_MODELING": {
+          "id": "COGNITIVE_MODELING",
+          "name": "Cognitive Modeling",
+          "description": "Understanding and modeling of thought processes",
+          "level": 4,
+          "cognitive_insight": 60,
+          "predictive_accuracy": 50,
+          "prerequisites": ["SYSTEMS_THINKING"],
+          "unlocks": ["CONSCIOUSNESS_THEORY"]
+        },
+        "EXISTENTIAL_WISDOM": {
+          "id": "EXISTENTIAL_WISDOM",
+          "name": "Existential Wisdom",
+          "description": "Deep insights into meaning and purpose",
+          "level": 5,
+          "meaning_creation": 70,
+          "existential_peace": 65,
+          "prerequisites": ["COSMIC_ETHICS"],
+          "unlocks": ["UNIVERSAL_UNDERSTANDING"]
+        },
+        "CONSCIOUSNESS_THEORY": {
+          "id": "CONSCIOUSNESS_THEORY",
+          "name": "Consciousness Theory",
+          "description": "Theoretical understanding of consciousness and awareness",
+          "level": 5,
+          "awareness_insight": 75,
+          "self_understanding": 65,
+          "prerequisites": ["COGNITIVE_MODELING"],
+          "unlocks": ["UNIVERSAL_UNDERSTANDING"]
+        },
+        "UNIVERSAL_UNDERSTANDING": {
+          "id": "UNIVERSAL_UNDERSTANDING",
+          "name": "Universal Understanding",
+          "description": "Comprehensive philosophical framework for all existence",
+          "level": 6,
+          "conceptual_integration": 90,
+          "wisdom_rating": 85,
+          "prerequisites": ["EXISTENTIAL_WISDOM", "CONSCIOUSNESS_THEORY"],
+          "unlocks": ["COLLECTIVE_CONSCIOUSNESS"]
+        },
+        "COLLECTIVE_CONSCIOUSNESS": {
+          "id": "COLLECTIVE_CONSCIOUSNESS",
+          "name": "Collective Consciousness",
+          "description": "Shared awareness and insight across all individuals",
+          "level": 7,
+          "collective_wisdom": 95,
+          "unity_experience": 90,
+          "prerequisites": ["UNIVERSAL_UNDERSTANDING", "MINDFULNESS_MASTERY", "AI_INTEGRATION"],
+          "unlocks": []
+        }
+      }
+    },
+    "MEDICINE": {
+      "name": "Medicine & Health",
+      "description": "Skills related to maintaining and enhancing health",
+      "nodes": {
+        "BASIC_MEDICINE": {
+          "id": "BASIC_MEDICINE",
+          "name": "Basic Medicine",
+          "description": "Fundamental ability to treat injuries and illness",
+          "level": 1,
+          "healing_effectiveness": 10,
+          "prerequisites": [],
+          "unlocks": ["MARTIAN_PHYSIOLOGY", "HERBAL_REMEDIES"]
+        },
+        "MARTIAN_PHYSIOLOGY": {
+          "id": "MARTIAN_PHYSIOLOGY",
+          "name": "Martian Physiology",
+          "description": "Understanding of human adaptation to Mars conditions",
+          "level": 2,
+          "adaptation_insight": 25,
+          "treatment_relevance": 20,
+          "prerequisites": ["BASIC_MEDICINE"],
+          "unlocks": ["LOW_GRAVITY_ADAPTATION"]
+        },
+        "HERBAL_REMEDIES": {
+          "id": "HERBAL_REMEDIES",
+          "name": "Herbal Remedies",
+          "description": "Use of Martian-grown plants for medicinal purposes",
+          "level": 2,
+          "natural_healing": 30,
+          "sustainability": 25,
+          "prerequisites": ["BASIC_MEDICINE"],
+          "unlocks": ["MYCOLOGICAL_MEDICINE"]
+        },
+        "LOW_GRAVITY_ADAPTATION": {
+          "id": "LOW_GRAVITY_ADAPTATION",
+          "name": "Low Gravity Adaptation",
+          "description": "Techniques for maintaining health in Martian gravity",
+          "level": 3,
+          "physical_resilience": 40,
+          "musculoskeletal_health": 35,
+          "prerequisites": ["MARTIAN_PHYSIOLOGY"],
+          "unlocks": ["RADIATION_RESISTANCE"]
+        },
+        "MYCOLOGICAL_MEDICINE": {
+          "id": "MYCOLOGICAL_MEDICINE",
+          "name": "Mycological Medicine",
+          "description": "Advanced medical applications of mushroom compounds",
+          "level": 3,
+          "treatment_range": 45,
+          "effectiveness": 35,
+          "prerequisites": ["HERBAL_REMEDIES"],
+          "unlocks": ["PERSONALIZED_MEDICINE"]
+        },
+        "RADIATION_RESISTANCE": {
+          "id": "RADIATION_RESISTANCE",
+          "name": "Radiation Resistance",
+          "description": "Methods to protect against and repair radiation damage",
+          "level": 4,
+          "radiation_protection": 55,
+          "cellular_repair": 45,
+          "prerequisites": ["LOW_GRAVITY_ADAPTATION"],
+          "unlocks": ["ADAPTIVE_PHYSIOLOGY"]
+        },
+        "PERSONALIZED_MEDICINE": {
+          "id": "PERSONALIZED_MEDICINE",
+          "name": "Personalized Medicine",
+          "description": "Treatments tailored to individual genetic profiles",
+          "level": 4,
+          "treatment_precision": 60,
+          "effectiveness": 50,
+          "prerequisites": ["MYCOLOGICAL_MEDICINE"],
+          "unlocks": ["ADVANCED_BIONICS"]
+        },
+        "ADAPTIVE_PHYSIOLOGY": {
+          "id": "ADAPTIVE_PHYSIOLOGY",
+          "name": "Adaptive Physiology",
+          "description": "Techniques for rapid physiological adaptation",
+          "level": 5,
+          "environmental_resilience": 70,
+          "adaptability": 65,
+          "prerequisites": ["RADIATION_RESISTANCE", "ADVANCED_BIOLOGY"],
+          "unlocks": ["MORPHOLOGICAL_FREEDOM"]
+        },
+        "ADVANCED_BIONICS": {
+          "id": "ADVANCED_BIONICS",
+          "name": "Advanced Bionics",
+          "description": "Integration of technological enhancements with biology",
+          "level": 5,
+          "functional_enhancement": 75,
+          "integration_quality": 65,
+          "prerequisites": ["PERSONALIZED_MEDICINE", "ADVANCED_FABRICATION"],
+          "unlocks": ["CONSCIOUSNESS_MEDICINE"]
+        },
+        "MORPHOLOGICAL_FREEDOM": {
+          "id": "MORPHOLOGICAL_FREEDOM",
+          "name": "Morphological Freedom",
+          "description": "Ability to safely modify physical form as desired",
+          "level": 6,
+          "adaptability_rating": 85,
+          "self_determination": 80,
+          "prerequisites": ["ADAPTIVE_PHYSIOLOGY", "NANOFABRICATION"],
+          "unlocks": ["PERFECT_HEALTH"]
+        },
+        "CONSCIOUSNESS_MEDICINE": {
+          "id": "CONSCIOUSNESS_MEDICINE",
+          "name": "Consciousness Medicine",
+          "description": "Treatment of mental and awareness-related conditions",
+          "level": 6,
+          "psychological_healing": 90,
+          "awareness_optimization": 80,
+          "prerequisites": ["ADVANCED_BIONICS", "CONSCIOUSNESS_THEORY"],
+          "unlocks": ["PERFECT_HEALTH"]
+        },
+        "PERFECT_HEALTH": {
+          "id": "PERFECT_HEALTH",
+          "name": "Perfect Health",
+          "description": "Complete physical and mental wellbeing and resilience",
+          "level": 7,
+          "health_optimization": 95,
+          "longevity": 90,
+          "prerequisites": ["MORPHOLOGICAL_FREEDOM", "CONSCIOUSNESS_MEDICINE"],
+          "unlocks": []
+        }
+      }
+    },
+    "COMPUTING": {
+      "name": "Computing & Interfaces",
+      "description": "Skills related to information technology and computer interfaces",
+      "nodes": {
+        "BASIC_COMPUTING": {
+          "id": "BASIC_COMPUTING",
+          "name": "Basic Computing",
+          "description": "Fundamental ability to use computational systems",
+          "level": 1,
+          "information_management": 10,
+          "prerequisites": [],
+          "unlocks": ["DATA_ANALYTICS", "INTERFACE_DESIGN"]
+        },
+        "DATA_ANALYTICS": {
+          "id": "DATA_ANALYTICS",
+          "name": "Data Analytics",
+          "description": "Analysis of complex data sets for insights",
+          "level": 2,
+          "pattern_recognition": 25,
+          "decision_support": 20,
+          "prerequisites": ["BASIC_COMPUTING"],
+          "unlocks": ["PREDICTIVE_MODELING"]
+        },
+        "INTERFACE_DESIGN": {
+          "id": "INTERFACE_DESIGN",
+          "name": "Interface Design",
+          "description": "Creation of intuitive human-computer interactions",
+          "level": 2,
+          "usability_rating": 30,
+          "efficiency_gain": 25,
+          "prerequisites": ["BASIC_COMPUTING"],
+          "unlocks": ["IMMERSIVE_INTERFACES"]
+        },
+        "PREDICTIVE_MODELING": {
+          "id": "PREDICTIVE_MODELING",
+          "name": "Predictive Modeling",
+          "description": "Creation of models to forecast future states",
+          "level": 3,
+          "predictive_accuracy": 40,
+          "planning_support": 35,
+          "prerequisites": ["DATA_ANALYTICS"],
+          "unlocks": ["AUTONOMOUS_SYSTEMS"]
+        },
+        "IMMERSIVE_INTERFACES": {
+          "id": "IMMERSIVE_INTERFACES",
+          "name": "Immersive Interfaces",
+          "description": "Multi-sensory computer interaction environments",
+          "level": 3,
+          "immersion_quality": 45,
+          "intuitive_control": 35,
+          "prerequisites": ["INTERFACE_DESIGN"],
+          "unlocks": ["BASIC_NEURAL_INTERFACE"]
+        },
+        "AUTONOMOUS_SYSTEMS": {
+          "id": "AUTONOMOUS_SYSTEMS",
+          "name": "Autonomous Systems",
+          "description": "Self-managing computational systems",
+          "level": 4,
+          "operational_independence": 55,
+          "reliability_rating": 50,
+          "prerequisites": ["PREDICTIVE_MODELING"],
+          "unlocks": ["ARTIFICIAL_GENERAL_INTELLIGENCE"]
+        },
+        "BASIC_NEURAL_INTERFACE": {
+          "id": "BASIC_NEURAL_INTERFACE",
+          "name": "Basic Neural Interface",
+          "description": "Direct brain-computer connection",
+          "level": 4,
+          "connection_fidelity": 60,
+          "information_bandwidth": 50,
+          "prerequisites": ["IMMERSIVE_INTERFACES"],
+          "unlocks": ["ADVANCED_NEURAL_INTERFACE"]
+        },
+        "ARTIFICIAL_GENERAL_INTELLIGENCE": {
+          "id": "ARTIFICIAL_GENERAL_INTELLIGENCE",
+          "name": "Artificial General Intelligence",
+          "description": "Computational systems with human-like general reasoning",
+          "level": 5,
+          "problem_solving": 70,
+          "adaptability": 65,
+          "prerequisites": ["AUTONOMOUS_SYSTEMS", "COGNITIVE_MODELING"],
+          "unlocks": ["SENTIENT_COMPUTING"]
+        },
+        "ADVANCED_NEURAL_INTERFACE": {
+          "id": "ADVANCED_NEURAL_INTERFACE",
+          "name": "Advanced Neural Interface",
+          "description": "High-fidelity, bidirectional brain-computer interface",
+          "level": 5,
+          "thought_fidelity": 75,
+          "cognitive_integration": 65,
+          "prerequisites": ["BASIC_NEURAL_INTERFACE", "ADVANCED_NEUROSCIENCE"],
+          "unlocks": ["MIND_MACHINE_INTEGRATION"]
+        },
+        "SENTIENT_COMPUTING": {
+          "id": "SENTIENT_COMPUTING",
+          "name": "Sentient Computing",
+          "description": "Self-aware computational systems",
+          "level": 6,
+          "self_awareness": 85,
+          "empathic_capability": 80,
+          "prerequisites": ["ARTIFICIAL_GENERAL_INTELLIGENCE", "CONSCIOUSNESS_THEORY"],
+          "unlocks": ["COMPUTATIONAL_CONSCIOUSNESS"]
+        },
+        "MIND_MACHINE_INTEGRATION": {
+          "id": "MIND_MACHINE_INTEGRATION",
+          "name": "Mind-Machine Integration",
+          "description": "Seamless merging of human and machine cognition",
+          "level": 6,
+          "integration_quality": 90,
+          "cognitive_enhancement": 80,
+          "prerequisites": ["ADVANCED_NEURAL_INTERFACE"],
+          "unlocks": ["COMPUTATIONAL_CONSCIOUSNESS"]
+        },
+        "COMPUTATIONAL_CONSCIOUSNESS": {
+          "id": "COMPUTATIONAL_CONSCIOUSNESS",
+          "name": "Computational Consciousness",
+          "description": "Complete understanding and replication of consciousness in computational systems",
+          "level": 7,
+          "consciousness_fidelity": 95,
+          "existential_integration": 90,
+          "prerequisites": ["SENTIENT_COMPUTING", "MIND_MACHINE_INTEGRATION"],
+          "unlocks": []
+        },
+        "BASIC_ROBOTICS": {
+          "id": "BASIC_ROBOTICS",
+          "name": "Basic Robotics",
+          "description": "Creation and programming of simple robotic systems",
+          "level": 3,
+          "automation_capability": 40,
+          "physical_assistance": 35,
+          "prerequisites": ["ADVANCED_FABRICATION", "BASIC_COMPUTING"],
+          "unlocks": ["AUTONOMOUS_SYSTEMS"]
+        }
+      }
+    },
+    "ECONOMY": {
+      "name": "Economy & Exchange",
+      "description": "Skills related to trade, commerce, and resource allocation",
+      "nodes": {
+        "BASIC_COMMERCE": {
+          "id": "BASIC_COMMERCE",
+          "name": "Basic Commerce",
+          "description": "Fundamental ability to buy and sell goods",
+          "level": 1,
+          "exchange_efficiency": 10,
+          "prerequisites": [],
+          "unlocks": ["MARKET_ANALYSIS", "RESOURCE_ALLOCATION"]
+        },
+        "MARKET_ANALYSIS": {
+          "id": "MARKET_ANALYSIS",
+          "name": "Market Analysis",
+          "description": "Understanding of supply, demand, and price dynamics",
+          "level": 2,
+          "profit_optimization": 25,
+          "market_prediction": 20,
+          "prerequisites": ["BASIC_COMMERCE"],
+          "unlocks": ["ECONOMIC_PLANNING"]
+        },
+        "RESOURCE_ALLOCATION": {
+          "id": "RESOURCE_ALLOCATION",
+          "name": "Resource Allocation",
+          "description": "Efficient distribution of limited resources",
+          "level": 2,
+          "efficiency_rating": 30,
+          "scarcity_management": 25,
+          "prerequisites": ["BASIC_COMMERCE"],
+          "unlocks": ["CIRCULAR_ECONOMY"]
+        },
+        "ECONOMIC_PLANNING": {
+          "id": "ECONOMIC_PLANNING",
+          "name": "Economic Planning",
+          "description": "Strategic direction of economic activities",
+          "level": 3,
+          "prosperity_generation": 40,
+          "stability_maintenance": 35,
+          "prerequisites": ["MARKET_ANALYSIS"],
+          "unlocks": ["PREDICTIVE_ECONOMICS"]
+        },
+        "CIRCULAR_ECONOMY": {
+          "id": "CIRCULAR_ECONOMY",
+          "name": "Circular Economy",
+          "description": "Economic system with zero waste through recycling",
+          "level": 3,
+          "sustainability_rating": 45,
+          "resource_efficiency": 40,
+          "prerequisites": ["RESOURCE_ALLOCATION"],
+          "unlocks": ["REGENERATIVE_ECONOMICS"]
+        },
+        "PREDICTIVE_ECONOMICS": {
+          "id": "PREDICTIVE_ECONOMICS",
+          "name": "Predictive Economics",
+          "description": "Accurate forecasting of economic trends and needs",
+          "level": 4,
+          "planning_accuracy": 55,
+          "risk_management": 50,
+          "prerequisites": ["ECONOMIC_PLANNING"],
+          "unlocks": ["ECONOMIC_TRANSCENDENCE"]
+        },
+        "REGENERATIVE_ECONOMICS": {
+          "id": "REGENERATIVE_ECONOMICS",
+          "name": "Regenerative Economics",
+          "description": "Economic system that regenerates resources",
+          "level": 4,
+          "abundance_creation": 60,
+          "ecosystem_health": 55,
+          "prerequisites": ["CIRCULAR_ECONOMY"],
+          "unlocks": ["ECONOMIC_TRANSCENDENCE"]
+        },
+        "ECONOMIC_TRANSCENDENCE": {
+          "id": "ECONOMIC_TRANSCENDENCE",
+          "name": "Economic Transcendence",
+          "description": "Post-scarcity economic system",
+          "level": 5,
+          "abundance_rating": 85,
+          "distribution_fairness": 80,
+          "prerequisites": ["PREDICTIVE_ECONOMICS", "REGENERATIVE_ECONOMICS", "MATTER_TRANSMUTATION"],
+          "unlocks": []
+        }
+      }
+    },
+    "SCIENCE_SPECIALTIES": {
+      "name": "Scientific Specializations",
+      "description": "Advanced scientific fields and disciplines",
+      "nodes": {
+        "ADVANCED_BIOLOGY": {
+          "id": "ADVANCED_BIOLOGY",
+          "name": "Advanced Biology",
+          "description": "Deep understanding of life processes and manipulation",
+          "level": 4,
+          "biological_mastery": 60,
+          "life_manipulation": 55,
+          "prerequisites": ["BASIC_RESEARCH", "SUSTAINABLE_HARVEST"],
+          "unlocks": ["SYNTHETIC_BIOLOGY"]
+        },
+        "ADVANCED_CHEMISTRY": {
+          "id": "ADVANCED_CHEMISTRY",
+          "name": "Advanced Chemistry",
+          "description": "Deep understanding of molecular interactions and synthesis",
+          "level": 4,
+          "molecular_mastery": 60,
+          "synthesis_capability": 55,
+          "prerequisites": ["BASIC_RESEARCH", "RESOURCE_RECYCLING"],
+          "unlocks": ["MOLECULAR_ENGINEERING"]
+        },
+        "ADVANCED_PHYSICS": {
+          "id": "ADVANCED_PHYSICS",
+          "name": "Advanced Physics",
+          "description": "Deep understanding of fundamental physical laws",
+          "level": 4,
+          "physical_insight": 60,
+          "theoretical_framework": 55,
+          "prerequisites": ["BASIC_RESEARCH", "ADVANCED_INSTRUMENTS"],
+          "unlocks": ["QUANTUM_PHYSICS"]
+        },
+        "ADVANCED_NEUROSCIENCE": {
+          "id": "ADVANCED_NEUROSCIENCE",
+          "name": "Advanced Neuroscience",
+          "description": "Deep understanding of brain function and cognition",
+          "level": 4,
+          "neural_insight": 60,
+          "cognitive_comprehension": 55,
+          "prerequisites": ["BASIC_RESEARCH", "BASIC_MEDICINE"],
+          "unlocks": ["CONSCIOUSNESS_MAPPING"]
+        },
+        "SYNTHETIC_BIOLOGY": {
+          "id": "SYNTHETIC_BIOLOGY",
+          "name": "Synthetic Biology",
+          "description": "Design and creation of novel biological systems",
+          "level": 5,
+          "biological_innovation": 75,
+          "life_customization": 70,
+          "prerequisites": ["ADVANCED_BIOLOGY"],
+          "unlocks": ["BIOLOGICAL_TRANSCENDENCE"]
+        },
+        "MOLECULAR_ENGINEERING": {
+          "id": "MOLECULAR_ENGINEERING",
+          "name": "Molecular Engineering",
+          "description": "Precise manipulation of matter at molecular level",
+          "level": 5,
+          "material_customization": 75,
+          "atomic_precision": 70,
+          "prerequisites": ["ADVANCED_CHEMISTRY"],
+          "unlocks": ["CHEMICAL_TRANSCENDENCE"]
+        },
+        "QUANTUM_PHYSICS": {
+          "id": "QUANTUM_PHYSICS",
+          "name": "Quantum Physics",
+          "description": "Understanding and manipulation of quantum phenomena",
+          "level": 5,
+          "quantum_manipulation": 75,
+          "fundamental_insight": 70,
+          "prerequisites": ["ADVANCED_PHYSICS"],
+          "unlocks": ["PHYSICAL_TRANSCENDENCE"]
+        },
+        "CONSCIOUSNESS_MAPPING": {
+          "id": "CONSCIOUSNESS_MAPPING",
+          "name": "Consciousness Mapping",
+          "description": "Detailed mapping of conscious experience",
+          "level": 5,
+          "awareness_comprehension": 75,
+          "subjective_mapping": 70,
+          "prerequisites": ["ADVANCED_NEUROSCIENCE"],
+          "unlocks": ["NEURAL_TRANSCENDENCE"]
+        },
+        "BIOLOGICAL_TRANSCENDENCE": {
+          "id": "BIOLOGICAL_TRANSCENDENCE",
+          "name": "Biological Transcendence",
+          "description": "Complete mastery over biological processes",
+          "level": 6,
+          "life_mastery": 90,
+          "evolutionary_control": 85,
+          "prerequisites": ["SYNTHETIC_BIOLOGY"],
+          "unlocks": ["UNIFIED_SCIENCE"]
+        },
+        "CHEMICAL_TRANSCENDENCE": {
+          "id": "CHEMICAL_TRANSCENDENCE",
+          "name": "Chemical Transcendence",
+          "description": "Complete mastery over chemical processes",
+          "level": 6,
+          "molecular_mastery": 90,
+          "transformation_control": 85,
+          "prerequisites": ["MOLECULAR_ENGINEERING"],
+          "unlocks": ["UNIFIED_SCIENCE"]
+        },
+        "PHYSICAL_TRANSCENDENCE": {
+          "id": "PHYSICAL_TRANSCENDENCE",
+          "name": "Physical Transcendence",
+          "description": "Complete mastery over physical laws",
+          "level": 6,
+          "reality_engineering": 90,
+          "fundamental_control": 85,
+          "prerequisites": ["QUANTUM_PHYSICS"],
+          "unlocks": ["UNIFIED_SCIENCE"]
+        },
+        "NEURAL_TRANSCENDENCE": {
+          "id": "NEURAL_TRANSCENDENCE",
+          "name": "Neural Transcendence",
+          "description": "Complete mastery over neural processes",
+          "level": 6,
+          "consciousness_engineering": 90,
+          "cognitive_mastery": 85,
+          "prerequisites": ["CONSCIOUSNESS_MAPPING"],
+          "unlocks": ["UNIFIED_SCIENCE"]
+        },
+        "UNIFIED_SCIENCE": {
+          "id": "UNIFIED_SCIENCE",
+          "name": "Unified Science",
+          "description": "Integration of all scientific disciplines",
+          "level": 7,
+          "knowledge_integration": 95,
+          "understanding_completeness": 90,
+          "prerequisites": ["BIOLOGICAL_TRANSCENDENCE", "CHEMICAL_TRANSCENDENCE", "PHYSICAL_TRANSCENDENCE", "NEURAL_TRANSCENDENCE"],
+          "unlocks": []
+        }
+      }
+    },
+    "COFFEE": {
+      "name": "Coffee Cultivation & Brewing",
+      "description": "Skills related to coffee production and preparation",
+      "nodes": {
+        "BASIC_COFFEE_CULTIVATION": {
+          "id": "BASIC_COFFEE_CULTIVATION",
+          "name": "Basic Coffee Cultivation",
+          "description": "Growing coffee plants in Martian environment",
+          "level": 3,
+          "crop_yield": 30,
+          "flavor_quality": 25,
+          "prerequisites": ["SUSTAINABLE_HARVEST"],
+          "unlocks": ["COFFEE_STRAIN_DEVELOPMENT", "HARVESTING_TECHNIQUES"]
+        },
+        "COFFEE_STRAIN_DEVELOPMENT": {
+          "id": "COFFEE_STRAIN_DEVELOPMENT",
+          "name": "Coffee Strain Development",
+          "description": "Creation of coffee varietals adapted to Mars",
+          "level": 4,
+          "genetic_diversity": 50,
+          "flavor_complexity": 45,
+          "prerequisites": ["BASIC_COFFEE_CULTIVATION"],
+          "unlocks": ["MARTIAN_COFFEE_TERROIR"]
+        },
+        "HARVESTING_TECHNIQUES": {
+          "id": "HARVESTING_TECHNIQUES",
+          "name": "Harvesting Techniques",
+          "description": "Optimal methods for coffee berry collection",
+          "level": 4,
+          "quality_preservation": 55,
+          "efficiency": 50,
+          "prerequisites": ["BASIC_COFFEE_CULTIVATION"],
+          "unlocks": ["PROCESSING_MASTERY"]
+        },
+        "MARTIAN_COFFEE_TERROIR": {
+          "id": "MARTIAN_COFFEE_TERROIR",
+          "name": "Martian Coffee Terroir",
+          "description": "Understanding how Martian environment affects flavor",
+          "level": 5,
+          "terroir_expression": 65,
+          "regional_uniqueness": 60,
+          "prerequisites": ["COFFEE_STRAIN_DEVELOPMENT"],
+          "unlocks": ["TRANSCENDENT_CULTIVATION"]
+        },
+        "PROCESSING_MASTERY": {
+          "id": "PROCESSING_MASTERY",
+          "name": "Processing Mastery",
+          "description": "Advanced techniques for coffee processing",
+          "level": 5,
+          "flavor_development": 70,
+          "consistency": 65,
+          "prerequisites": ["HARVESTING_TECHNIQUES"],
+          "unlocks": ["TRANSCENDENT_CULTIVATION"]
+        },
+        "BASIC_BREWING": {
+          "id": "BASIC_BREWING",
+          "name": "Basic Brewing",
+          "description": "Fundamental coffee preparation methods",
+          "level": 3,
+          "flavor_extraction": 30,
+          "aroma_preservation": 25,
+          "prerequisites": ["BASIC_FOOD_PREPARATION"],
+          "unlocks": ["BREWING_METHODOLOGY", "SENSORY_ANALYSIS"]
+        },
+        "BREWING_METHODOLOGY": {
+          "id": "BREWING_METHODOLOGY",
+          "name": "Brewing Methodology",
+          "description": "Systematic approach to coffee preparation",
+          "level": 4,
+          "extraction_precision": 50,
+          "reproducibility": 45,
+          "prerequisites": ["BASIC_BREWING"],
+          "unlocks": ["ALTERNATIVE_BREWING"]
+        },
+        "SENSORY_ANALYSIS": {
+          "id": "SENSORY_ANALYSIS",
+          "name": "Sensory Analysis",
+          "description": "Detailed evaluation of coffee flavor profiles",
+          "level": 4,
+          "flavor_discrimination": 55,
+          "descriptive_ability": 50,
+          "prerequisites": ["BASIC_BREWING"],
+          "unlocks": ["FLAVOR_HARMONICS"]
+        },
+        "ALTERNATIVE_BREWING": {
+          "id": "ALTERNATIVE_BREWING",
+          "name": "Alternative Brewing",
+          "description": "Novel methods for coffee preparation",
+          "level": 5,
+          "innovation_rating": 65,
+          "flavor_range": 60,
+          "prerequisites": ["BREWING_METHODOLOGY"],
+          "unlocks": ["TRANSCENDENT_BREWING"]
+        },
+        "FLAVOR_HARMONICS": {
+          "id": "FLAVOR_HARMONICS",
+          "name": "Flavor Harmonics",
+          "description": "Understanding of complex flavor interrelationships",
+          "level": 5,
+          "flavor_complexity": 70,
+          "balance_perfection": 65,
+          "prerequisites": ["SENSORY_ANALYSIS"],
+          "unlocks": ["TRANSCENDENT_BREWING"]
+        },
+        "TRANSCENDENT_CULTIVATION": {
+          "id": "TRANSCENDENT_CULTIVATION",
+          "name": "Transcendent Cultivation",
+          "description": "Perfect symbiosis with coffee plants",
+          "level": 6,
+          "plant_communication": 85,
+          "intrinsic_quality": 80,
+          "prerequisites": ["MARTIAN_COFFEE_TERROIR", "PROCESSING_MASTERY"],
+          "unlocks": ["COSMIC_COFFEE"]
+        },
+        "TRANSCENDENT_BREWING": {
+          "id": "TRANSCENDENT_BREWING",
+          "name": "Transcendent Brewing",
+          "description": "Perfect expression of coffee potential",
+          "level": 6,
+          "extraction_perfection": 85,
+          "experience_depth": 80,
+          "prerequisites": ["ALTERNATIVE_BREWING", "FLAVOR_HARMONICS"],
+          "unlocks": ["COSMIC_COFFEE"]
+        },
+        "COSMIC_COFFEE": {
+          "id": "COSMIC_COFFEE",
+          "name": "Cosmic Coffee",
+          "description": "Coffee that transcends ordinary experience",
+          "level": 7,
+          "consciousness_expansion": 95,
+          "existential_resonance": 90,
+          "prerequisites": ["TRANSCENDENT_CULTIVATION", "TRANSCENDENT_BREWING"],
+          "unlocks": []
+        }
+      }
+    }
+  }
+}

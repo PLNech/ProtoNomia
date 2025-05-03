@@ -53,6 +53,14 @@ class Scribe:
     _status = None
 
     @classmethod
+    def print(cls, text: str, style: str = None) -> None:
+        """Print text with optional style"""
+        if style:
+            console.print(text, style=style)
+        else:
+            console.print(text)
+
+    @classmethod
     def status(cls, message, spinner="dots"):
         """
         Create and display a status indicator with spinner.

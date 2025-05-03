@@ -9,7 +9,7 @@ import uuid
 import random
 from collections import defaultdict
 from enum import Enum
-from typing import List, Dict, Optional, Any, DefaultDict, TYPE_CHECKING, Union, Set
+from typing import List, Dict, Optional, Any, DefaultDict, TYPE_CHECKING, Union, Set, Tuple
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 
@@ -21,6 +21,16 @@ if TYPE_CHECKING:
 
 # Initialize logger
 logger = logging.getLogger(__name__)
+
+
+# ========== Simulation Stage Model ==========
+
+class SimulationStage(str, Enum):
+    """Stages of the simulation process"""
+    INITIALIZATION = "initialization"  # Initial setup phase
+    AGENT_DAY = "agent_day"            # Processing day actions for agents (one at a time)
+    NARRATOR = "narrator"              # Generating narrative for the day
+    AGENT_NIGHT = "agent_night"        # Processing night activities (one agent at a time)
 
 
 # ========== Resource Models ==========
@@ -178,6 +188,22 @@ class NarrativeResponse(BaseModel):
     )
 
 
+class Letter(BaseModel):
+    """A letter or message from one agent to another"""
+    recipient_name: str = Field(description="Name of the agent receiving the letter")
+    title: str = Field(description="Title or subject of the letter")
+    message: str = Field(description="Content of the letter or message")
+
+
+class NightActivity(BaseModel):
+    """Night activity for an agent"""
+    agent_id: str
+    day: int
+    song_choice_id: Optional[str] = None  # ID of the song the agent listened to
+    letters: List[Letter] = Field(default_factory=list)  # Letters sent to other agents
+    dinner_consumed: List[Good] = Field(default_factory=list)  # Food items consumed for dinner
+
+
 class AgentActionResponse(BaseModel):
     """Structured response for agent action generation"""
 
@@ -198,31 +224,59 @@ class AgentActionResponse(BaseModel):
     extras: Dict[str, Any] = Field(description="Extra information specific to the action type", default_factory=dict)
 
     @model_validator(mode="after")
-    def default_action_extras(cls, model):
+    def default_action_extras(self) -> "AgentActionResponse":
         """Provide default extras based on action type"""
-        if model.type == ActionType.CRAFT:
-            if "goodType" not in model.extras:
-                model.extras["goodType"] = random.choice([gt for gt in GoodType])
-            if "materials" not in model.extras or model.extras["materials"] < 0:
-                model.extras["materials"] = int(random.uniform(1, 100))
-            if "name" not in model.extras:
+        if self.type == ActionType.CRAFT:
+            if "goodType" not in self.extras:
+                self.extras["goodType"] = random.choice([gt for gt in GoodType])
+            if "materials" not in self.extras or self.extras["materials"] < 0:
+                self.extras["materials"] = int(random.uniform(1, 100))
+            if "name" not in self.extras:
                 prefixes = ["Luxury", "Basic", "Compact", "Advanced", "Prototype", "Vintage", "Custom", "Portable", "Premium"]
                 suffixes = ["Enhancer", "Device", "Module", "System", "Unit", "Tool", "Interface", "Catalyst", "Processor"]
-                good_type = model.extras["goodType"].lower().capitalize()
-                model.extras["name"] = f"{random.choice(prefixes)} {good_type} {random.choice(suffixes)}"
-        elif model.type == ActionType.THINK:
-            if "thoughts" not in model.extras and "thinking" not in model.extras:
-                model.extras["thoughts"] = "I should think more clearly about my situation and plan ahead."
-        elif model.type == ActionType.COMPOSE:
-            if "title" not in model.extras:
-                model.extras["title"] = "Untitled Mars Melody"
-            if "genre" not in model.extras:
-                model.extras["genre"] = "Mars Ambient"
-            if "bpm" not in model.extras:
-                model.extras["bpm"] = random.randint(60, 180)
-            if "tags" not in model.extras:
-                model.extras["tags"] = ["mars", "electronic", "ambient"]
-        return model
+                good_type = self.extras["goodType"].lower().capitalize()
+                self.extras["name"] = f"{random.choice(prefixes)} {good_type} {random.choice(suffixes)}"
+        elif self.type == ActionType.THINK:
+            if "thoughts" not in self.extras and "thinking" not in self.extras:
+                self.extras["thoughts"] = "I should think more clearly about my situation and plan ahead."
+        elif self.type == ActionType.COMPOSE:
+            if "title" not in self.extras:
+                self.extras["title"] = "Untitled Mars Melody"
+            if "genre" not in self.extras:
+                self.extras["genre"] = "Mars Ambient"
+            if "bpm" not in self.extras:
+                self.extras["bpm"] = random.randint(60, 180)
+            if "tags" not in self.extras:
+                self.extras["tags"] = ["mars", "electronic", "ambient"]
+        
+        # Validate required extras
+        if self.type == ActionType.BUY and "listingId" not in self.extras:
+            raise ValueError("BUY action must include listingId in extras")
+        elif self.type == ActionType.SELL and ("goodName" not in self.extras or "price" not in self.extras):
+            raise ValueError("SELL action must include goodName and price in extras")
+            
+        return self
+
+
+class NightActionResponse(BaseModel):
+    """Structured response for agent night activity generation"""
+    
+    model_config = ConfigDict(extra='allow')
+
+    song_choice: Optional[str] = Field(
+        default=None,
+        description="The title of a song the agent wants to listen to (can be an existing song or a new one)"
+    )
+
+    letters: Optional[List[Letter]] = Field(
+        default_factory=list,
+        description="Letters or messages to send to other agents (with recipient_name, title, and message)"
+    )
+
+    reasoning: Optional[str] = Field(
+        default=None,
+        description="Short reasoning behind the night choices"
+    )
 
 
 class DailySummaryResponse(BaseModel):
@@ -301,25 +355,79 @@ class SimulationState(BaseModel):
     inventions: Dict[int, List[tuple["Agent", Good]]] = Field(default_factory=lambda: defaultdict(list))
     ideas: Dict[int, List[tuple["Agent", str]]] = Field(default_factory=lambda: defaultdict(list))
     songs: SongBook = Field(default_factory=SongBook)
-
+    # Stage tracking information
+    current_stage: SimulationStage = Field(default=SimulationStage.INITIALIZATION)
+    current_agent_id: Optional[str] = Field(default=None)  # ID of the agent currently being processed
+    # Night activities
+    night_activities: Dict[int, List[NightActivity]] = Field(default_factory=lambda: defaultdict(list))
+    
     def add_action(self, agent: "Agent", action: AgentActionResponse) -> None:
-        self.actions.append(ActionLog(agent=agent, action=action, day=self.day))
+        """Add an action to the log"""
+        self.actions.append(ActionLog(action=action, agent=agent, day=self.day))
+
+    def add_night_activity(self, activity: NightActivity) -> None:
+        """Add a night activity to the log"""
+        self.night_activities[self.day].append(activity)
 
     @property
     def today_actions(self) -> List[ActionLog]:
-        return [a for a in self.actions if a.day == self.day]
+        """Get actions for the current day"""
+        return [log for log in self.actions if log.day == self.day]
+
+    @property
+    def today_night_activities(self) -> List[NightActivity]:
+        """Get night activities for the current day"""
+        return self.night_activities.get(self.day, [])
 
     def count_inventions(self, on_day: Optional[int] = 0) -> int:
-        """Count the total number of inventions, or on a specific day if specified"""
-        if on_day > 0:
+        """Count inventions across all days or for a specific day"""
+        if on_day:
             return len(self.inventions.get(on_day, []))
-        return sum(len(day_inventions) for day_inventions in self.inventions.values())
+        return sum(len(inventions) for inventions in self.inventions.values())
+
+    def get_agent_by_id(self, agent_id: str) -> Optional["Agent"]:
+        """Get an agent by their ID"""
+        for agent in self.agents:
+            if agent.id == agent_id:
+                return agent
+        return None
+
+    def get_next_agent_for_day(self) -> Optional["Agent"]:
+        """Get the next agent that needs to perform a day action"""
+        # Check which agents have already acted today
+        acted_agent_ids = {log.agent.id for log in self.today_actions}
+        
+        # Find the first agent that hasn't acted yet
+        for agent in self.agents:
+            if agent.id not in acted_agent_ids:
+                return agent
+        
+        # All agents have acted
+        return None
+
+    def get_next_agent_for_night(self) -> Optional["Agent"]:
+        """Get the next agent that needs to perform night activities"""
+        # Check which agents have already completed night activities
+        night_agent_ids = {activity.agent_id for activity in self.today_night_activities}
+        
+        # Find the first agent that hasn't done night activities
+        for agent in self.agents:
+            if agent.id not in night_agent_ids:
+                return agent
+        
+        # All agents have completed night activities
+        return None
 
     @model_validator(mode='after')
     def ensure_defaultdicts(self) -> 'SimulationState':
-        """Ensure inventions and ideas are defaultdicts"""
-        self.inventions = defaultdict(list, self.inventions)
-        self.ideas = defaultdict(list, self.ideas)
+        """Ensure the defaultdicts are properly initialized"""
+        # Convert regular dicts to defaultdicts
+        if not isinstance(self.inventions, defaultdict):
+            self.inventions = defaultdict(list, self.inventions)
+        if not isinstance(self.ideas, defaultdict):
+            self.ideas = defaultdict(list, self.ideas)
+        if not isinstance(self.night_activities, defaultdict):
+            self.night_activities = defaultdict(list, self.night_activities)
         return self
 
 

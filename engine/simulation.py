@@ -16,7 +16,7 @@ from pydantic import ValidationError
 
 from models import (
     Agent, AgentPersonality, ActionType, AgentNeeds, Good, GoodType, GlobalMarket, SimulationState,
-    AgentActionResponse, AgentAction, History, MarketListing, Song
+    AgentActionResponse, AgentAction, History, MarketListing, Song, SimulationStage, NightActivity, Letter
 )
 from src.agent import LLMAgent
 from src.generators import generate_personality, generate_mars_craft_options
@@ -331,8 +331,11 @@ class SimulationEngine:
 
         # Main simulation loop
         while self.state.day <= self.max_days:
-            # Process each day of the simulation
+            # Process day and night phases
             self.process_day()
+            
+            # Process night activities after the day is complete
+            self.process_night()
 
             # Save the current state to history
             self.history.add(deepcopy(self.state))
@@ -349,21 +352,280 @@ class SimulationEngine:
     def process_day(self) -> None:
         """
         Process a single day in the simulation.
-        This includes agent actions, market updates, and narratives.
+        This handles each stage of the day: initialization, agent actions, and narrative.
         """
         logger.info(f"===== Day {self.state.day} =====")
 
+        # Set the simulation stage to INITIALIZATION
+        self.state.current_stage = SimulationStage.INITIALIZATION
+        self.state.current_agent_id = None
+        
         # Decay agent needs at the start of the day
         self._decay_agent_needs()
-
-        # Process agent actions
-        agent_actions = self._process_agent_actions()
-
-        # Generate daily narrative
-        self._generate_daily_narrative(agent_actions)
-
+        
+        # Process agent actions in stages
+        agent_actions = self._process_day_stages()
+        
         # Check for any dead agents and remove them
         self._check_agent_status()
+
+    def _process_day_stages(self) -> List[Tuple[Agent, AgentAction]]:
+        """
+        Process each stage of the day simulation.
+        
+        Returns:
+            List[Tuple[Agent, AgentAction]]: List of agent actions taken
+        """
+        agent_actions = []
+        
+        # Set stage to AGENT_DAY for agent actions
+        self.state.current_stage = SimulationStage.AGENT_DAY
+        
+        # Process each agent's action one at a time
+        while True:
+            # Get the next agent that needs to act
+            next_agent = self.state.get_next_agent_for_day()
+            if not next_agent:
+                # All agents have acted, move to narrative stage
+                break
+            
+            # Set the current agent
+            self.state.current_agent_id = next_agent.id
+            logger.info(f"Processing day action for {next_agent.name}")
+            
+            try:
+                # Generate and execute action for this agent
+                action = self._process_agent_day_action(next_agent)
+                if action:
+                    agent_actions.append((next_agent, action))
+            except Exception as e:
+                logger.error(f"Error processing day action for {next_agent.name}: {e}")
+        
+        # All agents have acted, move to narrative stage
+        self.state.current_stage = SimulationStage.NARRATOR
+        self.state.current_agent_id = None
+        
+        # Generate the daily narrative
+        self._generate_daily_narrative(agent_actions)
+        
+        return agent_actions
+
+    def _process_agent_day_action(self, agent: Agent) -> Optional[AgentAction]:
+        """
+        Process a single agent's day action.
+        
+        Args:
+            agent: The agent to process
+            
+        Returns:
+            Optional[AgentAction]: The executed action or None if failed
+        """
+        action = None
+        retries = 0
+        
+        # Try to generate an action with retries
+        while action is None and retries < self.max_retries:
+            try:
+                # Generate action using LLM
+                logger.info(f"Generating action for {agent.name}")
+                
+                # Get LLM response for agent action
+                response: AgentActionResponse = self.llm_agent.generate_action(agent, self.state)
+                logger.debug(f"Got a response: {type(response)} -> {response}")
+                
+                logger.info(f"{agent.name} chose action {response.type}")
+                
+                # Execute the action
+                action = self._execute_agent_action(agent, response)
+                logger.debug(f"Executed action: {type(action)} -> {action}")
+                
+                # Record the action
+                if action:
+                    agent.record(response)
+                    return action
+                
+            except ValidationError as validation_error:
+                logger.error(f"ValidationError: {validation_error.errors()}")
+                raise
+            except Exception as e:
+                retries += 1
+                logger.error(
+                    f"Error processing action for {agent.name} (attempt {retries}/{self.max_retries}): {type(e)} - {str(e)}")
+                
+                if retries < self.max_retries:
+                    logger.info(f"Retrying in {self.retry_delay} seconds...")
+                    time.sleep(self.retry_delay)
+                else:
+                    logger.error(f"Failed to generate action for {agent.name} after {self.max_retries} attempts")
+                    
+                    # Use fallback action
+                    try:
+                        fallback_response: AgentActionResponse = self.llm_agent._fallback_action(agent)
+                        action = self._execute_agent_action(agent, fallback_response)
+                        if action:
+                            agent.record(fallback_response)
+                            return action
+                    except Exception as fallback_error:
+                        logger.error(f"Even fallback action failed for {agent.name}: {fallback_error}")
+        
+        return None
+
+    def process_night(self) -> None:
+        """
+        Process night activities for all agents.
+        This includes eating dinner, listening to music, and chatting with others.
+        """
+        logger.info(f"===== Night {self.state.day} =====")
+        
+        # Set the stage to AGENT_NIGHT
+        self.state.current_stage = SimulationStage.AGENT_NIGHT
+        
+        # Process each agent's night activities one at a time
+        while True:
+            # Get the next agent that needs to complete night activities
+            next_agent = self.state.get_next_agent_for_night()
+            if not next_agent:
+                # All agents have completed night activities
+                break
+            
+            # Set the current agent
+            self.state.current_agent_id = next_agent.id
+            logger.info(f"Processing night activities for {next_agent.name}")
+            
+            try:
+                # Process dinner for this agent
+                self._process_agent_dinner(next_agent)
+                
+                # Process night activities for this agent
+                self._process_agent_night_activities(next_agent)
+            except Exception as e:
+                logger.error(f"Error processing night activities for {next_agent.name}: {e}")
+        
+        # Reset stage and agent
+        self.state.current_stage = SimulationStage.INITIALIZATION
+        self.state.current_agent_id = None
+
+    def _process_agent_dinner(self, agent: Agent) -> None:
+        """
+        Process dinner for an agent by consuming food items.
+        
+        Args:
+            agent: The agent to process dinner for
+        """
+        logger.info(f"Processing dinner for {agent.name}")
+        
+        # Get a list of food items the agent has
+        food_items = [good for good in agent.goods if good.type == GoodType.FOOD]
+        
+        # If the agent has food needs and food items, consume them
+        if agent.needs.food < 0.95 and food_items:
+            # Sort food items by quality (highest first)
+            food_items.sort(key=lambda x: x.quality, reverse=True)
+            
+            # Consumed food items
+            consumed_food = []
+            
+            # Consume food items until needs are met or no more items
+            for food in food_items:
+                # Check if needs are already met
+                if agent.needs.food >= 0.95:
+                    break
+                
+                # Remove the food item from the agent's inventory
+                agent.goods.remove(food)
+                
+                # Add its quality to food need (max 1.0)
+                current_food = agent.needs.food
+                agent.needs.food = min(1.0, agent.needs.food + food.quality)
+                
+                # Add to consumed food
+                consumed_food.append(food)
+                
+                # Log the consumption
+                logger.info(f"{agent.name} ate {food.name} (quality: {food.quality:.2f}) - Food level: {current_food:.2f} -> {agent.needs.food:.2f}")
+            
+            # Create a night activity record for dinner
+            if consumed_food:
+                activity = NightActivity(
+                    agent_id=agent.id,
+                    day=self.state.day,
+                    dinner_consumed=consumed_food
+                )
+                self.state.add_night_activity(activity)
+        else:
+            logger.info(f"{agent.name} did not eat dinner (food need: {agent.needs.food:.2f}, food items: {len(food_items)})")
+
+    def _process_agent_night_activities(self, agent: Agent) -> None:
+        """
+        Process night activities (listening to music, chatting) for an agent.
+        
+        Args:
+            agent: The agent to process night activities for
+        """
+        logger.info(f"Processing night activities for {agent.name}")
+        
+        # Create a basic night activity
+        activity = NightActivity(
+            agent_id=agent.id,
+            day=self.state.day
+        )
+        
+        # TODO: Implement LLM-based night activity generation
+        # For now, use a simple implementation
+        
+        # Choose a song to listen to (if any exist)
+        all_songs = []
+        for day, entries in self.state.songs.history_data.items():
+            for entry in entries:
+                all_songs.append((entry.song, entry.agent))
+        
+        if all_songs:
+            # Choose a random song
+            chosen_song, song_agent = random.choice(all_songs)
+            activity.song_choice_id = chosen_song.title
+            logger.info(f"{agent.name} listened to '{chosen_song.title}' by {song_agent.name}")
+            
+            # Increase fun slightly
+            agent.needs.fun = min(1.0, agent.needs.fun + 0.1)
+        
+        # Choose agents to chat with (1-3 agents, but not more than available)
+        other_agents = [a for a in self.state.agents if a.id != agent.id]
+        chat_count = min(len(other_agents), random.randint(1, 3))
+        
+        if chat_count > 0:
+            # Choose random agents to chat with
+            chat_agents = random.sample(other_agents, chat_count)
+            
+            # Generate letter for each recipient
+            for recipient in chat_agents:
+                # Generate a simple letter
+                topics = ["the weather on Mars", "the latest settlement news", "philosophical questions", 
+                         "funny stories", "plans for tomorrow", "favorite songs", "their day's activities"]
+                topic = random.choice(topics)
+                
+                letter = Letter(
+                    recipient_name=recipient.name,
+                    title=f"Thoughts about {topic}",
+                    message=f"Hey {recipient.name}, I've been thinking about {topic} lately. What's your take on it?"
+                )
+                
+                # Add letter to night activity
+                activity.letters.append(letter)
+                
+                # Log the letter
+                logger.info(f"{agent.name} sent a letter to {recipient.name} about {topic}")
+                
+                # Increase fun for both participants
+                agent.needs.fun = min(1.0, agent.needs.fun + 0.05)
+                recipient.needs.fun = min(1.0, recipient.needs.fun + 0.05)
+            
+            # Log overall social activity
+            if activity.letters:
+                recipient_names = [letter.recipient_name for letter in activity.letters]
+                logger.info(f"{agent.name} wrote letters to {', '.join(recipient_names)}")
+        
+        # Save the night activity
+        self.state.add_night_activity(activity)
 
     def _decay_agent_needs(self) -> None:
         """

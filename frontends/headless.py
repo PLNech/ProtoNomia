@@ -10,12 +10,13 @@ import sys
 import time
 import signal
 from typing import Dict, Any, Optional, List
+import requests
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.scribe import Scribe
-from models import SimulationState, Agent, AgentActionResponse, ActionType, AgentAction
+from models import SimulationState, Agent, AgentActionResponse, ActionType, AgentAction, Letter
 from frontends.frontend_base import FrontendBase
 
 # Configure logging
@@ -105,6 +106,30 @@ class HeadlessFrontend(FrontendBase):
             
         logger.error(message)
     
+    def get_simulation_status(self):
+        """
+        Get the current status of the simulation.
+        
+        Returns:
+            The simulation status response
+        """
+        if not self.simulation_id:
+            self._show_error("No active simulation")
+            raise ValueError("No active simulation")
+            
+        url = f"{self.api_url}/simulation/status/{self.simulation_id}"
+        
+        # Make the request
+        try:
+            response = self.session.get(url)
+            response.raise_for_status()
+            
+            # Parse the response
+            return response.json()
+        except requests.RequestException as e:
+            self._show_error(f"Failed to get simulation status: {e}")
+            raise
+    
     def _display_agents(self, agents: List[Agent]) -> None:
         """
         Display information about agents using the scribe.
@@ -128,6 +153,31 @@ class HeadlessFrontend(FrontendBase):
             self.current_status = None
             
         scribe.day_header(day)
+    
+    def _display_stage_info(self, status_response) -> None:
+        """
+        Display information about the current simulation stage.
+        
+        Args:
+            status_response: The simulation status response
+        """
+        stage = status_response.get("current_stage", "initialization")
+        agent_name = status_response.get("current_agent_name")
+        
+        if stage == "initialization":
+            scribe.print("[bold cyan]Initializing simulation...[/bold cyan]")
+        elif stage == "agent_day":
+            if agent_name:
+                scribe.print(f"[bold cyan]Waiting for {agent_name}'s day action...[/bold cyan]")
+            else:
+                scribe.print("[bold cyan]Processing day actions...[/bold cyan]")
+        elif stage == "narrator":
+            scribe.print("[bold cyan]Generating daily narrative...[/bold cyan]")
+        elif stage == "agent_night":
+            if agent_name:
+                scribe.print(f"[bold cyan]Processing night activities for {agent_name}...[/bold cyan]")
+            else:
+                scribe.print("[bold cyan]Processing night activities...[/bold cyan]")
     
     def _process_day(self, day: int, prev_state: SimulationState, state: SimulationState) -> None:
         """
@@ -176,7 +226,7 @@ class HeadlessFrontend(FrontendBase):
         for agent_id, agent in agents_alive_before.items():
             if agent_id not in agents_alive_after:
                 self._display_agent_death(agent.name)
-                
+        
         # Get and display narrative
         output_dir = "output"  # Default value
         narrative_file = os.path.join(output_dir, f"day_{day}_narrative.txt")
@@ -186,6 +236,9 @@ class HeadlessFrontend(FrontendBase):
                 title = lines[0].strip("# \n")
                 content = "".join(lines[2:])
                 self._display_narrative(title, content, state)
+        
+        # Display night activities
+        self._display_night_activities(state)
     
     def _display_agent_action(self, agent: Agent, action_log: AgentAction) -> None:
         """
@@ -317,6 +370,45 @@ class HeadlessFrontend(FrontendBase):
             
         scribe.simulation_end(max_days)
 
+    def _display_night_activities(self, state: SimulationState) -> None:
+        """
+        Display night activities for all agents.
+        
+        Args:
+            state: The simulation state
+        """
+        night_activities = state.today_night_activities
+        
+        if not night_activities:
+            return
+        
+        scribe.print("\n[bold magenta]===== Night Activities =====[/bold magenta]")
+        
+        for activity in night_activities:
+            agent_id = activity.agent_id
+            agent = state.get_agent_by_id(agent_id)
+            
+            if not agent:
+                continue
+            
+            # Display dinner consumption
+            if activity.dinner_consumed:
+                food_names = [f"{food.name} (quality: {food.quality:.2f})" for food in activity.dinner_consumed]
+                scribe.print(f"[magenta]{agent.name} had dinner:[/magenta] {', '.join(food_names)}")
+            
+            # Display song listening
+            if activity.song_choice_id:
+                scribe.print(f"[magenta]{agent.name} listened to song:[/magenta] {activity.song_choice_id}")
+            
+            # Display letters
+            if activity.letters:
+                for letter in activity.letters:
+                    scribe.print(f"[magenta]{agent.name} wrote a letter to {letter.recipient_name}:[/magenta]")
+                    scribe.print(f"[dim magenta]Title:[/dim magenta] {letter.title}")
+                    scribe.print(f"[dim magenta]Message:[/dim magenta] {letter.message}")
+            
+            scribe.print("")  # Empty line for readability
+
     def run_simulation(
         self,
         num_agents: int,
@@ -355,6 +447,12 @@ class HeadlessFrontend(FrontendBase):
             
             # Get the initial state for this day
             prev_state = self.get_simulation_detail()
+            
+            # Get the current status to display simulation stage
+            status_response = self.get_simulation_status()
+            
+            # Display information about the current stage
+            self._display_stage_info(status_response)
             
             # Advance simulation by one day
             self._show_status(f"Processing day {day}...")

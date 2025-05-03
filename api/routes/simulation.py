@@ -72,6 +72,13 @@ async def get_simulation_status(
     if not simulation:
         raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     
+    # Get the name of the current agent if applicable
+    current_agent_name = None
+    if simulation.state.current_agent_id:
+        current_agent = simulation.state.get_agent_by_id(simulation.state.current_agent_id)
+        if current_agent:
+            current_agent_name = current_agent.name
+    
     return SimulationStatusResponse(
         simulation_id=simulation_id,
         day=simulation.state.day,
@@ -80,7 +87,11 @@ async def get_simulation_status(
         market_listings_count=len(simulation.state.market.listings),
         inventions_count=simulation.state.count_inventions(),
         ideas_count=sum(len(ideas) for ideas in simulation.state.ideas.values()),
-        songs_count=len(simulation.state.songs)
+        songs_count=len(simulation.state.songs),
+        current_stage=simulation.state.current_stage,
+        current_agent_id=simulation.state.current_agent_id,
+        current_agent_name=current_agent_name,
+        night_activities_today=len(simulation.state.today_night_activities)
     )
 
 
@@ -128,7 +139,11 @@ async def run_simulation_day(
     
     try:
         for _ in range(days):
+            # Process the day phase
             simulation.process_day()
+            
+            # Process the night phase
+            simulation.process_night()
             
             # Save the state to history
             state_copy = SimulationState.model_validate(simulation.state.model_dump())
@@ -140,6 +155,13 @@ async def run_simulation_day(
             # Move to the next day
             simulation.state.day += 1
         
+        # Get the name of the current agent if applicable
+        current_agent_name = None
+        if simulation.state.current_agent_id:
+            current_agent = simulation.state.get_agent_by_id(simulation.state.current_agent_id)
+            if current_agent:
+                current_agent_name = current_agent.name
+        
         return SimulationStatusResponse(
             simulation_id=simulation_id,
             day=simulation.state.day,
@@ -148,7 +170,11 @@ async def run_simulation_day(
             market_listings_count=len(simulation.state.market.listings),
             inventions_count=simulation.state.count_inventions(),
             ideas_count=sum(len(ideas) for ideas in simulation.state.ideas.values()),
-            songs_count=len(simulation.state.songs)
+            songs_count=len(simulation.state.songs),
+            current_stage=simulation.state.current_stage,
+            current_agent_id=simulation.state.current_agent_id,
+            current_agent_name=current_agent_name,
+            night_activities_today=len(simulation.state.today_night_activities)
         )
     except Exception as e:
         logger.error(f"Error running simulation: {e}", exc_info=True)
@@ -261,8 +287,11 @@ async def run_simulation_next_day(
         raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     
     try:
-        # Process a single day
+        # Process the day phase
         simulation.process_day()
+        
+        # Process the night phase
+        simulation.process_night()
         
         # Save the state to history
         state_copy = SimulationState.model_validate(simulation.state.model_dump())
@@ -274,6 +303,13 @@ async def run_simulation_next_day(
         # Move to the next day
         simulation.state.day += 1
         
+        # Get the name of the current agent if applicable
+        current_agent_name = None
+        if simulation.state.current_agent_id:
+            current_agent = simulation.state.get_agent_by_id(simulation.state.current_agent_id)
+            if current_agent:
+                current_agent_name = current_agent.name
+        
         return SimulationStatusResponse(
             simulation_id=simulation_id,
             day=simulation.state.day,
@@ -282,7 +318,11 @@ async def run_simulation_next_day(
             market_listings_count=len(simulation.state.market.listings),
             inventions_count=simulation.state.count_inventions(),
             ideas_count=sum(len(ideas) for ideas in simulation.state.ideas.values()),
-            songs_count=len(simulation.state.songs)
+            songs_count=len(simulation.state.songs),
+            current_stage=simulation.state.current_stage,
+            current_agent_id=simulation.state.current_agent_id,
+            current_agent_name=current_agent_name,
+            night_activities_today=len(simulation.state.today_night_activities)
         )
     except Exception as e:
         logger.error(f"Error advancing simulation: {e}", exc_info=True)
