@@ -16,6 +16,8 @@ _Birth of a Market_
 - Agent-based economic simulation set on Mars
 - LLM-powered decision making and narrative generation
 - Rich colored terminal output for immersive experience
+- RESTful API for programmatic access to simulations
+- Interactive UI with real-time visualization
 - Fully configurable simulation parameters
 
 ## Installation
@@ -29,19 +31,51 @@ _Birth of a Market_
 
 ## Usage
 
+### CLI Mode (Original)
+
 Run a simulation with default parameters:
 
 ```bash
-python src/simulation.py
+python main.py
 ```
 
 Customize your simulation:
 
 ```bash
-python src/simulation.py --agents 10 --days 50 --model gemma3:1b --log-level WARNING
+python main.py --agents 10 --days 50 --model gemma3:1b --log-level WARNING
 ```
 
-### Command Line Options
+### API Server Mode
+
+Run the API server:
+
+```bash
+python -m api.main
+```
+
+The API server will start at http://127.0.0.1:8000 with a cyberpunk-themed Swagger UI available at http://127.0.0.1:8000/docs.
+
+### Headless Frontend (API Client)
+
+Run a simulation using the API:
+
+```bash
+PYTHONPATH=`pwd` python frontends/headless.py --agents 5 --days 30 --model gemma3:4b
+```
+
+### Gradio Frontend (Data Visualization)
+
+Launch the interactive Gradio dashboard:
+
+```bash
+PYTHONPATH=`pwd` python frontends/gradio.py
+```
+
+This will open a browser window with real-time visualization of simulation metrics.
+
+## Command Line Options
+
+### Main CLI
 
 - `--agents`: Number of agents in the simulation (default: 5)
 - `--days`: Number of days to run the simulation (default: 30)
@@ -50,6 +84,21 @@ python src/simulation.py --agents 10 --days 50 --model gemma3:1b --log-level WAR
 - `--output`: Output directory (default: output/)
 - `--temperature`: LLM temperature (default: 0.7)
 - `--log-level`: Logging level (default: INFO)
+
+### Headless Frontend
+
+- `--agents`: Number of agents in the simulation (default: 5)
+- `--days`: Number of days to run the simulation (default: 30)
+- `--credits`: Starting credits for each agent (default: random)
+- `--model`: LLM model to use (default: gemma3:4b)
+- `--api-url`: URL of the API server (default: http://127.0.0.1:8000)
+- `--log-level`: Logging level (default: INFO)
+
+### Gradio Frontend
+
+- `--api-url`: URL of the API server (default: http://127.0.0.1:8000)
+- `--log-level`: Logging level (default: INFO)
+- `--share`: Create a public share link (default: false)
 
 ## Rich Terminal Output
 
@@ -64,5 +113,79 @@ ProtoNomia features immersive cyberpunk-themed colored output in your terminal:
 To enjoy the full visual experience, run with warning or error log level:
 
 ```bash
-python src/simulation.py --log-level WARNING
-``` 
+python main.py --log-level WARNING
+```
+
+## API Documentation
+
+ProtoNomia provides a RESTful API for programmatic access to simulations.
+
+### Key Endpoints
+
+- `POST /simulation/start`: Create a new simulation
+- `GET /simulation/detail/{simulation_id}`: Get details of a simulation
+- `POST /simulation/run/{simulation_id}`: Run a simulation for a day
+- `POST /agent/add`: Add a new agent to a simulation
+- `GET /agent/status`: Get an agent's status
+- `PUT /agent/update`: Update an agent's properties
+- `DELETE /agent/kill`: Remove an agent from a simulation
+
+For complete API documentation:
+- Swagger UI: http://127.0.0.1:8000/docs
+- OpenAPI Schema: http://127.0.0.1:8000/openapi.json
+- Detailed Docs: [docs/api.md](docs/api.md)
+
+### Client Code Generation
+
+You can generate client libraries for the API using OpenAPI tools:
+
+```bash
+npm install @openapitools/openapi-generator-cli -g
+
+# Generate a Python client
+openapi-generator-cli generate -i http://localhost:8000/openapi.json -g python -o ./python-client
+
+# Generate a JavaScript client
+openapi-generator-cli generate -i http://localhost:8000/openapi.json -g javascript -o ./js-client
+```
+
+## Data Visualization
+
+The Gradio dashboard provides real-time visualization of:
+
+- **Overview**: Population, economy, actions, creative output
+- **Agents**: Individual needs, credits, goods, actions
+- **Market**: Listings by type, quality distribution
+- **Creations**: Inventions and songs
+- **Narrative**: Daily story and word cloud of themes
+- **Thoughts**: Agent thought analysis
+
+## Testing
+
+Run the tests:
+
+```bash
+PYTHONPATH=`pwd` pytest tests/
+```
+
+Run API-specific tests:
+
+```bash
+PYTHONPATH=`pwd` pytest tests/api/
+```
+
+Run frontend tests:
+
+```bash
+PYTHONPATH=`pwd` pytest tests/frontends/
+```
+
+## Architecture
+
+ProtoNomia follows a clean architecture with:
+
+- **Models**: Core domain models in `models/`
+- **Engine**: Simulation engine in `engine/`
+- **API**: RESTful API in `api/`
+- **Frontends**: User interfaces in `frontends/`
+- **Tests**: Comprehensive test suite in `tests/`

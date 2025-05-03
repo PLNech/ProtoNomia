@@ -185,4 +185,105 @@ async def delete_simulation(
     return StatusResponse(
         status="success",
         message=f"Simulation {simulation_id} deleted"
-    ) 
+    )
+
+
+@router.post("/reset/{simulation_id}", response_model=StatusResponse)
+async def reset_simulation(
+    simulation_id: str = Path(..., description="ID of the simulation to reset")
+):
+    """
+    Reset a simulation to its initial state.
+    
+    Args:
+        simulation_id: ID of the simulation
+        
+    Returns:
+        StatusResponse: Result of the operation
+    """
+    simulation = simulation_manager.get_simulation(simulation_id)
+    if not simulation:
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
+    
+    try:
+        # Save configuration parameters
+        num_agents = simulation.num_agents
+        max_days = simulation.max_days
+        model_name = simulation.model_name
+        temperature = simulation.temperature
+        top_p = simulation.top_p
+        top_k = simulation.top_k
+        output_dir = simulation.output_dir
+        
+        # Delete the simulation
+        simulation_manager.delete_simulation(simulation_id)
+        
+        # Create a new simulation with the same ID and parameters
+        simulation = simulation_manager.create_simulation(
+            num_agents=num_agents,
+            max_days=max_days,
+            model_name=model_name,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            output_dir=output_dir,
+            simulation_id=simulation_id  # Use the same ID
+        )
+        
+        # Initialize the simulation state
+        simulation.setup_initial_state()
+        
+        return StatusResponse(
+            status="success",
+            message=f"Simulation {simulation_id} reset to initial state"
+        )
+    except Exception as e:
+        logger.error(f"Error resetting simulation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error resetting simulation: {str(e)}")
+
+
+@router.post("/next/{simulation_id}", response_model=SimulationStatusResponse)
+async def run_simulation_next_day(
+    simulation_id: str = Path(..., description="ID of the simulation to advance")
+):
+    """
+    Run the simulation for exactly one day and return the updated status.
+    Shorthand for /run/{simulation_id}?days=1 for easier client usage.
+    
+    Args:
+        simulation_id: ID of the simulation
+        
+    Returns:
+        SimulationStatusResponse: Updated simulation status
+    """
+    simulation = simulation_manager.get_simulation(simulation_id)
+    if not simulation:
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
+    
+    try:
+        # Process a single day
+        simulation.process_day()
+        
+        # Save the state to history
+        state_copy = SimulationState.model_validate(simulation.state.model_dump())
+        simulation.history.add(state_copy)
+        
+        # Save state to file
+        simulation._save_state()
+        
+        # Move to the next day
+        simulation.state.day += 1
+        
+        return SimulationStatusResponse(
+            simulation_id=simulation_id,
+            day=simulation.state.day,
+            agents_count=len(simulation.state.agents),
+            dead_agents_count=len(simulation.state.dead_agents),
+            market_listings_count=len(simulation.state.market.listings),
+            inventions_count=simulation.state.count_inventions(),
+            ideas_count=sum(len(ideas) for ideas in simulation.state.ideas.values()),
+            songs_count=len(simulation.state.songs)
+        )
+    except Exception as e:
+        logger.error(f"Error advancing simulation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error advancing simulation: {str(e)}") 
