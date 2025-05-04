@@ -4,9 +4,10 @@ This module provides a singleton manager for simulation instances.
 """
 import logging
 from typing import Dict, Optional, List, Any
+from copy import deepcopy
 
-from engine.simulation import SimulationEngine
-from models import Agent, SimulationState, Good, GoodType
+from src.engine.simulation import SimulationEngine
+from src.models import Agent, SimulationState, Good, GoodType
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ class SimulationManager:
     Singleton manager for simulation instances.
     """
     _instance = None
+    _simulations: Dict[str, SimulationEngine] = {}
 
     def __new__(cls):
         if cls._instance is None:

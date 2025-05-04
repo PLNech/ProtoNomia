@@ -3,8 +3,8 @@ ProtoNomia Models Package
 Provides Pydantic models for the ProtoNomia simulation.
 """
 
-from models.agent import Agent, AgentNeeds, AgentPersonality
-from models.simulation import (
+from src.models.agent import Agent, AgentNeeds, AgentPersonality
+from src.models.simulation import (
     ActionType, AgentAction, AgentActionResponse, DailySummaryResponse,
     GlobalMarket, Good, GoodType, History, MarketListing, NarrationRequest, NarrativeResponse, 
     SimulationState, Song, SongBook, SongEntry, ActionLog, SimulationStage, NightActivity,

@@ -1,5 +1,54 @@
 # Development Log
 
+# FastAPI Dependency Injection Pattern - 2025-05-04
+
+## Description
+
+Refactored the ProtoNomia API to use proper FastAPI dependency injection pattern:
+
+1. Fixed API Module Imports:
+   - Updated `main.py` to correctly import the API module using the full path `src.api:app`
+   - Fixed import circular dependencies in the API module
+
+2. Implemented Proper Dependency Injection:
+   - Created a new `dependencies.py` module with proper dependency injection pattern
+   - Added `get_simulation_manager()` dependency function to provide the simulation manager
+   - Updated all routes to use dependency injection instead of direct imports
+
+3. Fixed SimulationManager Implementation:
+   - Added missing `deepcopy` import to fix runtime errors
+   - Improved type hints for the simulation manager
+   - Ensured proper singleton implementation
+
+4. Enhanced API Server:
+   - Updated routing to use dependency injection across all endpoints
+   - Added proper error handling and graceful shutdown
+   - Added missing save/load simulation endpoints
+
+## Demand
+
+Fix this error when I run our simulation:
+```
+ERROR: Error loading ASGI app. Could not import module "api".
+```
+Provide the manager as a dependency proper @FastAPI way.
+
+## Files
+
+- [M] main.py - Fixed API module import and simulation manager handling
+- [A] src/api/dependencies.py - Added proper dependency injection
+- [M] src/api/simulation_manager.py - Fixed missing deepcopy import and improved implementation
+- [M] src/api/routes/simulation.py - Updated to use dependency injection
+- [M] src/api/routes/agent.py - Updated to use dependency injection
+- [M] DEVLOG.md - Added this entry
+
+## Bugs
+
+- Fixed "Could not import module 'api'" error by using the correct module path
+- Fixed AttributeError in simulation_manager by implementing proper dependency injection
+- Fixed missing deepcopy import causing runtime errors
+- Ensured proper singleton implementation of the simulation manager
+
 # Letter System for Night Activities - 2025-05-20
 
 ## Description

@@ -2,13 +2,13 @@
 ProtoNomia API Models
 This module defines the Pydantic models for API requests and responses.
 """
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any
 
 from pydantic import BaseModel, Field
 
-from models import (
-    Agent, Good, GoodType, AgentNeeds, SimulationState,
-    AgentPersonality, SimulationStage
+from src.models import (
+    Agent, SimulationState,
+    SimulationStage
 )
 
 

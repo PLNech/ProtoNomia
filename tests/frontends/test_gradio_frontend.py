@@ -10,8 +10,8 @@ import pandas as pd
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from frontends.gradio import GradioFrontend
-from models import SimulationState, Agent, AgentNeeds, AgentPersonality
+from src.frontends import GradioFrontend
+from src.models import Agent, AgentNeeds, AgentPersonality
 
 
 class TestGradioFrontend(unittest.TestCase):

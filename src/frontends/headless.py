@@ -3,21 +3,20 @@ ProtoNomia Headless Frontend
 This module provides a CLI frontend for the ProtoNomia API.
 """
 import argparse
-import json
 import logging
 import os
 import sys
 import time
 import signal
-from typing import Dict, Any, Optional, List
+from typing import Optional, List
 import requests
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.scribe import Scribe
-from models import SimulationState, Agent, AgentActionResponse, ActionType, AgentAction, Letter
-from frontends.frontend_base import FrontendBase
+from src.models import SimulationState, Agent, AgentActionResponse, ActionType, AgentAction
+from src.frontends.frontend_base import FrontendBase
 
 # Configure logging
 logging.basicConfig(

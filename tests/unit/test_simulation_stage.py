@@ -4,11 +4,10 @@ Tests for simulation stages and night activity functionality.
 import unittest
 from unittest.mock import patch, MagicMock
 
-from models.simulation import (
-    SimulationStage, SimulationState, NightActivity, ActionType, Good, GoodType
+from src.models.simulation import (
+    SimulationStage, Good, GoodType
 )
-from models.agent import Agent, AgentNeeds, AgentPersonality
-from engine.simulation import SimulationEngine
+from src.engine.simulation import SimulationEngine
 
 
 class TestSimulationStages(unittest.TestCase):

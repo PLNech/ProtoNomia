@@ -8,7 +8,6 @@ import os
 import sys
 import signal
 import uvicorn
-from typing import Optional, List
 
 # Add the current directory to the path for imports
 sys.path.insert(0, os.path.abspath("."))
@@ -24,34 +23,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global reference to the simulation manager
-simulation_manager = None
+# Import the API app
+from src.api import app
+from src.api.dependencies import get_simulation_manager
 
 def save_all_simulations():
     """Save all active simulations' states to disk."""
-    global simulation_manager
-    
-    if simulation_manager is None:
-        try:
-            # Import here to avoid circular imports
-            from api.simulation_manager import simulation_manager as sm
-            simulation_manager = sm
-        except ImportError:
-            logger.error("Could not import simulation_manager")
-            return
-
-    # Get all active simulations
-    sim_ids = simulation_manager.list_simulations()
-    logger.info(f"Saving state for {len(sim_ids)} active simulations")
-    
-    for sim_id in sim_ids:
-        try:
-            simulation = simulation_manager.get_simulation(sim_id)
-            if simulation:
-                simulation._save_state()
-                logger.info(f"Saved state for simulation {sim_id}")
-        except Exception as e:
-            logger.error(f"Error saving state for simulation {sim_id}: {e}")
+    try:
+        # Get the simulation manager from the dependency
+        simulation_manager = get_simulation_manager()
+        
+        # Get all active simulations
+        sim_ids = simulation_manager.list_simulations()
+        logger.info(f"Saving state for {len(sim_ids)} active simulations")
+        
+        for sim_id in sim_ids:
+            try:
+                simulation = simulation_manager.get_simulation(sim_id)
+                if simulation:
+                    simulation._save_state()
+                    logger.info(f"Saved state for simulation {sim_id}")
+            except Exception as e:
+                logger.error(f"Error saving state for simulation {sim_id}: {e}")
+    except Exception as e:
+        logger.error(f"Could not save simulations: {e}")
 
 def signal_handler(sig, frame):
     """Handle signals (like SIGINT from Ctrl+C) by saving states and exiting gracefully."""
@@ -112,18 +107,10 @@ def run_api_server(host: str, port: int, log_level: str):
     logger.info(f"Starting ProtoNomia API server on {host}:{port}")
     logger.info("Press Ctrl+C to save all simulation states and exit")
     
-    # Import the API app
-    from api import app
-    
-    # Import simulation manager for shutdown handler
-    global simulation_manager
-    from api.simulation_manager import simulation_manager as sm
-    simulation_manager = sm
-    
     # Run the server with Uvicorn
     # Set reload=False to allow our signal handlers to work properly
     uvicorn.run(
-        "api:app",
+        "src.api:app",
         host=host,
         port=port,
         reload=False,

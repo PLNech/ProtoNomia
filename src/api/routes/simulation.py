@@ -3,17 +3,19 @@ ProtoNomia Simulation Routes
 This module provides API routes for simulation operations.
 """
 import logging
-from typing import List, Optional
+from typing import List
+from copy import deepcopy
 
-from fastapi import APIRouter, HTTPException, Query, Path
+from fastapi import APIRouter, HTTPException, Query, Path, Depends
 
-from api.models import (
+from src.api.models import (
     SimulationCreateRequest, SimulationCreateResponse,
     SimulationStatusResponse, SimulationDetailResponse,
     StatusResponse
 )
-from api.simulation_manager import simulation_manager
-from models import SimulationState
+from src.api.dependencies import get_simulation_manager
+from src.api.simulation_manager import SimulationManager
+from src.models import SimulationState
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,10 @@ router = APIRouter()
 
 
 @router.post("/start", response_model=SimulationCreateResponse)
-async def start_simulation(request: SimulationCreateRequest):
+async def start_simulation(
+    request: SimulationCreateRequest,
+    sm: SimulationManager = Depends(get_simulation_manager)
+):
     """
     Start a new simulation with the specified parameters.
     
@@ -30,7 +35,7 @@ async def start_simulation(request: SimulationCreateRequest):
     """
     try:
         # Create the simulation
-        simulation = simulation_manager.create_simulation(
+        simulation = sm.create_simulation(
             num_agents=request.num_agents,
             max_days=request.max_days,
             starting_credits=request.starting_credits,
@@ -57,7 +62,8 @@ async def start_simulation(request: SimulationCreateRequest):
 
 @router.get("/status/{simulation_id}", response_model=SimulationStatusResponse)
 async def get_simulation_status(
-    simulation_id: str = Path(..., description="ID of the simulation to get status for")
+    simulation_id: str = Path(..., description="ID of the simulation to get status for"),
+    sm: SimulationManager = Depends(get_simulation_manager)
 ):
     """
     Get the current status of a simulation.
@@ -68,7 +74,7 @@ async def get_simulation_status(
     Returns:
         SimulationStatusResponse: Summary of the simulation status
     """
-    simulation = simulation_manager.get_simulation(simulation_id)
+    simulation = sm.get_simulation(simulation_id)
     if not simulation:
         raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     
@@ -97,7 +103,8 @@ async def get_simulation_status(
 
 @router.get("/detail/{simulation_id}", response_model=SimulationDetailResponse)
 async def get_simulation_detail(
-    simulation_id: str = Path(..., description="ID of the simulation to get details for")
+    simulation_id: str = Path(..., description="ID of the simulation to get details for"),
+    sm: SimulationManager = Depends(get_simulation_manager)
 ):
     """
     Get detailed information about a simulation.
@@ -108,7 +115,7 @@ async def get_simulation_detail(
     Returns:
         SimulationDetailResponse: Detailed simulation state
     """
-    simulation = simulation_manager.get_simulation(simulation_id)
+    simulation = sm.get_simulation(simulation_id)
     if not simulation:
         raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     
@@ -121,7 +128,8 @@ async def get_simulation_detail(
 @router.post("/run/{simulation_id}", response_model=SimulationStatusResponse)
 async def run_simulation_day(
     simulation_id: str = Path(..., description="ID of the simulation to run"),
-    days: int = Query(1, description="Number of days to simulate")
+    days: int = Query(1, description="Number of days to simulate"),
+    sm: SimulationManager = Depends(get_simulation_manager)
 ):
     """
     Run the simulation for a specified number of days.
@@ -133,7 +141,7 @@ async def run_simulation_day(
     Returns:
         SimulationStatusResponse: Updated simulation status
     """
-    simulation = simulation_manager.get_simulation(simulation_id)
+    simulation = sm.get_simulation(simulation_id)
     if not simulation:
         raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     
@@ -182,19 +190,22 @@ async def run_simulation_day(
 
 
 @router.get("/list", response_model=List[str])
-async def list_simulations():
+async def list_simulations(
+    sm: SimulationManager = Depends(get_simulation_manager)
+):
     """
     Get a list of all simulation IDs.
     
     Returns:
         List[str]: List of simulation IDs
     """
-    return simulation_manager.list_simulations()
+    return sm.list_simulations()
 
 
 @router.delete("/{simulation_id}", response_model=StatusResponse)
 async def delete_simulation(
-    simulation_id: str = Path(..., description="ID of the simulation to delete")
+    simulation_id: str = Path(..., description="ID of the simulation to delete"),
+    sm: SimulationManager = Depends(get_simulation_manager)
 ):
     """
     Delete a simulation.
@@ -205,7 +216,7 @@ async def delete_simulation(
     Returns:
         StatusResponse: Result of the operation
     """
-    if not simulation_manager.delete_simulation(simulation_id):
+    if not sm.delete_simulation(simulation_id):
         raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     
     return StatusResponse(
@@ -216,7 +227,8 @@ async def delete_simulation(
 
 @router.post("/reset/{simulation_id}", response_model=StatusResponse)
 async def reset_simulation(
-    simulation_id: str = Path(..., description="ID of the simulation to reset")
+    simulation_id: str = Path(..., description="ID of the simulation to reset"),
+    sm: SimulationManager = Depends(get_simulation_manager)
 ):
     """
     Reset a simulation to its initial state.
@@ -227,7 +239,7 @@ async def reset_simulation(
     Returns:
         StatusResponse: Result of the operation
     """
-    simulation = simulation_manager.get_simulation(simulation_id)
+    simulation = sm.get_simulation(simulation_id)
     if not simulation:
         raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     
@@ -242,18 +254,17 @@ async def reset_simulation(
         output_dir = simulation.output_dir
         
         # Delete the simulation
-        simulation_manager.delete_simulation(simulation_id)
+        sm.delete_simulation(simulation_id)
         
         # Create a new simulation with the same ID and parameters
-        simulation = simulation_manager.create_simulation(
+        simulation = sm.create_simulation(
             num_agents=num_agents,
             max_days=max_days,
             model_name=model_name,
             temperature=temperature,
             top_p=top_p,
             top_k=top_k,
-            output_dir=output_dir,
-            simulation_id=simulation_id  # Use the same ID
+            output_dir=output_dir
         )
         
         # Initialize the simulation state
@@ -270,11 +281,12 @@ async def reset_simulation(
 
 @router.post("/next/{simulation_id}", response_model=SimulationStatusResponse)
 async def run_simulation_next_day(
-    simulation_id: str = Path(..., description="ID of the simulation to advance")
+    simulation_id: str = Path(..., description="ID of the simulation to advance"),
+    sm: SimulationManager = Depends(get_simulation_manager)
 ):
     """
-    Run the simulation for exactly one day and return the updated status.
-    Shorthand for /run/{simulation_id}?days=1 for easier client usage.
+    Run the simulation for the next day only.
+    This is a convenience endpoint that runs a single day.
     
     Args:
         simulation_id: ID of the simulation
@@ -282,7 +294,7 @@ async def run_simulation_next_day(
     Returns:
         SimulationStatusResponse: Updated simulation status
     """
-    simulation = simulation_manager.get_simulation(simulation_id)
+    simulation = sm.get_simulation(simulation_id)
     if not simulation:
         raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
     
@@ -297,7 +309,7 @@ async def run_simulation_next_day(
         state_copy = SimulationState.model_validate(simulation.state.model_dump())
         simulation.history.add(state_copy)
         
-        # Save state to file
+        # Save state to file (optional)
         simulation._save_state()
         
         # Move to the next day
@@ -325,5 +337,63 @@ async def run_simulation_next_day(
             night_activities_today=len(simulation.state.today_night_activities)
         )
     except Exception as e:
-        logger.error(f"Error advancing simulation: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error advancing simulation: {str(e)}") 
+        logger.error(f"Error running simulation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error running simulation: {str(e)}")
+
+
+@router.post("/save/{simulation_id}", response_model=StatusResponse)
+async def save_simulation(
+    simulation_id: str = Path(..., description="ID of the simulation to save"),
+    sm: SimulationManager = Depends(get_simulation_manager)
+):
+    """
+    Save the current state of a simulation to disk.
+    
+    Args:
+        simulation_id: ID of the simulation
+        
+    Returns:
+        StatusResponse: Result of the operation
+    """
+    simulation = sm.get_simulation(simulation_id)
+    if not simulation:
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
+    
+    try:
+        simulation._save_state()
+        return StatusResponse(
+            status="success",
+            message=f"Simulation {simulation_id} state saved"
+        )
+    except Exception as e:
+        logger.error(f"Error saving simulation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error saving simulation: {str(e)}")
+
+
+@router.post("/load/{simulation_id}", response_model=StatusResponse)
+async def load_simulation(
+    simulation_id: str = Path(..., description="ID of the simulation to load"),
+    sm: SimulationManager = Depends(get_simulation_manager)
+):
+    """
+    Load a simulation state from disk.
+    
+    Args:
+        simulation_id: ID of the simulation
+        
+    Returns:
+        StatusResponse: Result of the operation
+    """
+    simulation = sm.get_simulation(simulation_id)
+    if not simulation:
+        raise HTTPException(status_code=404, detail=f"Simulation {simulation_id} not found")
+    
+    try:
+        simulation._load_state()
+        return StatusResponse(
+            status="success",
+            message=f"Simulation {simulation_id} state loaded"
+        )
+    except Exception as e:
+        logger.error(f"Error loading simulation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error loading simulation: {str(e)}") 

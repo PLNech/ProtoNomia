@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-from frontends.frontend_base import FrontendBase
-from models import SimulationState, Agent
+from src.frontends import FrontendBase
+from src.models import SimulationState
 
 
 class TestFrontend(FrontendBase):

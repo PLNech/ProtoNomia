@@ -6,9 +6,9 @@ import abc
 import logging
 import requests
 import time
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List
 
-from models import SimulationState, Agent
+from src.models import SimulationState, Agent
 
 # Default API configuration
 DEFAULT_API_URL = "http://127.0.0.1:8000"

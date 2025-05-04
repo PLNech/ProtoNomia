@@ -3,17 +3,18 @@ ProtoNomia Agent Routes
 This module provides API routes for agent operations.
 """
 import logging
-from typing import List, Optional, Dict, Any
+from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Path, Body
+from fastapi import APIRouter, HTTPException, Query, Depends
 
-from api.models import (
+from src.api.models import (
     AgentCreateRequest, AgentCreateResponse,
-    AgentDeleteRequest, AgentUpdateRequest,
+    AgentUpdateRequest,
     AgentResponse, StatusResponse
 )
-from api.simulation_manager import simulation_manager
-from models import Agent, AgentNeeds, AgentPersonality, Good
+from src.api.dependencies import get_simulation_manager
+from src.api.simulation_manager import SimulationManager
+from src.models import AgentNeeds
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,10 @@ router = APIRouter()
 
 
 @router.post("/add", response_model=AgentCreateResponse)
-async def add_agent(request: AgentCreateRequest):
+async def add_agent(
+    request: AgentCreateRequest,
+    sm: SimulationManager = Depends(get_simulation_manager)
+):
     """
     Add a new agent to a simulation.
     
@@ -32,7 +36,7 @@ async def add_agent(request: AgentCreateRequest):
         AgentCreateResponse: Information about the new agent
     """
     # Check if the simulation exists
-    simulation = simulation_manager.get_simulation(request.simulation_id)
+    simulation = sm.get_simulation(request.simulation_id)
     if not simulation:
         raise HTTPException(status_code=404, detail=f"Simulation {request.simulation_id} not found")
     
@@ -63,7 +67,7 @@ async def add_agent(request: AgentCreateRequest):
             agent_params["goods"] = request.goods
         
         # Create the agent
-        agent = simulation_manager.create_agent(request.simulation_id, **agent_params)
+        agent = sm.create_agent(request.simulation_id, **agent_params)
         
         return AgentCreateResponse(
             agent_id=agent.id,
@@ -79,7 +83,8 @@ async def add_agent(request: AgentCreateRequest):
 async def kill_agent(
     simulation_id: str = Query(..., description="ID of the simulation"),
     agent_id: Optional[str] = Query(None, description="ID of the agent"),
-    agent_name: Optional[str] = Query(None, description="Name of the agent")
+    agent_name: Optional[str] = Query(None, description="Name of the agent"),
+    sm: SimulationManager = Depends(get_simulation_manager)
 ):
     """
     Kill an agent in a simulation.
@@ -97,17 +102,17 @@ async def kill_agent(
         raise HTTPException(status_code=400, detail="Must provide either agent_id or agent_name")
     
     # Get the agent
-    agent = simulation_manager.get_agent(
+    agent = sm.get_agent(
         simulation_id,
         agent_id=agent_id,
         agent_name=agent_name
     )
     
     if not agent:
-        raise HTTPException(status_code=404, detail=f"Agent not found in simulation {request.simulation_id}")
+        raise HTTPException(status_code=404, detail=f"Agent not found in simulation {simulation_id}")
     
     # Kill the agent
-    if not simulation_manager.kill_agent(simulation_id, agent):
+    if not sm.kill_agent(simulation_id, agent):
         raise HTTPException(status_code=500, detail=f"Failed to kill agent {agent.name}")
     
     return StatusResponse(
@@ -120,7 +125,8 @@ async def kill_agent(
 async def get_agent_status(
     simulation_id: str = Query(..., description="ID of the simulation"),
     agent_id: Optional[str] = Query(None, description="ID of the agent"),
-    agent_name: Optional[str] = Query(None, description="Name of the agent")
+    agent_name: Optional[str] = Query(None, description="Name of the agent"),
+    sm: SimulationManager = Depends(get_simulation_manager)
 ):
     """
     Get the status of an agent.
@@ -138,7 +144,7 @@ async def get_agent_status(
         raise HTTPException(status_code=400, detail="Must provide either agent_id or agent_name")
     
     # Get the agent
-    agent = simulation_manager.get_agent(
+    agent = sm.get_agent(
         simulation_id,
         agent_id=agent_id,
         agent_name=agent_name
@@ -154,7 +160,10 @@ async def get_agent_status(
 
 
 @router.put("/update", response_model=AgentResponse)
-async def update_agent(request: AgentUpdateRequest):
+async def update_agent(
+    request: AgentUpdateRequest,
+    sm: SimulationManager = Depends(get_simulation_manager)
+):
     """
     Update an agent in a simulation.
     
@@ -165,7 +174,7 @@ async def update_agent(request: AgentUpdateRequest):
         AgentResponse: The updated agent information
     """
     # Get the agent
-    agent = simulation_manager.get_agent(
+    agent = sm.get_agent(
         request.simulation_id,
         agent_id=request.agent_id
     )
@@ -174,7 +183,7 @@ async def update_agent(request: AgentUpdateRequest):
         raise HTTPException(status_code=404, detail=f"Agent not found in simulation {request.simulation_id}")
     
     # Update the agent
-    if not simulation_manager.update_agent(request.simulation_id, agent, request.updates):
+    if not sm.update_agent(request.simulation_id, agent, request.updates):
         raise HTTPException(status_code=500, detail=f"Failed to update agent {agent.name}")
     
     return AgentResponse(

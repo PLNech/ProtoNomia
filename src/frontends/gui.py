@@ -16,15 +16,13 @@ import json
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import numpy as np
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+import plotly.graph_objects as gos
 from rich.console import Console
 
-from frontends.frontend_base import FrontendBase
-from models import SimulationState, Agent, ActionType, Good, GoodType
+from src.frontends.frontend_base import FrontendBase
+from src.models import SimulationState, Agent, ActionType, GoodType
 
 # Configure logging
 logging.basicConfig(

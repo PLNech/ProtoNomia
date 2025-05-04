@@ -9,15 +9,15 @@ import uuid
 import random
 from collections import defaultdict
 from enum import Enum
-from typing import List, Dict, Optional, Any, DefaultDict, TYPE_CHECKING, Union, Set, Tuple
+from typing import List, Dict, Optional, Any, TYPE_CHECKING, Set
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 
-from models.agent import Agent  # Import the Agent model
+from src.models.agent import Agent  # Import the Agent model
 
 # Avoid circular imports while maintaining type checking
 if TYPE_CHECKING:
-    from models.agent import Agent
+    from src.models.agent import Agent
 
 # Initialize logger
 logger = logging.getLogger(__name__)

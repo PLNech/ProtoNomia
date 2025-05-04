@@ -2,12 +2,10 @@
 LLM-based agent implementation for ProtoNomia.
 This module handles the integration with language models for agent decision making.
 """
-import logging
-import random
 
+from src.models.simulation import *
 from src.generators import generate_thoughts
 from src.llm_utils import OllamaClient
-from src.models import Agent, ActionType, AgentActionResponse, SimulationState, ACTION_DESCRIPTIONS, GoodType
 from src.scribe import Scribe
 from src.settings import DEFAULT_LM, LLM_MAX_RETRIES
 

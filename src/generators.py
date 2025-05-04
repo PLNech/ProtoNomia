@@ -2,6 +2,7 @@ import random
 
 from src.settings import settings
 
+
 def generate_personality() -> str:
     """
     Generates a 3-word personality string with:
@@ -48,17 +49,17 @@ def generate_personality() -> str:
     ]
 
     dark_triad_traits = {
-    'machiavellianism': {
-        'low': ['straightforward', 'genuine', 'open-book'],
-        'high': ['scheming', 'manipulative', 'calculating']
-    },
-    'narcissism': {
-        'low': ['modest', 'self-effacing', 'humble'],
-        'high': ['self-important', 'egotistical', 'vain']
-    },
-    'psychopathy': {
-        'low': ['empathetic', 'cautious', 'considerate'],
-        'high': ['ruthless', 'remorseless', 'callous']
+        'machiavellianism': {
+            'low': ['straightforward', 'genuine', 'open-book'],
+            'high': ['scheming', 'manipulative', 'calculating']
+        },
+        'narcissism': {
+            'low': ['modest', 'self-effacing', 'humble'],
+            'high': ['self-important', 'egotistical', 'vain']
+        },
+        'psychopathy': {
+            'low': ['empathetic', 'cautious', 'considerate'],
+            'high': ['ruthless', 'remorseless', 'callous']
         }
     }
 
@@ -145,6 +146,7 @@ DEFAULT_THOUGHTS = [
     "We're lab rats for invisible watchers.",
     "SOMETIMES I WAKE UP MID-ACTION WITH NO MEMORY OF CHOOSING IT."
 ]
+
 
 def generate_thoughts() -> str:
     return random.choice(DEFAULT_THOUGHTS)

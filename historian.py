@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from pydantic import ValidationError
 
-from models.simulation import SimulationState, Good
+from src.models.simulation import SimulationState, Good
 
 st.set_page_config(
     page_title="Mars Settlement Dashboard",

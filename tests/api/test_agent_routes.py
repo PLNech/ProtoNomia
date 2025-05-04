@@ -2,14 +2,14 @@
 Tests for agent API routes.
 """
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 
-from api.main import app
-from api.simulation_manager import simulation_manager
-from engine.simulation import SimulationEngine
-from models import SimulationState, Agent, AgentPersonality, AgentNeeds
+from src.api.main import app
+from src.api import simulation_manager
+from src.engine.simulation import SimulationEngine
+from src.models import SimulationState, Agent, AgentPersonality, AgentNeeds
 
 client = TestClient(app)
 

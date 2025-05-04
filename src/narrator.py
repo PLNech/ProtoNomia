@@ -8,11 +8,9 @@ from copy import deepcopy
 
 from src.agent import format_need
 from src.llm_utils import OllamaClient
-from src.models import (
-    ActionType, SimulationState,
-    DailySummaryResponse, AgentActionResponse, AgentAction, Good
-)
-from src.models import Agent, ActionLog
+from src.models.agent import Agent
+from src.models.simulation import ActionLog, SimulationState, DailySummaryResponse, Good, AgentAction, AgentActionResponse, \
+    ActionType
 from src.scribe import Scribe
 from src.settings import DEFAULT_LM
 
