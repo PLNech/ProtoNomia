@@ -5,10 +5,11 @@ This module provides a CLI frontend for the ProtoNomia API.
 import argparse
 import logging
 import os
+import signal
 import sys
 import time
-import signal
 from typing import Optional, List
+
 import requests
 
 # Add the project root to the Python path
@@ -396,8 +397,8 @@ class HeadlessFrontend(FrontendBase):
                 scribe.print(f"[magenta]{agent.name} had dinner:[/magenta] {', '.join(food_names)}")
             
             # Display song listening
-            if activity.song_choice_id:
-                scribe.print(f"[magenta]{agent.name} listened to song:[/magenta] {activity.song_choice_id}")
+            if activity.song_choice_title:
+                scribe.print(f"[magenta]{agent.name} listened to song:[/magenta] {activity.song_choice_title}")
             
             # Display letters
             if activity.letters:

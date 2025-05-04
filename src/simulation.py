@@ -262,8 +262,8 @@ class SimulationCLI:
                 scribe.print(f"[magenta]{agent.name} had dinner:[/magenta] {', '.join(food_names)}")
 
             # Display song listening
-            if activity.song_choice_id:
-                scribe.print(f"[magenta]{agent.name} listened to song:[/magenta] {activity.song_choice_id}")
+            if activity.song_choice_title:
+                scribe.print(f"[magenta]{agent.name} listened to song:[/magenta] {activity.song_choice_title}")
 
             # Display letters
             if activity.letters:

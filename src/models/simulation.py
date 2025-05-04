@@ -163,10 +163,10 @@ class GlobalMarket(BaseModel):
 class AgentAction(BaseModel):
     """An action taken by an agent in the simulation"""
     agent_id: str
+    day: int
     type: ActionType
     extras: Dict[str, Any] = Field(default_factory=dict)
     reasoning: str = ""
-    day: int
 
 
 class NarrationRequest(BaseModel):
@@ -199,7 +199,7 @@ class NightActivity(BaseModel):
     """Night activity for an agent"""
     agent_id: str
     day: int
-    song_choice_id: Optional[str] = None  # ID of the song the agent listened to
+    song_choice_title: Optional[str] = None  # Title of the song the agent listened to
     letters: List[Letter] = Field(default_factory=list)  # Letters sent to other agents
     dinner_consumed: List[Good] = Field(default_factory=list)  # Food items consumed for dinner
 
@@ -329,6 +329,10 @@ class SongBook(BaseModel):
     @property
     def history(self):
         return self.history_data
+
+    @property
+    def songs(self) -> list[tuple[Song, Agent]]:
+        return [(entry.song, entry.agent) for value in self.history_data.values() for entry in value]
 
     def day(self, day: int) -> List[SongEntry]:
         return self.history_data.get(day, [])

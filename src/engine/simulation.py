@@ -582,7 +582,7 @@ class SimulationEngine:
         if all_songs:
             # Choose a random song
             chosen_song, song_agent = random.choice(all_songs)
-            activity.song_choice_id = chosen_song.title
+            activity.song_choice_title = chosen_song.title
             logger.info(f"{agent.name} listened to '{chosen_song.title}' by {song_agent.name}")
             
             # Increase fun slightly
