@@ -197,7 +197,7 @@ class MarketListing(BaseModel):
 
 class GlobalMarket(BaseModel):
     """Global market for goods exchange"""
-    listings: List[MarketListing] = Field(default_factory=list)
+    listings: list[MarketListing] = Field(default_factory=list)
 
     def add_listing(self, seller_id: str, good: Good, price: float, day: int) -> MarketListing:
         """Add a new listing to the market"""
@@ -218,7 +218,7 @@ class GlobalMarket(BaseModel):
                 return True
         return False
 
-    def get_listings(self, filter_type: Optional[GoodType] = None) -> List[MarketListing]:
+    def get_listings(self, filter_type: Optional[GoodType] = None) -> list[MarketListing]:
         """Get all listings, optionally filtered by type"""
         if filter_type is None:
             return self.listings
@@ -229,7 +229,7 @@ class AgentAction(BaseModel):
     """An action taken by an agent in the simulation"""
     agent_id: str
     type: ActionType
-    extras: Dict[str, Any] = Field(default_factory=dict)
+    extras: dict[str, Any] = Field(default_factory=dict)
     reasoning: str = ""
     day: int
 
@@ -273,7 +273,7 @@ class AgentActionResponse(BaseModel):
         description=f"The type of action the agent will take. Must be one of {[a.value for a in ActionType]}"
     )
 
-    extras: Dict[str, Any] = Field(description="Extra information specific to the action type", default_factory=dict)
+    extras: dict[str, Any] = Field(description="Extra information specific to the action type", default_factory=dict)
 
     @model_validator(mode="after")
     def default_action_extras(cls, model):

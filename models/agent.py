@@ -64,6 +64,10 @@ class AgentNeeds(BaseModel):
         else:
             fun_str = "Having fun"
         return f"{food_str}, {rest_str}, {fun_str}"
+    
+    # (<class 'AttributeError'>, AttributeError("'AgentNeeds' object has no attribute 'items'"), <traceback object at 0x7799b7e75340>)
+    def items(self):
+        return self.__dict__.items()
 
 
 class Agent(BaseModel):
