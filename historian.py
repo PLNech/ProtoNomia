@@ -34,6 +34,23 @@ st.markdown("""
     .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
         font-size: 1.2rem;
     }
+    .metric-card {
+        background-color: #f9f9f9;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .metric-card h3 {
+        margin-top: 0;
+    }
+    .stDataFrame {
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .stExpander {
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -47,13 +64,22 @@ with st.sidebar:
     data_dir = st.text_input("Data Directory", "output")
     refresh_data = st.button("Refresh Data")
     st.divider()
+    
     st.subheader("Visualizations")
     show_agent_details = st.checkbox("Show Agent Details", True)
     show_economy = st.checkbox("Show Economy", True)
     show_culture = st.checkbox("Show Culture", True)
     show_society = st.checkbox("Show Society Evolution", True)
+    show_night = st.checkbox("Show Night Activities", True)
+    
+    st.divider()
+    st.subheader("Data Export")
+    
+    # Export button functionality will be added in the main function
+    
     st.divider()
     st.markdown("**Made for 2993 Mars Settlement Agency**")
+    st.markdown("*Visualizing the evolution of Mars civilization*")
 
 
 # Data Loading Function
@@ -61,18 +87,42 @@ with st.sidebar:
 def load_settlement_data(data_directory):
     """Load all state files and history from the given directory"""
     all_data = {}
+    
+    # Check if directory exists
+    if not os.path.exists(data_directory):
+        st.error(f"Directory '{data_directory}' not found.")
+        return all_data
+    
     # Find all day_*_state.json files
     state_files = glob.glob(os.path.join(data_directory, "day_*_state.json"))
-    for file_path in state_files:
+    
+    if not state_files:
+        st.warning(f"No simulation state files found in '{data_directory}'. Expected files like 'day_1_state.json'")
+        return all_data
+    
+    # Show progress bar for loading files
+    progress_bar = st.progress(0)
+    
+    for i, file_path in enumerate(state_files):
         try:
             with open(file_path, 'r') as f:
                 data = json.load(f)
+                
                 # Extract day number from filename
-                day_num = int(re.search(r'day_(\d+)_state', file_path).group(1))
-                all_data[day_num] = data
+                day_match = re.search(r'day_(\d+)_state', file_path)
+                if day_match:
+                    day_num = int(day_match.group(1))
+                    all_data[day_num] = data
+                else:
+                    st.warning(f"Couldn't extract day number from filename: {file_path}")
+        except json.JSONDecodeError as e:
+            st.error(f"JSON decode error in {file_path}: {str(e)}")
         except Exception as e:
             st.error(f"Error loading {file_path}: {str(e)}")
-
+        
+        # Update progress
+        progress_bar.progress((i + 1) / len(state_files))
+    
     # Also check for history.json if it exists
     history_path = os.path.join(data_directory, "history.json")
     if os.path.exists(history_path):
@@ -80,9 +130,17 @@ def load_settlement_data(data_directory):
             with open(history_path, 'r') as f:
                 history_data = json.load(f)
                 all_data['history'] = history_data
+        except json.JSONDecodeError as e:
+            st.error(f"JSON decode error in history.json: {str(e)}")
         except Exception as e:
             st.error(f"Error loading history.json: {str(e)}")
-
+    
+    # Clear progress bar when done
+    progress_bar.empty()
+    
+    # Show summary of loaded data
+    st.info(f"Loaded data for {len([k for k in all_data.keys() if isinstance(k, int)])} simulation days.")
+    
     return all_data
 
 
@@ -105,139 +163,149 @@ def process_settlement_data(data):
 
     for day in days:
         try:
-            day_data: SimulationState = SimulationState.model_validate(data[day])
+            # Try to validate the SimulationState data
+            day_data = SimulationState.model_validate(data[day])
         except ValidationError as exc:
-            raise exc
+            st.warning(f"Error validating data for day {day}: {exc}")
+            continue
 
         # Process agents
         for agent in day_data.agents:
-            agent_id = agent.id
-            agent_name = agent.name
-            agent.goods = [Good(**g) for g in agent.goods]
+            try:
+                agent_id = agent.id
+                agent_name = agent.name
+                
+                # Make sure goods are properly converted to Good objects
+                if isinstance(agent.goods, list):
+                    agent.goods = [Good.model_validate(g) if isinstance(g, dict) else g for g in agent.goods]
+                
+                # Basic agent properties
+                agent_row = {
+                    'day': day,
+                    'agent_id': agent_id,
+                    'agent_name': agent_name,
+                    'age_days': agent.age_days,
+                    'is_alive': agent.is_alive,
+                    'credits': agent.credits,
+                }
 
-            # Basic agent properties
-            agent_row = {
-                'day': day,
-                'agent_id': agent_id,
-                'agent_name': agent_name,
-                'age_days': agent.age_days,
-                'is_alive': agent.is_alive,
-                'credits': agent.credits,
-            }
+                # Add needs
+                if hasattr(agent, 'needs') and agent.needs:
+                    for need_type, value in agent.needs.items():
+                        agent_row[f'need_{need_type}'] = value
 
-            # Add needs
-            needs = agent.needs
-            for need_type, value in needs.items():
-                agent_row[f'need_{need_type}'] = value
+                # Add goods count by type
+                goods = agent.goods
+                goods_by_type = Counter(good.type for good in goods)
+                for good_type, count in goods_by_type.items():
+                    agent_row[f'goods_{good_type}_count'] = count
 
-            # Add goods count by type
-            goods = agent.goods
-            goods_by_type = Counter(good.type for good in goods)
-            for good_type, count in goods_by_type.items():
-                agent_row[f'goods_{good_type}_count'] = count
+                # Average goods quality by type
+                for good_type in set(good.type for good in goods):
+                    qualities = [good.quality for good in goods if good.type == good_type]
+                    if qualities:
+                        agent_row[f'goods_{good_type}_avg_quality'] = sum(qualities) / len(qualities)
 
-            # Average goods quality by type
-            for good_type in set(good.type for good in goods):
-                qualities = [good.quality for good in goods if good.type == good_type]
-                if qualities:
-                    agent_row[f'goods_{good_type}_avg_quality'] = sum(qualities) / len(qualities)
+                # Last action
+                if hasattr(agent, 'history') and agent.history:
+                    latest_action = agent.history[-1]
+                    if isinstance(latest_action, tuple) and len(latest_action) >= 4:
+                        action_data = latest_action[3]
+                        if isinstance(action_data, dict):
+                            agent_row['latest_action'] = action_data.get('type')
 
-            # Last action
-            history = agent.history
-            if history:
-                print("HIST...")
-                latest_action = history[-1]
-                print(f"ACT...{latest_action}")
-                if isinstance(latest_action, tuple) and len(latest_action) >= 4:
-                    action_data = latest_action[3]
-                    if isinstance(action_data, dict):
-                        agent_row['latest_action'] = action_data['type']
+                            # Extract thoughts if available
+                            if 'extras' in action_data and 'thoughts' in action_data['extras']:
+                                thoughts = action_data['extras']['thoughts']
+                                if isinstance(thoughts, str) and thoughts.strip():
+                                    agent_row['latest_thoughts'] = thoughts
 
-                        # Extract thoughts if available
-                        if 'extras' in action_data and 'thoughts' in action_data['extras']:
-                            thoughts = action_data['extras']['thoughts']
-                            if isinstance(thoughts, str) and thoughts.strip():
-                                agent_row['latest_thoughts'] = thoughts
-
-            agent_data.append(agent_row)
+                agent_data.append(agent_row)
+            except Exception as e:
+                st.warning(f"Error processing agent {agent.id if hasattr(agent, 'id') else 'unknown'} on day {day}: {str(e)}")
 
         # Process market listings
-        for listing in day_data.market.listings:
-            market_row = {
-                'day': day,
-                'listing_id': listing.id,
-                'seller_id': listing.seller_id,
-                'price': listing.price,
-                'listed_on_day': listing.listed_on_day,
-            }
+        try:
+            for listing in day_data.market.listings:
+                market_row = {
+                    'day': day,
+                    'listing_id': listing.id,
+                    'seller_id': listing.seller_id,
+                    'price': listing.price,
+                    'listed_on_day': listing.listed_on_day,
+                }
 
-            if 'good' in listing:
-                good = listing['good']
-                market_row['good_type'] = good.get('type', 'UNKNOWN')
-                market_row['good_name'] = good.get('name', 'Unknown Item')
-                market_row['good_quality'] = good.get('quality', 0)
+                # Handle good data properly
+                if hasattr(listing, 'good'):
+                    good = listing.good
+                    market_row['good_type'] = getattr(good, 'type', 'UNKNOWN')
+                    market_row['good_name'] = getattr(good, 'name', 'Unknown Item')
+                    market_row['good_quality'] = getattr(good, 'quality', 0)
 
-            market_data.append(market_row)
+                market_data.append(market_row)
+        except Exception as e:
+            st.warning(f"Error processing market data for day {day}: {str(e)}")
 
         # Process ideas
-        day_ideas = day_data.ideas[day]
-        for idea in day_ideas:
-            agent = idea[0]
-            thought = idea[1]
-            if isinstance(idea, list) and len(idea) > 1:
-                idea_row = {
-                    'day': day,
-                    'agent_id': agent.id,
-                    'agent_name': agent.name,
-                    'idea_text': thought,
-                }
-                ideas_data.append(idea_row)
+        try:
+            # Handle ideas for this day
+            day_ideas = day_data.ideas.get(day, [])
+            for idea in day_ideas:
+                if isinstance(idea, tuple) and len(idea) >= 2:
+                    agent, thought = idea
+                    
+                    # Check if agent is an object with id and name attributes
+                    if hasattr(agent, 'id') and hasattr(agent, 'name'):
+                        idea_row = {
+                            'day': day,
+                            'agent_id': agent.id,
+                            'agent_name': agent.name,
+                            'idea_text': thought,
+                        }
+                        ideas_data.append(idea_row)
+        except Exception as e:
+            st.warning(f"Error processing ideas for day {day}: {str(e)}")
 
         # Process songs
-        day_songs = day_data.songs
-        genres = day_songs.genres
-        history_data = day_songs.history_data
-        # lets use history_data: Dict[int, List[SongEntry]] 
-        # class SongEntry(BaseModel):
-        #     agent: "Agent"
-        #     song: Song
-        #     day: int
-
-        # class Song(BaseModel):
-        #     title: str
-        #     genre: str = "Electronica"
-        #     bpm: int = Field(default=113)
-        #     tags: List[str] = []
-        #     description: Optional[str] = None
-
-        for day, songs_list in history_data.items():
-            for entry in songs_list:
-                song_row = {
-                    'day': day,
-                    'genre': entry.song.genre,
-                    'title': entry.song.title,
-                    'composer_id': entry.agent.id,
-                    'composer_name': entry.agent.name,
-                    'bpm': entry.song.bpm,
-                }
-                songs_data.append(song_row)
+        try:
+            day_songs = day_data.songs
+            if hasattr(day_songs, 'history_data') and day_songs.history_data:
+                for song_day, songs_list in day_songs.history_data.items():
+                    for entry in songs_list:
+                        if hasattr(entry, 'agent') and hasattr(entry, 'song'):
+                            song_row = {
+                                'day': song_day,
+                                'genre': entry.song.genre,
+                                'title': entry.song.title,
+                                'composer_id': entry.agent.id,
+                                'composer_name': entry.agent.name,
+                                'bpm': entry.song.bpm,
+                            }
+                            songs_data.append(song_row)
+        except Exception as e:
+            st.warning(f"Error processing songs for day {day}: {str(e)}")
 
         # Process inventions
-        day_inventions = day_data.inventions
-        for invention in day_inventions:
-            if isinstance(invention, list) and len(invention) > 1:
-                invention_row = {
-                    'day': day,
-                    'inventor_id': invention[0].get('id', 'unknown') if isinstance(invention[0], dict) else 'unknown',
-                    'inventor_name': invention[0].get('name', 'Unknown Inventor') if isinstance(invention[0],
-                                                                                                dict) else 'Unknown',
-                    'invention_type': invention[1].get('type', 'UNKNOWN') if isinstance(invention[1],
-                                                                                        dict) else 'UNKNOWN',
-                    'invention_name': invention[1].get('name', 'Unknown Item') if isinstance(invention[1],
-                                                                                             dict) else 'Unknown',
-                    'invention_quality': invention[1].get('quality', 0) if isinstance(invention[1], dict) else 0,
-                }
-                inventions_data.append(invention_row)
+        try:
+            # Get inventions for this day
+            day_inventions = day_data.inventions.get(day, [])
+            for invention in day_inventions:
+                if isinstance(invention, tuple) and len(invention) >= 2:
+                    inventor, good = invention
+                    
+                    # Check if inventor is an object with id and name attributes
+                    if hasattr(inventor, 'id') and hasattr(inventor, 'name'):
+                        invention_row = {
+                            'day': day,
+                            'inventor_id': inventor.id,
+                            'inventor_name': inventor.name,
+                            'invention_type': getattr(good, 'type', 'UNKNOWN'),
+                            'invention_name': getattr(good, 'name', 'Unknown Item'),
+                            'invention_quality': getattr(good, 'quality', 0),
+                        }
+                        inventions_data.append(invention_row)
+        except Exception as e:
+            st.warning(f"Error processing inventions for day {day}: {str(e)}")
 
     # Convert to DataFrames
     processed['agents_df'] = pd.DataFrame(agent_data)
@@ -251,14 +319,87 @@ def process_settlement_data(data):
         action_counts = processed['agents_df'].groupby(['day', 'latest_action']).size().reset_index(name='count')
         processed['action_counts_df'] = action_counts
 
+    # Process night activities data
+    night_activities_data = []
+    
+    for day in days:
+        try:
+            day_data = SimulationState.model_validate(data[day])
+            
+            # Process night activities
+            today_activities = day_data.night_activities.get(day, [])
+            for activity in today_activities:
+                if hasattr(activity, 'agent_id'):
+                    # Basic activity data
+                    activity_row = {
+                        'day': day,
+                        'agent_id': activity.agent_id,
+                    }
+                    
+                    # Get agent name
+                    agent = day_data.get_agent_by_id(activity.agent_id)
+                    if agent:
+                        activity_row['agent_name'] = agent.name
+                    else:
+                        activity_row['agent_name'] = "Unknown"
+                    
+                    # Add song choice if present
+                    if hasattr(activity, 'song_choice_title') and activity.song_choice_title:
+                        activity_row['song_choice'] = activity.song_choice_title
+                    
+                    # Add letter data if present
+                    if hasattr(activity, 'letters') and activity.letters:
+                        activity_row['sent_letters'] = len(activity.letters)
+                        if len(activity.letters) > 0:
+                            # Store the first letter's recipient and title for display
+                            activity_row['letter_recipient'] = activity.letters[0].recipient_name
+                            activity_row['letter_title'] = activity.letters[0].title
+                    
+                    # Add dinner data if present
+                    if hasattr(activity, 'dinner_consumed') and activity.dinner_consumed:
+                        activity_row['dinner_items'] = len(activity.dinner_consumed)
+                        if activity.dinner_consumed:
+                            # Calculate average quality of dinner
+                            qualities = [item.quality for item in activity.dinner_consumed if hasattr(item, 'quality')]
+                            if qualities:
+                                activity_row['avg_dinner_quality'] = sum(qualities) / len(qualities)
+                    
+                    night_activities_data.append(activity_row)
+        except Exception as e:
+            st.warning(f"Error processing night activities for day {day}: {str(e)}")
+    
+    # Add the night activities dataframe to processed data
+    processed['night_activities_df'] = pd.DataFrame(night_activities_data)
+
     return processed
 
 
 # Create the main dashboard
 def create_dashboard(processed_data):
     """Create the main dashboard with tabs for different aspects"""
-    # Create tabs
-    tabs = st.tabs(["Overview", "Agents", "Economy", "Culture", "Society Evolution"])
+    # Create a list of tab names based on sidebar settings
+    tab_names = ["Overview"]
+    
+    if show_agent_details:
+        tab_names.append("Agents")
+    
+    if show_economy:
+        tab_names.append("Economy")
+    
+    if show_culture:
+        tab_names.append("Culture")
+    
+    if show_night:
+        tab_names.append("Night Activities")
+    
+    if show_society:
+        tab_names.append("Society Evolution")
+    
+    # Always include Timeline
+    tab_names.append("Timeline")
+    
+    # Create tabs based on visible options
+    tabs = st.tabs(tab_names)
 
     # Get DataFrames
     agents_df = processed_data.get('agents_df', pd.DataFrame())
@@ -267,10 +408,14 @@ def create_dashboard(processed_data):
     songs_df = processed_data.get('songs_df', pd.DataFrame())
     inventions_df = processed_data.get('inventions_df', pd.DataFrame())
     action_counts_df = processed_data.get('action_counts_df', pd.DataFrame())
+    night_activities_df = processed_data.get('night_activities_df', pd.DataFrame())
     days = processed_data.get('days', [])
 
+    # Track the current tab index
+    tab_idx = 0
+
     # Overview Tab
-    with tabs[0]:
+    with tabs[tab_idx]:
         st.header("Mars Settlement Overview")
 
         col1, col2, col3 = st.columns(3)
@@ -337,119 +482,170 @@ def create_dashboard(processed_data):
             else:
                 st.write("No inventions recorded yet.")
 
-    # Agents Tab
-    with tabs[1]:
-        if show_agent_details:
+    tab_idx += 1
+    
+    # Agents Tab (only if enabled)
+    if show_agent_details:
+        with tabs[tab_idx]:
             st.header("Agent Analytics")
 
             # Agent selector
             agent_ids = sorted(agents_df['agent_id'].unique()) if not agents_df.empty else []
-            selected_agent = st.selectbox("Select Agent", agent_ids, format_func=lambda x:
-            agents_df[agents_df['agent_id'] == x]['agent_name'].iloc[0] if len(
-                agents_df[agents_df['agent_id'] == x]) > 0 else x)
+            
+            if agent_ids:
+                # Helper function to get agent name
+                def get_agent_name(agent_id):
+                    agent_data = agents_df[agents_df['agent_id'] == agent_id]
+                    return agent_data['agent_name'].iloc[0] if not agent_data.empty else agent_id
+                
+                selected_agent = st.selectbox("Select Agent", agent_ids, format_func=get_agent_name)
+                
+                if selected_agent:
+                    agent_data = agents_df[agents_df['agent_id'] == selected_agent]
+                    
+                    # Agent profile
+                    st.subheader(agent_data['agent_name'].iloc[0])
 
-            if selected_agent and not agents_df.empty:
-                agent_data = agents_df[agents_df['agent_id'] == selected_agent]
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Age (Days)", agent_data['age_days'].iloc[0])
+                    with col2:
+                        st.metric("Credits", f"{agent_data['credits'].iloc[-1]:.2f}")
+                    with col3:
+                        st.metric("Status", "Alive" if agent_data['is_alive'].iloc[0] else "Deceased")
 
-                # Agent profile
-                st.subheader(agent_data['agent_name'].iloc[0])
+                    # Needs over time chart
+                    st.subheader("Needs Over Time")
 
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Age (Days)", agent_data['age_days'].iloc[0])
-                with col2:
-                    st.metric("Credits", f"{agent_data['credits'].iloc[-1]:.2f}")
-                with col3:
-                    st.metric("Status", "Alive" if agent_data['is_alive'].iloc[0] else "Deceased")
+                    # Get needs columns
+                    needs_columns = [col for col in agent_data.columns if col.startswith('need_')]
 
-                # Needs over time chart
-                st.subheader("Needs Over Time")
+                    if needs_columns:
+                        # Prepare data for plotting
+                        needs_data = agent_data[['day'] + needs_columns].melt(
+                            id_vars=['day'],
+                            value_vars=needs_columns,
+                            var_name='need_type',
+                            value_name='value'
+                        )
+                        # Clean up need type names
+                        needs_data['need_type'] = needs_data['need_type'].str.replace('need_', '')
 
-                # Get needs columns
-                needs_columns = [col for col in agent_data.columns if col.startswith('need_')]
+                        # Create line chart
+                        fig = px.line(
+                            needs_data,
+                            x='day',
+                            y='value',
+                            color='need_type',
+                            title='Agent Needs Over Time',
+                            labels={'value': 'Need Level', 'need_type': 'Need Type'},
+                            color_discrete_map={'food': 'green', 'rest': 'blue', 'fun': 'orange'}
+                        )
+                        fig.update_layout(yaxis_range=[0, 1], height=400)
+                        st.plotly_chart(fig, use_container_width=True)
 
-                if needs_columns:
-                    # Prepare data for plotting
-                    needs_data = agent_data[['day'] + needs_columns].melt(
-                        id_vars=['day'],
-                        value_vars=needs_columns,
-                        var_name='need_type',
-                        value_name='value'
-                    )
-                    # Clean up need type names
-                    needs_data['need_type'] = needs_data['need_type'].str.replace('need_', '')
+                    # Actions breakdown
+                    if 'latest_action' in agent_data.columns:
+                        st.subheader("Actions Taken")
+                        action_counts = agent_data['latest_action'].value_counts().reset_index()
+                        action_counts.columns = ['Action', 'Count']
 
-                    # Create line chart
-                    fig = px.line(
-                        needs_data,
-                        x='day',
-                        y='value',
-                        color='need_type',
-                        title='Agent Needs Over Time',
-                        labels={'value': 'Need Level', 'need_type': 'Need Type'},
-                        color_discrete_map={'food': 'green', 'rest': 'blue', 'fun': 'orange'}
-                    )
-                    fig.update_layout(yaxis_range=[0, 1], height=400)
-                    st.plotly_chart(fig, use_container_width=True)
+                        fig = px.pie(
+                            action_counts,
+                            values='Count',
+                            names='Action',
+                            title='Agent Actions Breakdown'
+                        )
+                        fig.update_traces(textposition='inside', textinfo='percent+label')
+                        fig.update_layout(height=400)
+                        st.plotly_chart(fig, use_container_width=True)
 
-                # Actions breakdown
-                if 'latest_action' in agent_data.columns:
-                    st.subheader("Actions Taken")
-                    action_counts = agent_data['latest_action'].value_counts().reset_index()
-                    action_counts.columns = ['Action', 'Count']
+                    # Agent goods over time
+                    goods_columns = [col for col in agent_data.columns if col.startswith('goods_') and 'count' in col]
+                    if goods_columns:
+                        st.subheader("Goods Possessed Over Time")
 
-                    fig = px.pie(
-                        action_counts,
-                        values='Count',
-                        names='Action',
-                        title='Agent Actions Breakdown'
-                    )
-                    fig.update_traces(textposition='inside', textinfo='percent+label')
-                    fig.update_layout(height=400)
-                    st.plotly_chart(fig, use_container_width=True)
+                        # Prepare data for plotting
+                        goods_data = agent_data[['day'] + goods_columns].melt(
+                            id_vars=['day'],
+                            value_vars=goods_columns,
+                            var_name='good_type',
+                            value_name='count'
+                        )
+                        # Clean up good type names
+                        goods_data['good_type'] = goods_data['good_type'].str.replace('goods_', '').str.replace('_count',
+                                                                                                                '')
 
-                # Agent goods over time
-                goods_columns = [col for col in agent_data.columns if col.startswith('goods_') and 'count' in col]
-                if goods_columns:
-                    st.subheader("Goods Possessed Over Time")
+                        # Create line chart
+                        fig = px.line(
+                            goods_data,
+                            x='day',
+                            y='count',
+                            color='good_type',
+                            title='Agent Goods Over Time',
+                            labels={'count': 'Count', 'good_type': 'Good Type'}
+                        )
+                        fig.update_layout(height=400)
+                        st.plotly_chart(fig, use_container_width=True)
 
-                    # Prepare data for plotting
-                    goods_data = agent_data[['day'] + goods_columns].melt(
-                        id_vars=['day'],
-                        value_vars=goods_columns,
-                        var_name='good_type',
-                        value_name='count'
-                    )
-                    # Clean up good type names
-                    goods_data['good_type'] = goods_data['good_type'].str.replace('goods_', '').str.replace('_count',
-                                                                                                            '')
+                    # Latest thoughts
+                    if 'latest_thoughts' in agent_data.columns:
+                        thoughts = agent_data.sort_values('day', ascending=False)['latest_thoughts'].iloc[0]
+                        if pd.notna(thoughts):
+                            st.subheader("Latest Thoughts")
+                            st.write(thoughts)
 
-                    # Create line chart
-                    fig = px.line(
-                        goods_data,
-                        x='day',
-                        y='count',
-                        color='good_type',
-                        title='Agent Goods Over Time',
-                        labels={'count': 'Count', 'good_type': 'Good Type'}
-                    )
-                    fig.update_layout(height=400)
-                    st.plotly_chart(fig, use_container_width=True)
-
-                # Latest thoughts
-                if 'latest_thoughts' in agent_data.columns:
-                    thoughts = agent_data.sort_values('day', ascending=False)['latest_thoughts'].iloc[0]
-                    if pd.notna(thoughts):
-                        st.subheader("Latest Thoughts")
-                        st.write(thoughts)
+                    # After the agent's day actions section, add night activities
+                    if not night_activities_df.empty and 'agent_id' in night_activities_df.columns:
+                        agent_night_activities = night_activities_df[night_activities_df['agent_id'] == selected_agent]
+                        
+                        if not agent_night_activities.empty:
+                            st.subheader("Night Activities")
+                            
+                            # Display a table of night activities
+                            st.markdown("**Evening activities and social interactions**")
+                            
+                            # Create a more readable display table
+                            display_data = []
+                            for _, activity in agent_night_activities.iterrows():
+                                row = {
+                                    'Day': activity['day'],
+                                    'Activities': []
+                                }
+                                
+                                if 'song_choice' in activity and pd.notna(activity['song_choice']):
+                                    row['Activities'].append(f"Listened to '{activity['song_choice']}'")
+                                
+                                if 'sent_letters' in activity and activity['sent_letters'] > 0:
+                                    recipient_info = f" to {activity['letter_recipient']}" if 'letter_recipient' in activity and pd.notna(activity['letter_recipient']) else ""
+                                    row['Activities'].append(f"Sent letter{recipient_info}")
+                                
+                                if 'dinner_items' in activity and activity['dinner_items'] > 0:
+                                    dinner_quality = f" (Quality: {activity['avg_dinner_quality']:.2f})" if 'avg_dinner_quality' in activity and pd.notna(activity['avg_dinner_quality']) else ""
+                                    row['Activities'].append(f"Had dinner{dinner_quality}")
+                                
+                                # Join all activities for display
+                                row['Activity Summary'] = ", ".join(row['Activities']) if row['Activities'] else "No recorded activities"
+                                del row['Activities']  # Remove the list before displaying
+                                
+                                display_data.append(row)
+                            
+                            # Display as a dataframe
+                            if display_data:
+                                display_df = pd.DataFrame(display_data)
+                                st.dataframe(display_df)
+                            else:
+                                st.info("No night activities recorded for this agent.")
+                else:
+                    st.write("No agent selected.")
             else:
                 st.write("No agent data available.")
-        else:
-            st.info("Enable 'Show Agent Details' in the sidebar to view agent analytics.")
-
-    # Economy Tab
-    with tabs[2]:
-        if show_economy:
+                
+        tab_idx += 1
+    
+    # Economy Tab (only if enabled)
+    if show_economy:
+        with tabs[tab_idx]:
             st.header("Economic Analytics")
 
             # Market activity
@@ -556,12 +752,11 @@ def create_dashboard(processed_data):
                     st.plotly_chart(fig, use_container_width=True)
             else:
                 st.write("No economic data available.")
-        else:
-            st.info("Enable 'Show Economy' in the sidebar to view economic analytics.")
-
-    # Culture Tab
-    with tabs[3]:
-        if show_culture:
+        tab_idx += 1
+    
+    # Culture Tab (only if enabled)
+    if show_culture:
+        with tabs[tab_idx]:
             st.header("Cultural Analytics")
 
             col1, col2 = st.columns(2)
@@ -705,11 +900,129 @@ def create_dashboard(processed_data):
                         f"Day {song['day']}: '{song['title']}' by {song['composer_name']} ({song['genre']}, {song['bpm']} BPM)")
             else:
                 st.write("No song data available yet.")
-        else:
-            st.info("Enable 'Show Culture' in the sidebar to view cultural analytics.")
-
-    # Society Evolution Tab
-    with tabs[4]:
+        tab_idx += 1
+    
+    # Night Activities Tab (only if enabled)
+    if show_night:
+        with tabs[tab_idx]:
+            st.header("Night Activities Analysis")
+            
+            if not night_activities_df.empty:
+                # Activity statistics
+                st.subheader("Social Interactions")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Letters sent over time
+                    if 'sent_letters' in night_activities_df.columns:
+                        letters_by_day = night_activities_df.groupby('day')['sent_letters'].sum().reset_index()
+                        
+                        fig = px.line(
+                            letters_by_day,
+                            x='day',
+                            y='sent_letters',
+                            title='Letters Sent Over Time',
+                            labels={'sent_letters': 'Number of Letters', 'day': 'Day'}
+                        )
+                        fig.update_layout(height=300)
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        # Top letter senders
+                        if 'sent_letters' in night_activities_df.columns:
+                            letter_senders = night_activities_df.groupby('agent_name')['sent_letters'].sum().reset_index()
+                            letter_senders = letter_senders.sort_values('sent_letters', ascending=False).head(5)
+                            
+                            fig = px.bar(
+                                letter_senders,
+                                x='agent_name',
+                                y='sent_letters',
+                                title='Top Letter Senders',
+                                labels={'sent_letters': 'Letters Sent', 'agent_name': 'Agent'}
+                            )
+                            fig.update_layout(height=300)
+                            st.plotly_chart(fig, use_container_width=True)
+                
+                with col2:
+                    # Song listening over time
+                    if 'song_choice' in night_activities_df.columns:
+                        songs_by_day = night_activities_df['song_choice'].notna().groupby(night_activities_df['day']).sum().reset_index()
+                        songs_by_day.columns = ['day', 'songs_listened']
+                        
+                        fig = px.line(
+                            songs_by_day,
+                            x='day',
+                            y='songs_listened',
+                            title='Songs Listened Over Time',
+                            labels={'songs_listened': 'Number of Songs', 'day': 'Day'}
+                        )
+                        fig.update_layout(height=300)
+                        st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Dinner quality over time
+                    if 'avg_dinner_quality' in night_activities_df.columns:
+                        dinner_quality_by_day = night_activities_df.groupby('day')['avg_dinner_quality'].mean().reset_index()
+                        
+                        fig = px.line(
+                            dinner_quality_by_day,
+                            x='day',
+                            y='avg_dinner_quality',
+                            title='Average Dinner Quality Over Time',
+                            labels={'avg_dinner_quality': 'Average Quality', 'day': 'Day'}
+                        )
+                        fig.update_layout(height=300, yaxis_range=[0, 1])
+                        st.plotly_chart(fig, use_container_width=True)
+                
+                # Most popular songs
+                if 'song_choice' in night_activities_df.columns:
+                    st.subheader("Popular Music")
+                    popular_songs = night_activities_df['song_choice'].value_counts().reset_index()
+                    popular_songs.columns = ['Song', 'Times Listened']
+                    popular_songs = popular_songs.head(10)
+                    
+                    if not popular_songs.empty and len(popular_songs) > 0:
+                        fig = px.bar(
+                            popular_songs,
+                            x='Song',
+                            y='Times Listened',
+                            title='Most Popular Songs',
+                            labels={'Times Listened': 'Plays', 'Song': 'Song Title'}
+                        )
+                        fig.update_layout(height=400)
+                        st.plotly_chart(fig, use_container_width=True)
+                
+                # Recent night activities
+                st.subheader("Recent Night Activities")
+                recent = night_activities_df.sort_values('day', ascending=False).head(10)
+                
+                for _, activity in recent.iterrows():
+                    activity_details = []
+                    
+                    # Add details based on what information is available
+                    if 'song_choice' in activity and pd.notna(activity['song_choice']):
+                        activity_details.append(f"Listened to '{activity['song_choice']}'")
+                    
+                    if 'sent_letters' in activity and activity['sent_letters'] > 0:
+                        recipient_info = f" to {activity['letter_recipient']}" if 'letter_recipient' in activity and pd.notna(activity['letter_recipient']) else ""
+                        letter_title = f" titled '{activity['letter_title']}'" if 'letter_title' in activity and pd.notna(activity['letter_title']) else ""
+                        activity_details.append(f"Sent letter{recipient_info}{letter_title}")
+                    
+                    if 'dinner_items' in activity and activity['dinner_items'] > 0:
+                        dinner_quality = f" (Quality: {activity['avg_dinner_quality']:.2f})" if 'avg_dinner_quality' in activity and pd.notna(activity['avg_dinner_quality']) else ""
+                        activity_details.append(f"Had dinner with {activity['dinner_items']} items{dinner_quality}")
+                    
+                    # Format the output with expander for details
+                    with st.expander(f"Day {activity['day']}: {activity['agent_name']}"):
+                        if activity_details:
+                            for detail in activity_details:
+                                st.write(f"• {detail}")
+                        else:
+                            st.write("No detailed activities recorded")
+            else:
+                st.info("No night activities data available. Enable night activities in your simulation to see this data.")
+    
+    # Society Evolution Tab (now tab 5 instead of 4)
+    with tabs[5]:
         if show_society:
             st.header("Society Evolution")
 
@@ -975,19 +1288,296 @@ def create_dashboard(processed_data):
         else:
             st.info("Enable 'Show Society Evolution' in the sidebar to view societal analytics.")
 
+    # Timeline Tab (always included, so no if check needed)
+    with tabs[tab_idx]:
+        st.header("Simulation Timeline")
+        
+        if days:
+            # Day selector
+            min_day = min(days)
+            max_day = max(days)
+            selected_day = st.slider("Select Day", min_value=min_day, max_value=max_day, value=max_day)
+            
+            # Display a timeline of events for the selected day
+            st.subheader(f"Day {selected_day} Events")
+            
+            col1, col2, col3 = st.columns([1, 1, 1])
+            
+            with col1:
+                # Display agent metrics for this day
+                if not agents_df.empty:
+                    day_agents = agents_df[agents_df['day'] == selected_day]
+                    
+                    st.metric("Active Agents", len(day_agents))
+                    
+                    # Check if need columns exist
+                    need_cols = [col for col in day_agents.columns if col.startswith('need_')]
+                    if need_cols:
+                        avg_needs = {}
+                        for col in need_cols:
+                            need_name = col.replace('need_', '').capitalize()
+                            avg_needs[need_name] = day_agents[col].mean()
+                        
+                        # Display needs in a nice format
+                        st.subheader("Average Needs")
+                        for need, value in avg_needs.items():
+                            st.progress(value)
+                            st.caption(f"{need}: {value:.2f}")
+            
+            with col2:
+                # Show actions taken on this day
+                if not action_counts_df.empty:
+                    day_actions = action_counts_df[action_counts_df['day'] == selected_day]
+                    
+                    if not day_actions.empty:
+                        st.subheader("Actions Taken")
+                        
+                        fig = px.pie(
+                            day_actions,
+                            values='count',
+                            names='latest_action',
+                            title=f'Day {selected_day} Actions'
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+            
+            with col3:
+                # Show creative output for this day
+                creative_count = 0
+                creative_items = []
+                
+                # Count ideas
+                if not ideas_df.empty:
+                    day_ideas = ideas_df[ideas_df['day'] == selected_day]
+                    idea_count = len(day_ideas)
+                    creative_count += idea_count
+                    if idea_count > 0:
+                        creative_items.append(f"{idea_count} ideas")
+                
+                # Count songs
+                if not songs_df.empty:
+                    day_songs = songs_df[songs_df['day'] == selected_day]
+                    song_count = len(day_songs)
+                    creative_count += song_count
+                    if song_count > 0:
+                        creative_items.append(f"{song_count} songs")
+                
+                # Count inventions
+                if not inventions_df.empty:
+                    day_inventions = inventions_df[inventions_df['day'] == selected_day]
+                    invention_count = len(day_inventions)
+                    creative_count += invention_count
+                    if invention_count > 0:
+                        creative_items.append(f"{invention_count} inventions")
+                
+                st.metric("Creative Outputs", creative_count)
+                if creative_items:
+                    st.write(", ".join(creative_items))
+            
+            # Create a detailed timeline of the day's events
+            st.subheader("Day Detail Timeline")
+            
+            # Combine all events for this day into a single timeline
+            timeline_events = []
+            
+            # Add agent actions
+            if not agents_df.empty and 'latest_action' in agents_df.columns:
+                day_agent_actions = agents_df[agents_df['day'] == selected_day]
+                for _, agent in day_agent_actions.iterrows():
+                    if pd.notna(agent.get('latest_action')):
+                        event = {
+                            'time': 'Day',
+                            'agent': agent['agent_name'],
+                            'event_type': agent['latest_action'],
+                            'description': f"{agent['agent_name']} performed {agent['latest_action']}"
+                        }
+                        
+                        # Add thoughts if available
+                        if 'latest_thoughts' in agent and pd.notna(agent['latest_thoughts']):
+                            event['details'] = agent['latest_thoughts']
+                        
+                        timeline_events.append(event)
+            
+            # Add ideas
+            if not ideas_df.empty:
+                day_ideas = ideas_df[ideas_df['day'] == selected_day]
+                for _, idea in day_ideas.iterrows():
+                    event = {
+                        'time': 'Day',
+                        'agent': idea['agent_name'],
+                        'event_type': 'IDEA',
+                        'description': f"{idea['agent_name']} had an idea",
+                        'details': idea['idea_text']
+                    }
+                    timeline_events.append(event)
+            
+            # Add songs
+            if not songs_df.empty:
+                day_songs = songs_df[songs_df['day'] == selected_day]
+                for _, song in day_songs.iterrows():
+                    event = {
+                        'time': 'Day',
+                        'agent': song['composer_name'],
+                        'event_type': 'SONG',
+                        'description': f"{song['composer_name']} composed '{song['title']}' ({song['genre']})",
+                        'details': f"Genre: {song['genre']}, BPM: {song['bpm']}"
+                    }
+                    timeline_events.append(event)
+            
+            # Add inventions
+            if not inventions_df.empty:
+                day_inventions = inventions_df[inventions_df['day'] == selected_day]
+                for _, invention in day_inventions.iterrows():
+                    event = {
+                        'time': 'Day',
+                        'agent': invention['inventor_name'],
+                        'event_type': 'INVENTION',
+                        'description': f"{invention['inventor_name']} invented '{invention['invention_name']}'",
+                        'details': f"Type: {invention['invention_type']}, Quality: {invention['invention_quality']:.2f}"
+                    }
+                    timeline_events.append(event)
+            
+            # Add night activities
+            if not night_activities_df.empty:
+                day_night_activities = night_activities_df[night_activities_df['day'] == selected_day]
+                for _, activity in day_night_activities.iterrows():
+                    event_description = []
+                    event_details = []
+                    
+                    if 'song_choice' in activity and pd.notna(activity['song_choice']):
+                        event_description.append(f"listened to '{activity['song_choice']}'")
+                    
+                    if 'sent_letters' in activity and activity['sent_letters'] > 0:
+                        recipient_info = f" to {activity['letter_recipient']}" if 'letter_recipient' in activity and pd.notna(activity['letter_recipient']) else ""
+                        event_description.append(f"sent letter{recipient_info}")
+                        
+                        if 'letter_title' in activity and pd.notna(activity['letter_title']):
+                            event_details.append(f"Letter title: {activity['letter_title']}")
+                    
+                    if 'dinner_items' in activity and activity['dinner_items'] > 0:
+                        event_description.append("had dinner")
+                        
+                        if 'avg_dinner_quality' in activity and pd.notna(activity['avg_dinner_quality']):
+                            event_details.append(f"Dinner quality: {activity['avg_dinner_quality']:.2f}")
+                    
+                    if event_description:
+                        event = {
+                            'time': 'Night',
+                            'agent': activity['agent_name'],
+                            'event_type': 'NIGHT',
+                            'description': f"{activity['agent_name']} " + " and ".join(event_description),
+                            'details': "; ".join(event_details) if event_details else None
+                        }
+                        timeline_events.append(event)
+            
+            # Sort and display timeline events
+            if timeline_events:
+                # Sort by time (day/night) and then by agent name for readability
+                timeline_events.sort(key=lambda x: (0 if x['time'] == 'Day' else 1, x['agent']))
+                
+                # Display in an easy-to-read format
+                for event in timeline_events:
+                    with st.expander(f"**{event['time']}**: {event['description']}"):
+                        if 'details' in event and event['details']:
+                            st.write(event['details'])
+            else:
+                st.info(f"No recorded events for day {selected_day}")
+        else:
+            st.warning("No timeline data available.")
+
 
 # Main function
 def main():
-    # Load data
-    data = load_settlement_data(data_dir)
+    """Main function to run the Streamlit dashboard"""
+    
+    # Check if refresh button was clicked
+    if st.session_state.get('refresh_clicked', False):
+        # Clear cached data to force reload
+        load_settlement_data.clear()
+        st.session_state['refresh_clicked'] = False
+        st.success("Data refreshed successfully!")
+    
+    # Track refresh button click
+    if 'refresh_clicked' not in st.session_state:
+        st.session_state['refresh_clicked'] = False
+    
+    # Handle refresh button click
+    if refresh_data:
+        st.session_state['refresh_clicked'] = True
+        st.experimental_rerun()
+    
+    # Load data with loading indicator
+    with st.spinner("Loading settlement data..."):
+        data = load_settlement_data(data_dir)
 
     if not data:
         st.error("No data files found. Please check the data directory.")
         return
 
-    # Process data
-    processed_data = process_settlement_data(data)
+    # Process data with loading indicator
+    with st.spinner("Processing data..."):
+        processed_data = process_settlement_data(data)
 
+    # Setup data download in sidebar
+    with st.sidebar:
+        st.subheader("Data Export")
+        
+        # Only show download buttons if we have data
+        if processed_data:
+            # Create tabs for different data types to download
+            download_tabs = st.tabs(["Agents", "Economy", "Culture"])
+            
+            with download_tabs[0]:
+                if not processed_data.get('agents_df', pd.DataFrame()).empty:
+                    csv = processed_data['agents_df'].to_csv(index=False)
+                    st.download_button(
+                        label="Download Agent Data",
+                        data=csv,
+                        file_name="agent_data.csv",
+                        mime="text/csv",
+                    )
+            
+            with download_tabs[1]:
+                if not processed_data.get('market_df', pd.DataFrame()).empty:
+                    csv = processed_data['market_df'].to_csv(index=False)
+                    st.download_button(
+                        label="Download Market Data",
+                        data=csv,
+                        file_name="market_data.csv",
+                        mime="text/csv",
+                    )
+            
+            with download_tabs[2]:
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    if not processed_data.get('ideas_df', pd.DataFrame()).empty:
+                        csv = processed_data['ideas_df'].to_csv(index=False)
+                        st.download_button(
+                            label="Download Ideas",
+                            data=csv,
+                            file_name="ideas_data.csv",
+                            mime="text/csv",
+                        )
+                
+                with col2:
+                    if not processed_data.get('songs_df', pd.DataFrame()).empty:
+                        csv = processed_data['songs_df'].to_csv(index=False)
+                        st.download_button(
+                            label="Download Songs",
+                            data=csv,
+                            file_name="songs_data.csv",
+                            mime="text/csv",
+                        )
+                
+                if not processed_data.get('inventions_df', pd.DataFrame()).empty:
+                    csv = processed_data['inventions_df'].to_csv(index=False)
+                    st.download_button(
+                        label="Download Inventions",
+                        data=csv,
+                        file_name="inventions_data.csv",
+                        mime="text/csv",
+                    )
+    
     # Create dashboard
     create_dashboard(processed_data)
 

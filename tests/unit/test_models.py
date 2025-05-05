@@ -5,7 +5,7 @@ import unittest
 
 from src.models import (
     Agent, AgentPersonality, AgentNeeds, Good, GoodType,
-    GlobalMarket
+    GlobalMarket, Song, SongBook
 )
 
 
@@ -85,6 +85,105 @@ class TestModels(unittest.TestCase):
         removed = market.remove_listing(listing.id)
         self.assertTrue(removed)
         self.assertEqual(len(market.listings), 0)
+
+
+class TestSongGenerator(unittest.TestCase):
+    """Test the Song model and SongBook functionality used by the Song Generator."""
+    
+    def setUp(self):
+        """Set up test data."""
+        self.dummy_agent = Agent(
+            name="Test Agent",
+            age=30,
+            personality=AgentPersonality(),
+            needs=AgentNeeds()
+        )
+        
+    def test_song_creation(self):
+        """Test creating a Song object with different parameters."""
+        # Test with minimal parameters
+        song1 = Song(title="Test Song")
+        self.assertEqual(song1.title, "Test Song")
+        self.assertEqual(song1.genre, "Electronica")  # Default genre
+        self.assertEqual(song1.bpm, 113)  # Default BPM
+        self.assertEqual(song1.tags, [])  # Default empty tags
+        
+        # Test with all parameters
+        song2 = Song(
+            title="Full Song",
+            genre="Cyberpunk",
+            bpm=140,
+            tags=["neon", "synth", "futuristic"],
+            description="A test song with all parameters"
+        )
+        self.assertEqual(song2.title, "Full Song")
+        self.assertEqual(song2.genre, "Cyberpunk")
+        self.assertEqual(song2.bpm, 140)
+        self.assertEqual(song2.tags, ["neon", "synth", "futuristic"])
+        self.assertEqual(song2.description, "A test song with all parameters")
+        
+    def test_songbook_functionality(self):
+        """Test the SongBook's ability to store songs by day."""
+        songbook = SongBook()
+        
+        # Add songs for different days
+        song1 = Song(title="Day 1 Song", genre="Ambient")
+        song2 = Song(title="Day 2 Song", genre="Techno")
+        song3 = Song(title="Day 2 Song 2", genre="Synthwave")
+        
+        songbook.add_song(self.dummy_agent, song1, 1)
+        songbook.add_song(self.dummy_agent, song2, 2)
+        songbook.add_song(self.dummy_agent, song3, 2)
+        
+        # Test length
+        self.assertEqual(len(songbook), 3)
+        
+        # Test getting songs by day
+        day1_songs = songbook.day(1)
+        day2_songs = songbook.day(2)
+        
+        self.assertEqual(len(day1_songs), 1)
+        self.assertEqual(len(day2_songs), 2)
+        self.assertEqual(day1_songs[0].song.title, "Day 1 Song")
+        self.assertEqual(day2_songs[0].song.title, "Day 2 Song")
+        self.assertEqual(day2_songs[1].song.title, "Day 2 Song 2")
+        
+        # Test genres are tracked
+        self.assertIn("Ambient", songbook.genres)
+        self.assertIn("Techno", songbook.genres)
+        self.assertIn("Synthwave", songbook.genres)
+        self.assertEqual(len(songbook.genres), 3)
+        
+        # Test non-existent day returns empty list
+        self.assertEqual(songbook.day(999), [])
+        
+    def test_song_string_representation(self):
+        """Test the string representation of a Song object."""
+        # Test without tags and description
+        song1 = Song(title="Basic Song", genre="Techno", bpm=120)
+        expected_str1 = "'Basic Song' (Techno, 120 BPM)"
+        self.assertEqual(str(song1), expected_str1)
+        
+        # Test with tags but no description
+        song2 = Song(
+            title="Tagged Song", 
+            genre="Ambient", 
+            bpm=90, 
+            tags=["chill", "relaxing"]
+        )
+        expected_str2 = "'Tagged Song' (Ambient, 90 BPM) [chill, relaxing]"
+        self.assertEqual(str(song2), expected_str2)
+        
+        # Test with tags and description
+        song3 = Song(
+            title="Full Song", 
+            genre="Synthwave", 
+            bpm=110,
+            tags=["retro", "80s", "synth"],
+            description="A nostalgic synthwave track"
+        )
+        expected_str3 = "'Full Song' (Synthwave, 110 BPM) [retro, 80s, synth] - A nostalgic synthwave track"
+        self.assertEqual(str(song3), expected_str3)
 
 
 if __name__ == '__main__':

@@ -5,37 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="cd0a6fa9-59ac-4f67-a548-a6ea9a9a0846" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/frontends/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/routes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/routes/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/routes/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/routes/agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/routes/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/routes/simulation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/simulation_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/simulation_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/engine/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/engine/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/simulation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontends/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontends/frontend_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/frontends/frontend_base.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontends/gui.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/frontends/gui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontends/headless.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/frontends/headless.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/historian.py" beforeDir="false" afterPath="$PROJECT_DIR$/historian.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/simulation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/generators.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/generators.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/models.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/narrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/narrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/scribe.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/scribe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/engine/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/engine/simulation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/frontends/headless.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/frontends/headless.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/simulation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/simulation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/simulation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/api/test_agent_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/api/test_agent_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/api/test_simulation_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/api/test_simulation_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/frontends/test_frontend_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/frontends/test_frontend_base.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/frontends/test_gradio_frontend.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/frontends/test_gradio_frontend.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/unit/test_simulation_stage.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/unit/test_simulation_stage.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -299,7 +274,7 @@
       <workItem from="1746300134002" duration="724000" />
       <workItem from="1746301134072" duration="71000" />
       <workItem from="1746301210340" duration="51000" />
-      <workItem from="1746301268749" duration="7839000" />
+      <workItem from="1746301268749" duration="9287000" />
     </task>
     <servers />
   </component>
@@ -326,19 +301,34 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/historian.py</url>
-          <line>214</line>
+          <line>287</line>
           <option name="timeStamp" value="94" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/historian.py</url>
-          <line>109</line>
+          <line>168</line>
           <option name="timeStamp" value="111" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/historian.py</url>
+          <line>1577</line>
+          <option name="timeStamp" value="113" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/historian.py</url>
+          <line>1578</line>
+          <option name="timeStamp" value="119" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/historian.py</url>
+          <line>598</line>
+          <option name="timeStamp" value="123" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/ProtoNomia$historian.coverage" NAME="historian Coverage Results" MODIFIED="1746379926215" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/ProtoNomia$historian.coverage" NAME="historian Coverage Results" MODIFIED="1746381818015" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/ProtoNomia$models.coverage" NAME="models Coverage Results" MODIFIED="1745487461597" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
     <SUITE FILE_PATH="coverage/ProtoNomia$API.coverage" NAME="API Coverage Results" MODIFIED="1746302654373" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/ProtoNomia$simulation.coverage" NAME="simulation Coverage Results" MODIFIED="1746281023301" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
