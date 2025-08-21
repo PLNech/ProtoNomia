@@ -1,6 +1,6 @@
 # ProtoNomia 🌃🏢🪐🪙🫧
 
-Mars colony economic simulation with LLM-powered agents.
+Mars settlement economic simulation with LLM-powered agents.
 
 ----
 ![image](https://github.com/user-attachments/assets/097827eb-556b-46b2-bfb7-5d81198f64a1)
